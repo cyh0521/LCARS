@@ -1073,7 +1073,7 @@
 
       const finish = async (save) => {
         document.removeEventListener('keydown', onKey);
-        overlay.remove();
+        closeOverlay(overlay);
         if (save) {
           const clean = String(nameInput.value).trim();
           if (clean) tab.name = clean.slice(0, 32);
@@ -1101,7 +1101,7 @@
       };
       cancelBtn.addEventListener('click', () => finish(false));
       okBtn.addEventListener('click',     () => finish(true));
-      overlay.addEventListener('click', ev => { if (ev.target === overlay) finish(false); });
+      overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) finish(false); });
       document.addEventListener('keydown', onKey);
 
       footer.appendChild(cancelBtn);
@@ -1110,7 +1110,7 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => nameInput.focus());
     });
   }

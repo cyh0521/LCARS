@@ -417,12 +417,26 @@
   // LCARS-styled text prompt — replaces native prompt() so user input
   // (e.g. naming a finance tab) feels native to the rest of the UI.
   // Resolves with the trimmed string the user entered, or null on cancel.
+  /* ── Modal overlay helpers ───────────────────────────────────
+     openOverlay(el)  : append to body, lock background scroll
+     closeOverlay(el) : remove from DOM, restore scroll if no
+                        other overlays remain                   */
+  let _scrollLockCount = 0;
+  function openOverlay(el) {
+    document.body.appendChild(el);
+    _scrollLockCount++;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeOverlay(el) {
+    el.remove();
+    _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+    if (_scrollLockCount === 0) document.body.style.overflow = '';
+  }
+
   function lcarsPrompt(opts) {
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'alert-overlay';
-      // Sit above any other overlay currently mounted (same logic as
-      // lcarsConfirm — see comments there).
       let topZ = 10000;
       document.querySelectorAll('.alert-overlay').forEach(o => {
         const z = parseInt(o.style.zIndex || getComputedStyle(o).zIndex) || 0;
@@ -445,7 +459,6 @@
 
       const body = document.createElement('div');
       body.className = 'alert-body';
-      // Override the global pre-wrap so labels + input lay out cleanly
       body.style.whiteSpace = 'normal';
       body.style.padding = '20px 24px';
 
@@ -480,7 +493,7 @@
 
       const finish = (result) => {
         document.removeEventListener('keydown', onKey);
-        overlay.remove();
+        closeOverlay(overlay);
         beep(result === null ? 380 : 540);
         resolve(result);
       };
@@ -491,7 +504,7 @@
 
       cancelBtn.addEventListener('click', () => finish(null));
       okBtn.addEventListener('click', () => finish(input.value));
-      overlay.addEventListener('click', ev => {
+      overlay.addEventListener('mousedown', ev => {
         if (ev.target === overlay) finish(null);
       });
       document.addEventListener('keydown', onKey);
@@ -502,10 +515,8 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
 
-      // Focus + select existing text so users can immediately overwrite or
-      // edit. Microtask timing matters — the input must be in the DOM first.
       requestAnimationFrame(() => {
         input.focus();
         input.select();
@@ -515,12 +526,6 @@
 
   function lcarsConfirm(opts) {
     return new Promise(resolve => {
-      // Confirm dialogs use their own overlay so they stack correctly
-      // alongside any active reminder alerts. Dynamically pick a z-index
-      // that's higher than any other overlay currently mounted, so when
-      // confirm() is called from inside another modal (e.g. the episode
-      // editor sits at z=10001) the confirm dialog renders ON TOP of it
-      // and stays clickable.
       const overlay = document.createElement('div');
       overlay.className = 'alert-overlay';
       let topZ = 10000;
@@ -559,7 +564,7 @@
 
       const finish = (result) => {
         document.removeEventListener('keydown', onKey);
-        overlay.remove();
+        closeOverlay(overlay);
         beep(result ? 540 : 380);
         resolve(result);
       };
@@ -570,15 +575,11 @@
 
       cancelBtn.addEventListener('click', () => finish(false));
       okBtn.addEventListener('click', () => finish(true));
-      // Click on backdrop = cancel (only when clicking the overlay itself,
-      // not when bubbling from the card)
-      overlay.addEventListener('click', (ev) => {
+      overlay.addEventListener('mousedown', (ev) => {
         if (ev.target === overlay) finish(false);
       });
       document.addEventListener('keydown', onKey);
 
-      // Pass cancelLabel: '' (empty string) to render a single-button info
-      // dialog. The OK button still acknowledges; backdrop / Esc still close.
       const singleButton = (opts.cancelLabel === '');
       if (!singleButton) footer.appendChild(cancelBtn);
       footer.appendChild(okBtn);
@@ -586,11 +587,8 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
 
-      // Focus the OK button so Enter accepts. For destructive actions,
-      // focusing cancel would be safer — but Enter is also bound to OK
-      // above, so we keep visual focus on the action the user came for.
       requestAnimationFrame(() => okBtn.focus());
     });
   }

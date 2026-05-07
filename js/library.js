@@ -734,14 +734,14 @@
 
     const close = () => {
       document.removeEventListener('keydown', onKey);
-      overlay.remove();
+      closeOverlay(overlay);
     };
     const onKey = (ev) => {
       if (ev.key === 'Escape') { ev.stopPropagation(); close(); }
     };
 
     cancelBtn.addEventListener('click', close);
-    overlay.addEventListener('click', ev => { if (ev.target === overlay) close(); });
+    overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) close(); });
     document.addEventListener('keydown', onKey);
 
     saveBtn.addEventListener('click', async () => {
@@ -812,7 +812,7 @@
     card.appendChild(body);
     card.appendChild(footer);
     stack.appendChild(card);
-    document.body.appendChild(overlay);
+    openOverlay(overlay);
     requestAnimationFrame(() => document.getElementById('ee-num')?.focus());
   }
 
@@ -920,7 +920,7 @@
     const closeBtn = document.createElement('button');
     closeBtn.className = 'alert-ok';
     closeBtn.textContent = t('libClose');
-    closeBtn.addEventListener('click', () => overlay.remove());
+    closeBtn.addEventListener('click', () => closeOverlay(overlay));
 
     const addBtn = document.createElement('button');
     addBtn.className = 'alert-ok';
@@ -941,8 +941,8 @@
     card.appendChild(body);
     card.appendChild(footer);
     stack.appendChild(card);
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeOverlay(overlay); });
+    openOverlay(overlay);
   }
 
   // ── Series ⋯ menu ─────────────────────────────────────────────────────────
@@ -1173,7 +1173,7 @@
 
       const close = (result) => {
         document.removeEventListener('keydown', onKey);
-        overlay.remove();
+        closeOverlay(overlay);
         resolve(result);
       };
       const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close(null); } };
@@ -1200,7 +1200,7 @@
         };
         close(result);
       });
-      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) close(null); });
+      overlay.addEventListener('mousedown', (ev) => { if (ev.target === overlay) close(null); });
       document.addEventListener('keydown', onKey);
 
       footer.appendChild(cancelBtn);
@@ -1209,7 +1209,7 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => document.getElementById('lf-title-orig')?.focus());
     });
   }
@@ -1353,7 +1353,7 @@
 
       const close = (val) => {
         document.removeEventListener('keydown', onKey);
-        overlay.remove();
+        closeOverlay(overlay);
         resolve(val);
       };
       const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close(null); } };
@@ -1370,7 +1370,7 @@
           status:         document.getElementById('as-status').value || 'PLANNED'
         });
       });
-      overlay.addEventListener('click', ev => { if (ev.target === overlay) close(null); });
+      overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) close(null); });
       document.addEventListener('keydown', onKey);
 
       footer.appendChild(cancelBtn);
@@ -1379,7 +1379,7 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => document.getElementById('as-num')?.focus());
     });
 
