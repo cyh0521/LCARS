@@ -888,7 +888,7 @@
       <tr>
         <td>${escapeHtml(r.code)}</td>
         <td><span class="ccy-badge ${r.tw ? 'twd' : 'usd'}">${r.tw ? 'TWD' : 'USD'}</span></td>
-        <td>${r.price != null ? fmtNum(r.price, r.dec) : '—'}</td>
+        <td>${r.price != null ? fmtNum(r.price, 2) : '—'}</td>
         <td>${fmtNum(r.shares, r.tw ? 0 : 2)}</td>
         <td>${fmtNum(r.cost, r.dec)}</td>
         <td>${r.value != null ? fmtNum(r.value, r.dec) : '—'}</td>
