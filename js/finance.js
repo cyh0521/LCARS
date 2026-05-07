@@ -652,23 +652,60 @@
   }
 
   /* ============================================================
-     PORTFOLIO — per-tab holdings stored in localStorage
+     PORTFOLIO — per-tab holdings stored in Google Sheet
+     via Apps Script Web App
      ============================================================ */
-  const PORTFOLIO_KEY = 'lcars_portfolio_v1';
+  const PORTFOLIO_API = 'https://script.google.com/macros/s/AKfycbz14I2pnaZKMODgehIhtM2RroHUM0Do4OSDDSjZLt4zSA8RaJQfTKdtK2INlhEdKNf6/exec';
+  const PORTFOLIO_KEY = 'lcars_portfolio_v1'; // localStorage 作為本地快取
 
-  function loadPortfolio() {
+  // 本地快取 — 頁面內使用，避免每次操作都打 API
+  let _portfolioCache = null;
+
+  function loadPortfolioCache() {
     try { return JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || '{}'); } catch(e) { return {}; }
   }
-  function savePortfolio(data) {
+  function savePortfolioCache(data) {
     try { localStorage.setItem(PORTFOLIO_KEY, JSON.stringify(data)); } catch(e) {}
   }
-  function getTabHoldings(tabId) {
-    return loadPortfolio()[tabId] || {};
+
+  /* 啟動時從 Google Sheet 載入，覆蓋本地快取 */
+  async function fetchPortfolioFromSheet() {
+    try {
+      const res  = await fetch(PORTFOLIO_API);
+      const json = await res.json();
+      if (json.ok && json.data) {
+        _portfolioCache = json.data;
+        savePortfolioCache(_portfolioCache);
+      }
+    } catch(e) {
+      // 網路失敗時沿用 localStorage 快取
+      console.warn('[LCARS] Portfolio fetch failed, using local cache:', e);
+    }
+    if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
   }
-  function setTabHoldings(tabId, holdings) {
-    const all = loadPortfolio();
-    all[tabId] = holdings;
-    savePortfolio(all);
+
+  function getTabHoldings(tabId) {
+    if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
+    return _portfolioCache[tabId] || {};
+  }
+
+  /* 儲存某個 Tab 的持倉：先更新本地快取，再非同步寫入 Sheet */
+  async function setTabHoldings(tabId, holdings) {
+    if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
+    _portfolioCache[tabId] = holdings;
+    savePortfolioCache(_portfolioCache);
+
+    try {
+      const res  = await fetch(PORTFOLIO_API, {
+        method:  'POST',
+        headers: { 'Content-Type': 'text/plain' }, // Apps Script 需要 text/plain 才能讀 postData
+        body:    JSON.stringify({ tabId, holdings })
+      });
+      const json = await res.json();
+      if (!json.ok) console.warn('[LCARS] Portfolio save error:', json.error);
+    } catch(e) {
+      console.warn('[LCARS] Portfolio save failed (will retry on next edit):', e);
+    }
   }
 
   /* Colour palette — resolved hex so CSS variables work in inline SVG */
@@ -1008,7 +1045,7 @@
       okBtn.style.cssText = 'background:var(--lcars-blue);color:var(--lcars-bg)';
       okBtn.textContent = t('libSave');
 
-      const finish = (save) => {
+      const finish = async (save) => {
         document.removeEventListener('keydown', onKey);
         overlay.remove();
         if (save) {
@@ -1021,7 +1058,7 @@
             if (!isNaN(shares) && shares > 0)
               newHoldings[code] = { shares, cost: isNaN(cost) ? 0 : cost };
           });
-          setTabHoldings(tab.id, newHoldings);
+          await setTabHoldings(tab.id, newHoldings);
           saveFinanceTabs();
           renderFinanceTabs();
           beep(620);
@@ -1074,7 +1111,11 @@
 
   function initFinanceTabs() {
     loadFinanceTabs();
-    renderFinanceTabs();
+    renderFinanceTabs(); // 先用本地快取渲染，讓畫面立即出現
+    fetchPortfolioFromSheet().then(() => {
+      // Sheet 資料載入後重新渲染，更新持倉數字
+      if (currentFinanceTab !== FINANCE_WATCHLIST_ID) renderFinanceTabs();
+    });
     const bind = (id, fn) => {
       const btn = document.getElementById(id);
       if (btn) btn.addEventListener('click', fn);
