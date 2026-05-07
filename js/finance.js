@@ -498,6 +498,8 @@
   function saveFinanceTabs() {
     try { localStorage.setItem(FINANCE_TABS_KEY, JSON.stringify(financeTabs)); } catch(e) {}
     try { localStorage.setItem(FINANCE_CURRENT_TAB_KEY, currentFinanceTab); } catch(e) {}
+    // 非同步同步到 Sheet（不等待，失敗時本地快取仍有效）
+    syncToSheet(null);
   }
 
   function financeTabLabel(tab) {
@@ -652,14 +654,14 @@
   }
 
   /* ============================================================
-     PORTFOLIO — per-tab holdings stored in Google Sheet
-     via Apps Script Web App
+     PORTFOLIO + TABS — 統一存入 Google Sheet
+     工作表欄位：tabId | name | position | code | shares | cost
      ============================================================ */
   const PORTFOLIO_API = 'https://script.google.com/macros/s/AKfycbz14I2pnaZKMODgehIhtM2RroHUM0Do4OSDDSjZLt4zSA8RaJQfTKdtK2INlhEdKNf6/exec';
-  const PORTFOLIO_KEY = 'lcars_portfolio_v1'; // localStorage 作為本地快取
+  const PORTFOLIO_KEY  = 'lcars_portfolio_v1';   // holdings 本地快取
+  const FINANCE_TABS_KEY_REMOTE = 'lcars_finance_tabs_remote_v1'; // tabs 本地快取
 
-  // 本地快取 — 頁面內使用，避免每次操作都打 API
-  let _portfolioCache = null;
+  let _portfolioCache = null;  // { tabId: { code: { shares, cost } } }
 
   function loadPortfolioCache() {
     try { return JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || '{}'); } catch(e) { return {}; }
@@ -668,43 +670,67 @@
     try { localStorage.setItem(PORTFOLIO_KEY, JSON.stringify(data)); } catch(e) {}
   }
 
-  /* 啟動時從 Google Sheet 載入，覆蓋本地快取 */
-  async function fetchPortfolioFromSheet() {
-    try {
-      const res  = await fetch(PORTFOLIO_API);
-      const json = await res.json();
-      if (json.ok && json.data) {
-        _portfolioCache = json.data;
-        savePortfolioCache(_portfolioCache);
-      }
-    } catch(e) {
-      // 網路失敗時沿用 localStorage 快取
-      console.warn('[LCARS] Portfolio fetch failed, using local cache:', e);
-    }
-    if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
-  }
-
   function getTabHoldings(tabId) {
     if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
     return _portfolioCache[tabId] || {};
   }
 
-  /* 儲存某個 Tab 的持倉：先更新本地快取，再非同步寫入 Sheet */
-  async function setTabHoldings(tabId, holdings) {
-    if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
-    _portfolioCache[tabId] = holdings;
-    savePortfolioCache(_portfolioCache);
-
+  /* 啟動時從 Sheet 同步 tabs + holdings，成功後更新本地狀態並重繪 */
+  async function fetchFromSheet() {
     try {
+      const res  = await fetch(PORTFOLIO_API);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error);
+
+      // 更新 holdings 快取
+      _portfolioCache = json.holdings || {};
+      savePortfolioCache(_portfolioCache);
+
+      // 合併 tabs：以 Sheet 為主，保留 WATCHLIST，補上 locked 旗標
+      if (Array.isArray(json.tabs) && json.tabs.length > 0) {
+        const remoteTabs = json.tabs.map(t => ({
+          id: t.id, name: t.name, locked: false
+        }));
+        // 確保 WATCHLIST 永遠在第一位
+        const merged = [
+          { id: FINANCE_WATCHLIST_ID, name: 'WATCHLIST', locked: true },
+          ...remoteTabs.filter(t => t.id !== FINANCE_WATCHLIST_ID)
+        ];
+        financeTabs = sanitizeFinanceTabs(merged);
+        // 若目前選的 tab 不在清單裡，切回 WATCHLIST
+        if (!financeTabs.some(t => t.id === currentFinanceTab)) {
+          currentFinanceTab = FINANCE_WATCHLIST_ID;
+        }
+        // 寫回 localStorage 供下次離線使用
+        try { localStorage.setItem(FINANCE_TABS_KEY, JSON.stringify(financeTabs)); } catch(e) {}
+        renderFinanceTabs();
+      }
+    } catch(e) {
+      console.warn('[LCARS] Sheet sync failed, using local cache:', e);
+      if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
+    }
+  }
+
+  /* 儲存：先更新本地快取，再把完整狀態 POST 到 Sheet */
+  async function syncToSheet(updatedHoldings) {
+    if (updatedHoldings) {
+      _portfolioCache = updatedHoldings;
+      savePortfolioCache(_portfolioCache);
+    }
+    try {
+      const payload = {
+        tabs: financeTabs,
+        holdings: _portfolioCache || {}
+      };
       const res  = await fetch(PORTFOLIO_API, {
         method:  'POST',
-        headers: { 'Content-Type': 'text/plain' }, // Apps Script 需要 text/plain 才能讀 postData
-        body:    JSON.stringify({ tabId, holdings })
+        headers: { 'Content-Type': 'text/plain' },
+        body:    JSON.stringify(payload)
       });
       const json = await res.json();
-      if (!json.ok) console.warn('[LCARS] Portfolio save error:', json.error);
+      if (!json.ok) console.warn('[LCARS] Sheet sync error:', json.error);
     } catch(e) {
-      console.warn('[LCARS] Portfolio save failed (will retry on next edit):', e);
+      console.warn('[LCARS] Sheet sync failed (local cache preserved):', e);
     }
   }
 
@@ -1058,7 +1084,11 @@
             if (!isNaN(shares) && shares > 0)
               newHoldings[code] = { shares, cost: isNaN(cost) ? 0 : cost };
           });
-          await setTabHoldings(tab.id, newHoldings);
+          // 更新本地快取
+          if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
+          _portfolioCache[tab.id] = newHoldings;
+          savePortfolioCache(_portfolioCache);
+          // 更新 tabs + holdings 一起同步到 Sheet
           saveFinanceTabs();
           renderFinanceTabs();
           beep(620);
@@ -1111,11 +1141,9 @@
 
   function initFinanceTabs() {
     loadFinanceTabs();
-    renderFinanceTabs(); // 先用本地快取渲染，讓畫面立即出現
-    fetchPortfolioFromSheet().then(() => {
-      // Sheet 資料載入後重新渲染，更新持倉數字
-      if (currentFinanceTab !== FINANCE_WATCHLIST_ID) renderFinanceTabs();
-    });
+    if (!_portfolioCache) _portfolioCache = loadPortfolioCache();
+    renderFinanceTabs(); // 先用本地快取立即渲染
+    fetchFromSheet();    // 背景同步 Sheet，完成後自動重繪
     const bind = (id, fn) => {
       const btn = document.getElementById(id);
       if (btn) btn.addEventListener('click', fn);
