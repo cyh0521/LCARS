@@ -422,18 +422,50 @@
      closeOverlay(el) : remove from DOM, restore scroll if no
                         other overlays remain                   */
   let _scrollLockCount = 0;
+  let _savedScrollY = 0;
   function openOverlay(el) {
     document.body.appendChild(el);
     _scrollLockCount++;
-    document.body.style.overflow = 'hidden';
+    if (_scrollLockCount === 1) {
+      _savedScrollY = window.scrollY || window.pageYOffset || 0;
+      // Lock both html and body — different browsers fall back differently
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      // Defensive: pin body in place so wheel events on background can't scroll
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${_savedScrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+    }
   }
   function closeOverlay(el) {
     el.remove();
     _scrollLockCount = Math.max(0, _scrollLockCount - 1);
-    if (_scrollLockCount === 0) document.body.style.overflow = '';
+    if (_scrollLockCount === 0) {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      window.scrollTo(0, _savedScrollY);
+    }
+  }
+  /* Helper: install backdrop-close handler that ignores drags starting
+     inside the card and ending on the backdrop (e.g. text selection) */
+  function installBackdropClose(overlay, onClose) {
+    let downOnBackdrop = false;
+    overlay.addEventListener('mousedown', ev => {
+      downOnBackdrop = (ev.target === overlay);
+    });
+    overlay.addEventListener('mouseup', ev => {
+      if (downOnBackdrop && ev.target === overlay) onClose();
+      downOnBackdrop = false;
+    });
   }
   window.openOverlay  = openOverlay;
   window.closeOverlay = closeOverlay;
+  window.installBackdropClose = installBackdropClose;
 
   function lcarsPrompt(opts) {
     return new Promise(resolve => {
@@ -506,9 +538,7 @@
 
       cancelBtn.addEventListener('click', () => finish(null));
       okBtn.addEventListener('click', () => finish(input.value));
-      overlay.addEventListener('mousedown', ev => {
-        if (ev.target === overlay) finish(null);
-      });
+      installBackdropClose(overlay, () => finish(null));
       document.addEventListener('keydown', onKey);
 
       footer.appendChild(cancelBtn);
@@ -577,9 +607,7 @@
 
       cancelBtn.addEventListener('click', () => finish(false));
       okBtn.addEventListener('click', () => finish(true));
-      overlay.addEventListener('mousedown', (ev) => {
-        if (ev.target === overlay) finish(false);
-      });
+      installBackdropClose(overlay, () => finish(false));
       document.addEventListener('keydown', onKey);
 
       const singleButton = (opts.cancelLabel === '');

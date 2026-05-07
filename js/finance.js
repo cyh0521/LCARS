@@ -1101,7 +1101,7 @@
       };
       cancelBtn.addEventListener('click', () => finish(false));
       okBtn.addEventListener('click',     () => finish(true));
-      overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) finish(false); });
+      installBackdropClose(overlay, () => finish(false));
       document.addEventListener('keydown', onKey);
 
       footer.appendChild(cancelBtn);

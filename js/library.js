@@ -741,7 +741,7 @@
     };
 
     cancelBtn.addEventListener('click', close);
-    overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) close(); });
+    installBackdropClose(overlay, () => close());
     document.addEventListener('keydown', onKey);
 
     saveBtn.addEventListener('click', async () => {
@@ -941,7 +941,7 @@
     card.appendChild(body);
     card.appendChild(footer);
     stack.appendChild(card);
-    overlay.addEventListener('mousedown', e => { if (e.target === overlay) closeOverlay(overlay); });
+    installBackdropClose(overlay, () => closeOverlay(overlay));
     openOverlay(overlay);
   }
 
@@ -1200,7 +1200,7 @@
         };
         close(result);
       });
-      overlay.addEventListener('mousedown', (ev) => { if (ev.target === overlay) close(null); });
+      installBackdropClose(overlay, () => close(null));
       document.addEventListener('keydown', onKey);
 
       footer.appendChild(cancelBtn);
@@ -1370,7 +1370,7 @@
           status:         document.getElementById('as-status').value || 'PLANNED'
         });
       });
-      overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) close(null); });
+      installBackdropClose(overlay, () => close(null));
       document.addEventListener('keydown', onKey);
 
       footer.appendChild(cancelBtn);
