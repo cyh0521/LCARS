@@ -432,6 +432,8 @@
     _scrollLockCount = Math.max(0, _scrollLockCount - 1);
     if (_scrollLockCount === 0) document.body.style.overflow = '';
   }
+  window.openOverlay  = openOverlay;
+  window.closeOverlay = closeOverlay;
 
   function lcarsPrompt(opts) {
     return new Promise(resolve => {

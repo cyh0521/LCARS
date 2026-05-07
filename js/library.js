@@ -941,7 +941,7 @@
     card.appendChild(body);
     card.appendChild(footer);
     stack.appendChild(card);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeOverlay(overlay); });
+    overlay.addEventListener('mousedown', e => { if (e.target === overlay) closeOverlay(overlay); });
     openOverlay(overlay);
   }
 
