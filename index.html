@@ -10,7 +10,7 @@
      Picard-era palette (deep navy base, refined accents)
      ============================================================ */
 
-  @import url('https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oxanium:wght@400;500;600&display=swap');
 
   :root {
     /* Picard-era LCARS palette — deep, refined */
@@ -562,8 +562,8 @@
   }
   .ticker-head { padding-right: 24px; }
   .ticker-sym {
-    font-family: 'Antonio', sans-serif;
-    font-weight: 700;
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 600;
     color: var(--lcars-orange);
     letter-spacing: 0.08em;
     font-size: 15px;
@@ -571,6 +571,7 @@
   /* Name on its own line, dim, smaller */
   .ticker-name {
     color: var(--lcars-cream);
+    font-family: 'Oxanium', sans-serif;
     font-size: 10px;
     letter-spacing: 0.05em;
     opacity: 0.7;
@@ -580,11 +581,11 @@
   }
   /* Price big at the bottom-left */
   .ticker-price {
-    font-family: 'Antonio', sans-serif;
+    font-family: 'Oxanium', sans-serif;
     color: var(--lcars-text);
     font-variant-numeric: tabular-nums;
     font-size: 22px;
-    font-weight: 700;
+    font-weight: 600;
     margin-top: 2px;
     letter-spacing: 0.02em;
   }
@@ -597,10 +598,10 @@
   }
   /* Change as a small pill in top-right */
   .ticker-change {
-    font-family: 'Antonio', sans-serif;
+    font-family: 'Oxanium', sans-serif;
     font-size: 12px;
     font-variant-numeric: tabular-nums;
-    font-weight: 700;
+    font-weight: 600;
     padding: 2px 8px;
     border-radius: var(--radius-pill);
     white-space: nowrap;
@@ -1050,6 +1051,100 @@
     letter-spacing: 0.1em;
     opacity: 0.7;
     text-transform: uppercase;
+  }
+
+  /* ============================================================
+     MLB STANDINGS
+     ============================================================ */
+  .standings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .standings-division {
+    background: var(--lcars-bg2, rgba(255,255,255,0.04));
+    border: 1px solid var(--lcars-muted);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .standings-div-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: var(--lcars-gold);
+    background: rgba(255,255,255,0.04);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--lcars-muted);
+  }
+  .standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+  }
+  .standings-table th,
+  .standings-table td {
+    padding: 5px 4px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .standings-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    border-bottom: 1px solid var(--lcars-muted);
+  }
+  .standings-table th.st-team-col,
+  .standings-table td.st-team-col {
+    text-align: left;
+    padding-left: 8px;
+    width: 44%;
+  }
+  .standings-table td {
+    color: var(--lcars-text);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .standings-table td.st-pct { color: var(--lcars-text); }
+  .standings-table td.st-strk { color: var(--lcars-blue); font-size: 11px; }
+  .standings-table tr.st-leader .st-pct { color: var(--lcars-orange); }
+  .standings-table tr.st-leader .st-name { color: var(--lcars-orange); }
+  .st-team-col {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  /* fix: td content not flex by default — use inner flex wrapper */
+  .standings-table td.st-team-col {
+    display: table-cell; /* override if needed */
+  }
+  .standings-table td.st-team-col > .st-logo,
+  .standings-table td.st-team-col > .st-name { display: inline; vertical-align: middle; }
+  .st-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 5px;
+    background: #fff;
+    padding: 1px;
+    box-sizing: border-box;
+  }
+  .st-name {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (max-width: 600px) {
+    .standings-grid { grid-template-columns: 1fr; }
   }
 
   /* ============================================================
@@ -2458,14 +2553,14 @@
   .portfolio-table {
     width: 100%;
     border-collapse: collapse;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
     color: var(--lcars-text);
   }
   .portfolio-table th {
-    font-family: 'Antonio', sans-serif;
+    font-family: 'Oxanium', sans-serif;
     font-size: 10px;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.1em;
     color: var(--lcars-cream);
     opacity: 0.65;
     text-align: right;
@@ -2482,13 +2577,14 @@
     border-bottom: 1px solid rgba(255,255,255,0.04);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
   }
   .portfolio-table td:first-child {
     text-align: left;
     padding-left: 0;
-    font-family: 'Antonio', sans-serif;
+    font-family: 'Oxanium', sans-serif;
     font-size: 13px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.06em;
     color: var(--lcars-cream);
   }
   .portfolio-table td:last-child { padding-right: 0; }
@@ -2507,9 +2603,9 @@
   .portfolio-table tfoot td {
     border-top: 1px solid var(--lcars-frame);
     border-bottom: none;
-    font-family: 'Antonio', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.1em;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.06em;
     color: var(--lcars-cream);
     padding-top: 10px;
   }
@@ -2539,8 +2635,8 @@
     grid-template-columns: auto 1fr auto auto;
     align-items: center;
     gap: 0 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
     color: var(--lcars-text);
   }
   .portfolio-legend-dot {
@@ -2550,15 +2646,17 @@
   }
   .portfolio-legend-pct {
     color: var(--lcars-cream);
-    font-family: 'Antonio', sans-serif;
-    font-size: 12px;
-    letter-spacing: 0.06em;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.04em;
     text-align: right;
     font-variant-numeric: tabular-nums;
     min-width: 44px;
   }
   .portfolio-legend-val {
     color: var(--lcars-text);
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
     text-align: right;
     min-width: 100px;
@@ -2679,23 +2777,23 @@
     border-left: 3px solid var(--lcars-orange);
   }
   .portfolio-summary-label {
-    font-family: 'Antonio', sans-serif;
+    font-family: 'Oxanium', sans-serif;
     font-size: 9px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.12em;
     color: var(--lcars-cream);
     opacity: 0.55;
     text-transform: uppercase;
   }
   .portfolio-summary-value {
-    font-family: 'Antonio', sans-serif;
+    font-family: 'Oxanium', sans-serif;
     font-size: 18px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: var(--lcars-cream);
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
   }
   .portfolio-summary-sub {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Oxanium', sans-serif;
     font-size: 10px;
     color: var(--lcars-text);
     opacity: 0.5;
@@ -3562,8 +3660,20 @@
         </div>
       </div>
 
+      <!-- Standings -->
+      <div class="panel">
+        <div class="panel-title">
+          <span data-i18n="standingsTitle">STANDINGS</span>
+        </div>
+        <div id="standings-container">
+          <div class="empty-state">
+            <p data-i18n="loadingMsg">LOADING…</p>
+          </div>
+        </div>
+      </div>
+
       <div class="data-source-note">
-        <span><span data-i18n="scoresFootnote">Data via ESPN.</span><span id="scores-updated"></span></span>
+        <span><span data-i18n="scoresFootnote">Data via ESPN.</span><span id="scores-updated"></span><span id="standings-updated"></span></span>
       </div>
     </section>
 

@@ -206,6 +206,9 @@
       scoreScheduled: 'SCHEDULED',
       pinToTop:       'Pin this game to the featured panel',
       openOnEspn:     'Open on ESPN',
+      standingsTitle: 'STANDINGS',
+      standingsError: 'STANDINGS UNAVAILABLE',
+      standingsStrk:  'STRK',
       detWin:    'W',
       detLoss:   'L',
       detSave:   'SV',
@@ -510,6 +513,9 @@
       scoreScheduled: '預定',
       pinToTop:       '將此比賽置頂顯示',
       openOnEspn:     '在 ESPN 開啟',
+      standingsTitle: '戰績排名',
+      standingsError: '戰績資料無法取得',
+      standingsStrk:  '連勝負',
       detWin:    '勝投',
       detLoss:   '敗投',
       detSave:   '救援',
@@ -1223,6 +1229,7 @@
   const scoresFromCache = renderScoresFromCache();
   fetchStocks();
   fetchScores();
+  fetchStandings();
 
   setInterval(updateClock, 1000);
   setInterval(updateUptime, 1000);

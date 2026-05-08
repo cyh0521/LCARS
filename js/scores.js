@@ -1,12 +1,13 @@
-// js/scores.js — MLB Scores via ESPN API
+// js/scores.js — MLB Scores + Standings via ESPN API
 
   /* ============================================================
      MLB SCORES — ESPN's CORS-friendly internal API
      ============================================================ */
   // ESPN uses team abbreviations. Orioles = BAL.
   const ORIOLES_ABBR = 'BAL';
-  const SCORES_CACHE_KEY = 'lcars_scores_cache';
-  const ENRICH_CACHE_KEY = 'lcars_enrich_cache';
+  const SCORES_CACHE_KEY    = 'lcars_scores_cache';
+  const ENRICH_CACHE_KEY    = 'lcars_enrich_cache';
+  const STANDINGS_CACHE_KEY = 'lcars_standings_cache';
 
   /* Render scores from cache instantly. Returns true if cache was used. */
   function renderScoresFromCache() {
@@ -86,12 +87,20 @@
 
     renderFeaturedGame(featured);
 
-    // All games list
+    // All games list — live games first, then pre, then post
     const allContainer = document.getElementById('scores-all');
     allContainer.innerHTML = '';
     const list = document.createElement('div');
     list.className = 'game-list';
-    events.forEach(ev => {
+    const sortedEvents = [...events].sort((a, b) => {
+      const stateOrder = { in: 0, pre: 1, post: 2 };
+      const sa = stateOrder[a.status?.type?.state] ?? 1;
+      const sb = stateOrder[b.status?.type?.state] ?? 1;
+      if (sa !== sb) return sa - sb;
+      // Within same state, sort by scheduled time
+      return new Date(a.date) - new Date(b.date);
+    });
+    sortedEvents.forEach(ev => {
       const isCurrentFeatured = featured && String(ev.id) === String(featured.id);
       list.appendChild(renderGameCard(ev, false, isCurrentFeatured));
     });
@@ -485,5 +494,175 @@
 
   function weatherDesc(code) {
     return t('w' + code) || t('wUnk');
+  }
+
+
+  /* ============================================================
+     MLB STANDINGS — ESPN standings API
+     Six divisions, with W / L / PCT / GB / STRK columns
+     ============================================================ */
+
+  const DIVISIONS_ORDER = [
+    'AL East', 'AL Central', 'AL West',
+    'NL East', 'NL Central', 'NL West'
+  ];
+
+  async function fetchStandings() {
+    // Render from cache first
+    const cached = cacheGet(STANDINGS_CACHE_KEY);
+    if (cached?.records) {
+      renderStandings(cached.records);
+      updateStandingsTimestamp(cached.timestamp);
+    }
+
+    const url = 'https://site.api.espn.com/apis/v2/sports/baseball/mlb/standings';
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      const records = parseStandingsData(data);
+      if (!records.length) throw new Error('No standings records parsed');
+
+      const timestamp = Date.now();
+      cacheSet(STANDINGS_CACHE_KEY, { records, timestamp });
+      renderStandings(records);
+      updateStandingsTimestamp(timestamp);
+    } catch (err) {
+      console.warn('[LCARS] Standings fetch failed:', err);
+      if (!cacheGet(STANDINGS_CACHE_KEY)) {
+        const el = document.getElementById('standings-container');
+        if (el) el.innerHTML = `<div class="empty-state"><p>${t('standingsError')}</p></div>`;
+      }
+    }
+  }
+  window.fetchStandings = fetchStandings;
+
+  // ESPN standings API only groups by AL/NL — no division sub-grouping.
+  // We map each team to its division using a static lookup (MLB divisions are stable).
+  const TEAM_DIVISION_MAP = {
+    BAL:'AL East', BOS:'AL East', NYY:'AL East', TB:'AL East', TBR:'AL East', TOR:'AL East',
+    CWS:'AL Central', CHW:'AL Central', CLE:'AL Central', DET:'AL Central',
+    KC:'AL Central',  KCR:'AL Central', MIN:'AL Central',
+    HOU:'AL West',  LAA:'AL West', ANA:'AL West', OAK:'AL West', ATH:'AL West', SEA:'AL West', TEX:'AL West',
+    ATL:'NL East',  MIA:'NL East', NYM:'NL East', PHI:'NL East', WAS:'NL East', WSH:'NL East',
+    CHC:'NL Central', CIN:'NL Central', MIL:'NL Central', PIT:'NL Central', STL:'NL Central',
+    ARI:'NL West',  COL:'NL West', LAD:'NL West', SD:'NL West', SDP:'NL West',
+    SF:'NL West',   SFG:'NL West',
+  };
+
+  function parseStandingsData(data) {
+    // Flatten all entries from AL + NL groups
+    const allEntries = [];
+    (data?.children || []).forEach(league => {
+      (league?.standings?.entries || []).forEach(e => allEntries.push(e));
+    });
+    if (!allEntries.length) return [];
+
+    // Bucket each team into its division
+    const divMap = {};
+    DIVISIONS_ORDER.forEach(d => { divMap[d] = []; });
+
+    allEntries.forEach(entry => {
+      const team  = entry.team || {};
+      const abbr  = team.abbreviation || '';
+      const div   = TEAM_DIVISION_MAP[abbr];
+      if (!div) return;
+
+      const stats   = entry.stats || [];
+      const getStat = (...keys) => {
+        for (const k of keys) {
+          const s = stats.find(s => s.abbreviation === k);
+          if (s) return s.displayValue ?? (s.value != null ? String(s.value) : null);
+        }
+        return '–';
+      };
+
+      divMap[div].push({
+        abbr,
+        name: team.shortDisplayName || team.name || '?',
+        logo: team.logos?.[0]?.href || null,
+        w:    getStat('W'),
+        l:    getStat('L'),
+        pct:  getStat('PCT'),
+        gb:   getStat('GB'),
+        strk: getStat('STRK'),
+        seed: parseInt(getStat('SEED') || '99', 10),
+      });
+    });
+
+    return DIVISIONS_ORDER
+      .map(div => ({
+        div,
+        teams: (divMap[div] || []).sort((a, b) => a.seed - b.seed),
+      }))
+      .filter(r => r.teams.length > 0);
+  }
+
+  function updateStandingsTimestamp(ts) {
+    const el = document.getElementById('standings-updated');
+    if (!el) return;
+    if (!ts) { el.textContent = ''; return; }
+    const date = new Date(ts);
+    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    el.textContent = ' · ' + t('updatedAt') + ' ' + time;
+  }
+
+  function renderStandings(records) {
+    const container = document.getElementById('standings-container');
+    if (!container) return;
+    if (!records || !records.length) {
+      container.innerHTML = `<div class="empty-state"><p>${t('standingsError')}</p></div>`;
+      return;
+    }
+
+    // Sort divisions by canonical order (AL East, AL Central, AL West, NL East…)
+    const sorted = [...records].sort((a, b) => {
+      const ia = DIVISIONS_ORDER.findIndex(d => a.div.includes(d) || d.includes(a.div));
+      const ib = DIVISIONS_ORDER.findIndex(d => b.div.includes(d) || d.includes(b.div));
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+
+    container.innerHTML = '';
+    const grid = document.createElement('div');
+    grid.className = 'standings-grid';
+
+    sorted.forEach(({ div, teams }) => {
+      const section = document.createElement('div');
+      section.className = 'standings-division';
+      const rows = teams.map((tm, idx) => {
+        const cls = [
+          idx === 0 ? 'st-leader' : '',
+          tm.abbr === ORIOLES_ABBR ? 'st-highlight' : ''
+        ].filter(Boolean).join(' ');
+        return `
+          <tr class="${cls}">
+            <td class="st-team-col">
+              ${tm.logo ? `<img class="st-logo" src="${escapeAttr(tm.logo)}" alt="${escapeAttr(tm.abbr)}" loading="lazy">` : ''}
+              <span class="st-name">${escapeHtml(tm.name)}</span>
+            </td>
+            <td>${escapeHtml(String(tm.w))}</td>
+            <td>${escapeHtml(String(tm.l))}</td>
+            <td class="st-pct">${escapeHtml(String(tm.pct))}</td>
+            <td>${escapeHtml(String(tm.gb))}</td>
+            <td class="st-strk">${escapeHtml(String(tm.strk))}</td>
+          </tr>`;
+      }).join('');
+      section.innerHTML = `
+        <div class="standings-div-title">${escapeHtml(div.toUpperCase())}</div>
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th class="st-team-col"></th>
+              <th>W</th><th>L</th><th>PCT</th><th>GB</th>
+              <th>${t('standingsStrk')}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      grid.appendChild(section);
+    });
+
+    container.appendChild(grid);
   }
 
