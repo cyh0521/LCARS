@@ -154,6 +154,7 @@
       // Finance
       finTW:        'TW MARKET',
       finUS:        'US MARKET',
+      finFund:      'FUND',
       finFx:        'FX RATES',
       finFootnote:  'Data via Google Sheets.',
       finError:     'DATA UNAVAILABLE',
@@ -461,6 +462,7 @@
       // Finance
       finTW:        '台股',
       finUS:        '美股',
+      finFund:      '基金',
       finFx:        '匯率',
       finFootnote:  '資料來源:Google Sheets。',
       finError:     '資料暫時無法取得',

@@ -1186,6 +1186,7 @@
   .panel.violet .panel-title::before { background: var(--lcars-violet); box-shadow: 0 0 8px var(--lcars-violet); }
   .panel.blue .panel-title::before { background: var(--lcars-blue); box-shadow: 0 0 8px var(--lcars-blue); }
   .panel.gold .panel-title::before { background: var(--lcars-gold); box-shadow: 0 0 8px var(--lcars-gold); }
+  .panel.teal .panel-title::before { background: #2ecfb0; box-shadow: 0 0 8px #2ecfb0; }
 
   /* ============================================================
      Finance / Scores panel-title — Library month-header look:
@@ -3612,6 +3613,16 @@
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VTI</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VOO</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">BRK-B</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+            </div>
+          </div>
+
+          <!-- Funds -->
+          <div class="panel teal">
+            <div class="panel-title">
+              <span data-i18n="finFund">FUND</span>
+            </div>
+            <div class="ticker-list" id="stocks-fund">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">—</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
             </div>
           </div>
 

@@ -1,10 +1,11 @@
 // js/finance.js — Stocks, FX (Google Sheets JSONP) + Finance sub-tabs
 
   /* ============================================================
-     STOCKS & FX — read from a public Google Sheet.
-     Sheet structure:
-       Section: 股價   (rows: code | price | date | changePct)
-       Section: 匯率   (rows: name | rate)
+     STOCKS, FUNDS & FX — read from a public Google Sheet.
+     Sheet structure (gid=1900082413):
+       股票  A=code  B=currency  C=price  D=changePct  E=date   (F=空)
+       基金  G=code  H=currency  I=price  J=changePct  K=date   (L=空)
+       匯率  M=currency  N=rate
      We use Google Visualization API in JSON mode (?tqx=out:json),
      which is CORS-friendly for any "anyone with link" sheet.
      ============================================================ */
@@ -28,6 +29,7 @@
   const STOCKS_US = ['VT', 'VTI', 'VOO', 'BRK.B'];
 
   const STOCKS_CACHE_KEY = 'lcars_stocks_cache_v2';
+  const FUND_CACHE_KEY   = 'lcars_fund_cache_v1';
   const FX_CACHE_KEY     = 'lcars_fx_cache';
 
   /* Render stocks immediately from cache (if any) */
@@ -37,6 +39,10 @@
       renderStockGrid('stocks-tw', cached.tw || [], cached.timestamp);
       renderStockGrid('stocks-us', cached.us || [], cached.timestamp);
       updateStocksTimestamp(cached.timestamp);
+    }
+    const fundCached = cacheGet(FUND_CACHE_KEY);
+    if (fundCached) {
+      renderFundGrid(fundCached.funds || [], fundCached.timestamp);
     }
     const fxCached = cacheGet(FX_CACHE_KEY);
     if (fxCached) {
@@ -127,74 +133,112 @@
       const rows = data?.table?.rows || [];
       console.log('[LCARS] Sheet rows count:', rows.length);
 
-      // Layout (after user reorganization):
-      //   A: code    B: price   C: changePct   D: date          (股價 in A1)
-      //   F: name    G: rate                                    (匯率 in F1)
-      // Both blocks share rows. We walk every row and pick out
-      // each block independently using its own column indices.
+      // New layout:
+      //   股票: A=code  B=currency  C=price  D=changePct  E=date   (F=空, idx=5)
+      //   基金: G=code  H=currency  I=price  J=changePct  K=date   (L=空, idx=11)
+      //   匯率: M=currency  N=rate
       const stocks = [];
-      const fx = [];
+      const funds  = [];
+      const fx     = [];
 
       for (const row of rows) {
         const cells = row.c || [];
 
-        // ---- STOCKS BLOCK (cols A-D) ----
-        const stkA = cellValue(cells[0]);   // code
-        const stkB = cellValue(cells[1]);   // price
-        const stkC = cellValue(cells[2]);   // changePct
-        const stkD = cells[3];              // date cell (use formatted)
+        // ---- STOCKS BLOCK (cols A-E, idx 0-4) ----
+        const stkCode = cellValue(cells[0]);
+        const stkCcy  = cellValue(cells[1]);
+        const stkPx   = cellValue(cells[2]);
+        const stkPct  = cellValue(cells[3]);
+        const stkDate = cells[4];
 
-        if (stkA != null) {
-          const aStr = String(stkA).trim();
-          // Skip the section header row '股價'
-          if (aStr !== '股價' && !/^stock/i.test(aStr)) {
-            const price = (typeof stkB === 'number') ? stkB : parseFloat(stkB);
+        if (stkCode != null) {
+          const codeStr = String(stkCode).trim();
+          if (codeStr !== '股票' && codeStr !== '') {
+            const price = (typeof stkPx === 'number') ? stkPx : parseFloat(stkPx);
             if (!isNaN(price)) {
               let pct = null;
-              if (typeof stkC === 'number') pct = stkC;
-              else if (stkC != null && stkC !== '') {
-                const parsed = parseFloat(String(stkC).replace('%', ''));
-                if (!isNaN(parsed)) pct = parsed;
+              if (typeof stkPct === 'number') pct = stkPct;
+              else if (stkPct != null && stkPct !== '') {
+                const p = parseFloat(String(stkPct).replace('%', ''));
+                if (!isNaN(p)) pct = p;
               }
-              const dateStr = cellFormatted(stkD);
-              const dateRaw = cellValue(stkD);
-              const dateDebug = cellDebugLabel(stkD);
-              stocks.push({ code: aStr, price, dateStr, dateRaw, dateDebug, pct });
+              stocks.push({
+                code:     codeStr,
+                currency: stkCcy ? String(stkCcy).trim().toUpperCase() : 'USD',
+                price,
+                pct,
+                dateStr:   cellFormatted(stkDate),
+                dateRaw:   cellValue(stkDate),
+                dateDebug: cellDebugLabel(stkDate),
+              });
             }
           }
         }
 
-        // ---- FX BLOCK (cols F-G) ----
-        const fxF = cellValue(cells[5]);    // name
-        const fxG = cellValue(cells[6]);    // rate
+        // ---- FUNDS BLOCK (cols G-K, idx 6-10) ----
+        const fundCode = cellValue(cells[6]);
+        const fundCcy  = cellValue(cells[7]);
+        const fundPx   = cellValue(cells[8]);
+        const fundPct  = cellValue(cells[9]);
+        const fundDate = cells[10];
 
-        if (fxF != null) {
-          const fStr = String(fxF).trim();
-          if (fStr !== '匯率' && !/^(fx|rate)/i.test(fStr)) {
-            const rate = (typeof fxG === 'number') ? fxG : parseFloat(fxG);
-            if (!isNaN(rate)) fx.push({ name: fStr, rate });
+        if (fundCode != null) {
+          const codeStr = String(fundCode).trim();
+          if (codeStr !== '基金' && codeStr !== '') {
+            const price = (typeof fundPx === 'number') ? fundPx : parseFloat(fundPx);
+            if (!isNaN(price)) {
+              let pct = null;
+              if (typeof fundPct === 'number') pct = fundPct;
+              else if (fundPct != null && fundPct !== '') {
+                const p = parseFloat(String(fundPct).replace('%', ''));
+                if (!isNaN(p)) pct = p;
+              }
+              funds.push({
+                code:     codeStr,
+                currency: fundCcy ? String(fundCcy).trim().toUpperCase() : 'TWD',
+                price,
+                pct,
+                dateStr:   cellFormatted(fundDate),
+                dateRaw:   cellValue(fundDate),
+                dateDebug: cellDebugLabel(fundDate),
+              });
+            }
+          }
+        }
+
+        // ---- FX BLOCK (cols M-N, idx 12-13) ----
+        const fxCcy  = cellValue(cells[12]);
+        const fxRate = cellValue(cells[13]);
+
+        if (fxCcy != null) {
+          const ccyStr = String(fxCcy).trim();
+          if (ccyStr !== '匯率' && ccyStr !== '') {
+            const rate = (typeof fxRate === 'number') ? fxRate : parseFloat(fxRate);
+            if (!isNaN(rate)) fx.push({ name: ccyStr, rate });
           }
         }
       }
 
-      // Split stocks by TW vs US: 4-5 digit numeric code = TW listing
-      const tw = stocks.filter(s => /^\d{4,5}$/.test(s.code));
-      const us = stocks.filter(s => !/^\d{4,5}$/.test(s.code));
-      console.log(`[LCARS] Sheet parsed: ${tw.length} TW + ${us.length} US stocks, ${fx.length} FX rates`);
+      // Split stocks by currency from sheet (no longer inferred from code)
+      const tw = stocks.filter(s => s.currency === 'TWD');
+      const us = stocks.filter(s => s.currency !== 'TWD');
+      console.log(`[LCARS] Sheet parsed: ${tw.length} TW + ${us.length} US stocks, ${funds.length} funds, ${fx.length} FX rates`);
 
       const timestamp = Date.now();
       cacheSet(STOCKS_CACHE_KEY, { tw, us, timestamp });
-      cacheSet(FX_CACHE_KEY, { rates: fx, timestamp });
+      cacheSet(FUND_CACHE_KEY,   { funds, timestamp });
+      cacheSet(FX_CACHE_KEY,     { rates: fx, timestamp });
 
       renderStockGrid('stocks-tw', tw, timestamp);
       renderStockGrid('stocks-us', us, timestamp);
+      renderFundGrid(funds, timestamp);
       renderFxGrid(fx);
       updateStocksTimestamp(timestamp);
     } catch (err) {
       console.warn('[LCARS] Sheet fetch failed:', err);
       const hasCache = !!cacheGet(STOCKS_CACHE_KEY);
       if (!hasCache) {
-        document.querySelectorAll('#stocks-tw .ticker-row, #stocks-us .ticker-row')
+        document.querySelectorAll('#stocks-tw .ticker-row, #stocks-us .ticker-row, #stocks-fund .ticker-row')
           .forEach(row => {
             row.classList.add('error');
             row.classList.remove('loading');
@@ -430,6 +474,36 @@
           <span class="ticker-sym">${escapeHtml(r.name)}</span>
         </div>
         <span class="ticker-price">${r.rate.toFixed(4)}<span class="ticker-price-currency">TWD</span></span>`;
+      container.appendChild(row);
+    });
+  }
+
+  /* Render Funds into the stocks-fund container */
+  function renderFundGrid(funds, fallbackTimestamp) {
+    const container = document.getElementById('stocks-fund');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!funds.length) {
+      container.innerHTML = `<div class="empty-state"><p>${t('finNoData') || '—'}</p></div>`;
+      return;
+    }
+    funds.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'ticker-row';
+      const dir = s.pct == null ? 'flat' : (s.pct > 0 ? 'up' : (s.pct < 0 ? 'down' : 'flat'));
+      const arrow = s.pct == null ? '·' : (s.pct > 0 ? '▲' : (s.pct < 0 ? '▼' : '·'));
+      const sign = (s.pct != null && s.pct > 0) ? '+' : '';
+      const pctStr = s.pct == null ? '—' : sign + s.pct.toFixed(2) + '%';
+      const ccy = s.currency || 'TWD';
+      row.innerHTML = `
+        <div class="ticker-head">
+          <span class="ticker-sym">${escapeHtml(s.code)}</span>
+          <span class="ticker-actions">
+            <span class="ticker-change ${dir}">${arrow} ${pctStr}</span>
+          </span>
+        </div>
+        <span class="ticker-price">${formatPrice(s.price)}<span class="ticker-price-currency">${escapeHtml(ccy)}</span></span>
+        <span class="ticker-date">${escapeHtml(tickerFooterLabel(s, fallbackTimestamp))}</span>`;
       container.appendChild(row);
     });
   }
@@ -743,24 +817,50 @@
   /* Get cached stock price by code. Returns null if unavailable. */
   function getCachedPrice(code) {
     const cached = cacheGet(STOCKS_CACHE_KEY);
-    if (!cached) return null;
-    const all = [...(cached.tw || []), ...(cached.us || [])];
+    const fundCached = cacheGet(FUND_CACHE_KEY);
+    const all = [
+      ...(cached?.tw || []),
+      ...(cached?.us || []),
+      ...(fundCached?.funds || []),
+    ];
     const found = all.find(s => s.code === code);
     return found ? found.price : null;
   }
 
+  function getCachedCurrency(code) {
+    const cached = cacheGet(STOCKS_CACHE_KEY);
+    const fundCached = cacheGet(FUND_CACHE_KEY);
+    const all = [
+      ...(cached?.tw || []),
+      ...(cached?.us || []),
+      ...(fundCached?.funds || []),
+    ];
+    const found = all.find(s => s.code === code);
+    return found ? found.currency : null;
+  }
+
   /* Get USD→TWD rate from FX cache. Returns null if unavailable. */
-  function getUsdToTwd() {
+  /* Get the TWD rate for any foreign currency.
+     Sheet stores: "1 foreign = X TWD"  (e.g. USD→31.32, JPY→0.20) */
+  function getFxRateToTwd(currency) {
+    if (!currency || currency.toUpperCase() === 'TWD') return 1;
     const fxCached = cacheGet(FX_CACHE_KEY);
     if (!fxCached) return null;
-    // The FX sheet stores rates as "1 foreign = X TWD"
-    // Look for a rate whose name contains USD
-    const entry = (fxCached.rates || []).find(r => /usd/i.test(r.name));
+    const key = currency.toUpperCase();
+    const entry = (fxCached.rates || []).find(r => r.name.toUpperCase() === key);
     return entry ? entry.rate : null;
   }
 
-  /* isTW: 4-5 digit numeric = Taiwan listed */
-  function isTW(code) { return /^\d{4,5}$/.test(String(code).trim()); }
+  /* Convenience wrapper kept for backward compatibility */
+  function getUsdToTwd() {
+    return getFxRateToTwd('USD');
+  }
+
+  /* isTW: use currency field if available, fall back to code pattern */
+  function isTW(code, currency) {
+    if (currency) return currency.toUpperCase() === 'TWD';
+    return /^\d{4,5}$/.test(String(code).trim());
+  }
 
   /* Format number for table display */
   function fmtNum(n, decimals) {
@@ -830,38 +930,42 @@
     // Build data rows
     let totalTwd = 0, totalTwdStocks = 0, totalUsdValue = 0;
     const rows = codes.map((code, i) => {
-      const h      = holdings[code];
-      const shares = Number(h.shares) || 0;
-      const cost   = Number(h.cost)   || 0;
-      const price  = getCachedPrice(code);
-      const tw     = isTW(code);
-      const dec    = tw ? 0 : 2;
-      const value  = price != null ? price * shares : null;
-      const pnl    = (value != null && cost > 0) ? value - cost : null;
-      const ret    = (pnl  != null && cost > 0) ? (pnl / cost) * 100 : null;
-      const dir    = pnl == null ? '' : pnl > 0 ? 'up' : pnl < 0 ? 'down' : '';
-      const sign   = (pnl != null && pnl > 0) ? '+' : '';
+      const h        = holdings[code];
+      const shares   = Number(h.shares) || 0;
+      const cost     = Number(h.cost)   || 0;
+      const price    = getCachedPrice(code);
+      const currency = getCachedCurrency(code) || 'USD';
+      const tw       = currency.toUpperCase() === 'TWD';
+      const dec      = tw ? 0 : 2;
+      const value    = price != null ? price * shares : null;
+      const pnl      = (value != null && cost > 0) ? value - cost : null;
+      const ret      = (pnl  != null && cost > 0) ? (pnl / cost) * 100 : null;
+      const dir      = pnl == null ? '' : pnl > 0 ? 'up' : pnl < 0 ? 'down' : '';
+      const sign     = (pnl != null && pnl > 0) ? '+' : '';
       let valueTwd = null;
       if (value != null) {
-        valueTwd = tw ? value : (usdRate ? value * usdRate : null);
+        if (tw) {
+          valueTwd = value;
+        } else {
+          const fxRate = getFxRateToTwd(currency);
+          valueTwd = fxRate != null ? value * fxRate : null;
+        }
         if (valueTwd != null) {
           totalTwd += valueTwd;
           if (tw) totalTwdStocks += valueTwd;
           else    totalUsdValue  += value;
         }
       }
-      return { code, tw, dec, shares, cost, price, value, pnl, ret, dir, sign, valueTwd,
+      return { code, currency, tw, dec, shares, cost, price, value, pnl, ret, dir, sign, valueTwd,
                color: LCARS_BAR_PALETTE[i % LCARS_BAR_PALETTE.length] };
     });
 
     // ── Summary cards ──
-    const totalUsdInTwd = usdRate ? totalUsdValue * usdRate : null;
-    const sumTwd  = fmtNum(totalTwdStocks, 0);
-    const sumUsd  = fmtNum(totalUsdValue, 2);
-    const sumAll  = totalUsdInTwd != null ? fmtNum(totalTwd, 0) : '—';
-    const usdLabel = totalUsdInTwd != null
-      ? '≈ NT$' + fmtNum(totalUsdInTwd, 0)
-      : '';
+    const foreignInTwd = totalTwd - totalTwdStocks;  // all non-TWD converted
+    const sumTwd   = fmtNum(totalTwdStocks, 0);
+    const sumUsd   = fmtNum(totalUsdValue, 2);
+    const sumAll   = totalTwd > 0 ? fmtNum(totalTwd, 0) : '—';
+    const usdLabel = usdRate ? '≈ NT$' + fmtNum(totalUsdValue * usdRate, 0) : '';
 
     const summaryPanel = `
       <div class="portfolio-panel">
@@ -887,7 +991,7 @@
     const tableRows = rows.map(r => `
       <tr>
         <td>${escapeHtml(r.code)}</td>
-        <td><span class="ccy-badge ${r.tw ? 'twd' : 'usd'}">${r.tw ? 'TWD' : 'USD'}</span></td>
+        <td><span class="ccy-badge ${r.tw ? 'twd' : 'usd'}">${escapeHtml(r.currency)}</span></td>
         <td>${r.price != null ? fmtNum(r.price, 2) : '—'}</td>
         <td>${fmtNum(r.shares, r.tw ? 0 : 2)}</td>
         <td>${fmtNum(r.cost, r.dec)}</td>
@@ -960,10 +1064,12 @@
     const tab = financeTabs.find(item => item.id === currentFinanceTab);
     if (!tab || tab.id === FINANCE_WATCHLIST_ID) return;
 
-    const cached = cacheGet(STOCKS_CACHE_KEY);
-    const allCodes = cached
-      ? [...(cached.tw || []).map(s => s.code), ...(cached.us || []).map(s => s.code)]
-      : [...STOCKS_TW, ...STOCKS_US];
+    const cached     = cacheGet(STOCKS_CACHE_KEY);
+    const fundCached = cacheGet(FUND_CACHE_KEY);
+    const allCodes = [
+      ...(cached     ? [...(cached.tw || []).map(s => s.code), ...(cached.us || []).map(s => s.code)] : [...STOCKS_TW, ...STOCKS_US]),
+      ...(fundCached ? (fundCached.funds || []).map(s => s.code) : []),
+    ];
     const currentHoldings = getTabHoldings(tab.id);
 
     return new Promise(resolve => {
@@ -1026,15 +1132,16 @@
 
       const inputRefs = {};
       allCodes.forEach(code => {
-        const tw = isTW(code);
+        const tw = isTW(code, getCachedCurrency(code));
         const h  = currentHoldings[code] || {};
         const row = document.createElement('div');
         row.className = 'portfolio-stock-row';
 
+        const ccy = getCachedCurrency(code) || (tw ? 'TWD' : 'USD');
         const symEl = document.createElement('div');
         symEl.className = 'portfolio-stock-sym';
         symEl.innerHTML = escapeHtml(code) +
-          `<span class="ccy-text">${tw ? 'TWD' : 'USD'}</span>`;
+          `<span class="ccy-text">${escapeHtml(ccy)}</span>`;
 
         const sharesInput = document.createElement('input');
         sharesInput.type = 'text';
