@@ -638,7 +638,8 @@
         return `
           <tr class="${cls}">
             <td class="st-team-col">
-              ${tm.logo ? `<img class="st-logo" src="${escapeAttr(tm.logo)}" alt="${escapeAttr(tm.abbr)}" loading="lazy">` : `<span class="st-abbr-fallback">${escapeHtml(tm.abbr)}</span>`}
+              ${tm.logo ? `<img class="st-logo" src="${escapeAttr(tm.logo)}" alt="${escapeAttr(tm.abbr)}" loading="lazy">` : ''}
+              <span class="st-abbr-fallback">${escapeHtml(tm.abbr)}</span>
             </td>
             <td>${escapeHtml(String(tm.w))}</td>
             <td>${escapeHtml(String(tm.l))}</td>
