@@ -2614,54 +2614,88 @@
   .portfolio-table tfoot td:last-child  { padding-right: 0; }
 
   /* Stacked bar chart */
-  .portfolio-bar-track {
-    height: 8px;
-    border-radius: 4px;
+  /* ── Treemap ── */
+  .treemap-wrap {
+    position: relative;
+    width: 100%;
+    height: 220px;
     overflow: hidden;
-    display: flex;
-    gap: 1px;
-    margin-bottom: 14px;
+    border-radius: 2px;
   }
-  .portfolio-bar-seg {
-    height: 100%;
-    transition: width 0.4s ease;
-  }
-  .portfolio-bar-legend {
+  .treemap-tile {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--lcars-bg);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-  }
-  .portfolio-legend-item {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
     align-items: center;
-    gap: 0 10px;
+    justify-content: center;
+    gap: 3px;
+    overflow: hidden;
+    cursor: default;
+    transition: filter 0.15s;
+    border-radius: 2px;
+    min-height: 4px;
+  }
+  .treemap-tile:hover { filter: brightness(1.2); z-index: 1; }
+  .treemap-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-orange);
+    padding: 6px 12px;
+    border-radius: 2px;
     font-family: 'Oxanium', sans-serif;
     font-size: 13px;
-    color: var(--lcars-text);
-  }
-  .portfolio-legend-dot {
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .portfolio-legend-pct {
     color: var(--lcars-cream);
-    font-family: 'Oxanium', sans-serif;
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    min-width: 44px;
+    white-space: nowrap;
+    display: none;
+    gap: 8px;
+    align-items: center;
   }
-  .portfolio-legend-val {
-    color: var(--lcars-text);
+  .treemap-tooltip.visible { display: flex; }
+  .treemap-tooltip-pct { font-size: 12px; opacity: 0.75; }
+  .treemap-code {
     font-family: 'Oxanium', sans-serif;
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    min-width: 100px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: center;
+    line-height: 1.1;
+    padding: 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  .treemap-pct {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 10px;
+    opacity: 0.85;
+    letter-spacing: 0.04em;
+  }
+  /* Legend in panel-title area */
+  .panel-title { align-items: center; flex-wrap: wrap; gap: 8px; }
+  .treemap-legend {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+  }
+  .treemap-legend-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 9px;
+    color: var(--lcars-cream);
     opacity: 0.7;
+  }
+  .treemap-legend-swatch {
+    width: 18px;
+    height: 10px;
+    border-radius: 1px;
   }
 
   /* Edit modal — compact */
@@ -2762,7 +2796,7 @@
   /* Summary cards */
   .portfolio-summary-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 2px;
     margin-bottom: 0;
   }
@@ -3771,5 +3805,9 @@
 <script src="js/library.js"></script>
 <script src="js/core.js"></script>
 
+<div id="treemap-tooltip" class="treemap-tooltip">
+  <span id="treemap-tooltip-code"></span>
+  <span id="treemap-tooltip-pct" class="treemap-tooltip-pct"></span>
+</div>
 </body>
 </html>
