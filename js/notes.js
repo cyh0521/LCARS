@@ -426,30 +426,10 @@
   function openOverlay(el) {
     document.body.appendChild(el);
     _scrollLockCount++;
-    if (_scrollLockCount === 1) {
-      _savedScrollY = window.scrollY || window.pageYOffset || 0;
-      // Lock both html and body — different browsers fall back differently
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      // Defensive: pin body in place so wheel events on background can't scroll
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${_savedScrollY}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-    }
   }
   function closeOverlay(el) {
     el.remove();
     _scrollLockCount = Math.max(0, _scrollLockCount - 1);
-    if (_scrollLockCount === 0) {
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      window.scrollTo(0, _savedScrollY);
-    }
   }
   /* Helper: install backdrop-close handler that ignores drags starting
      inside the card and ending on the backdrop (e.g. text selection) */

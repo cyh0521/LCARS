@@ -250,13 +250,14 @@
 
     const buildRow = (team, line) => {
       const t_ = team?.team || {};
-      const abbr = t_.abbreviation || '';
+      const abbr     = t_.abbreviation || '';
+      const fullName = (t_.name || t_.displayName || abbr).toUpperCase();
       const logo = t_.logo || '';
       const teamCell = `
         <td class="team-col">
           <span class="team-col-inner">
             ${logo ? `<img class="ls-logo" src="${escapeAttr(logo)}" alt="${escapeAttr(abbr)}">` : ''}
-            <span class="ls-abbr">${escapeHtml(abbr)}</span>
+            <span class="ls-abbr">${escapeHtml(fullName)}</span>
           </span>
         </td>`;
       let inningCells = '';

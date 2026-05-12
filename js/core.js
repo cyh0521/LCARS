@@ -11,20 +11,118 @@
       grpTools:    'TOOLS',
       // Tabs
       tabMain:    'MAIN',
-      tabProject: 'PROJECT',
+      tabWorkspace: 'WORKSPACE',
       tabFinance: 'FINANCE',
       tabScores:  'SCORES',
       tabLibrary: 'LIBRARY',
       // Header page titles (used by top header-bar; shorter than sidebar tabs)
       pageMain:    'MAIN',
-      pageProject: 'PROJECT',
+      pageWorkspace: 'WORKSPACE',
       pageFinance: 'FINANCE',
       pageScores:  'SCORES',
       pageLibrary: 'LIBRARY',
       // Page subtitles & empty state messages
       mainSub:         'OPERATIONS',
-      projectSub:      'AWAITING CONFIGURATION',
+      workspaceSub: 'MISSION OPERATIONS',
       projectEmptyMsg: 'This station is reserved and ready. Tell Claude what you want to track here — projects, tasks, milestones, deadlines, or something else entirely.',
+      // Project page
+      projAllProjects:    'ALL PROJECTS',
+      projAddProject:     '+ NEW PROJECT',
+      projAddTask:        '+ ADD TASK',
+      projAll:            'ALL',
+      projStatusPENDING:  'PENDING',
+      projStatusACTIVE:   'ACTIVE',
+      projStatusCOMPLETE: 'COMPLETE',
+      projStatusBLOCKED:  'BLOCKED',
+      projSortBy:         'SORT:',
+      projSortDue:        'DUE DATE',
+      projSortPriority:   'PRIORITY',
+      projSortCreated:    'CREATED',
+      projColEmpty:       'NO TASKS',
+      projEdit:           'EDIT',
+      projReopen:         'REOPEN',
+      projAddProject:     '+ PROJECT',
+      projEditProject:    'EDIT PROJECT',
+      projEditTask:       'EDIT TASK',
+      projFieldTitle:     'TITLE',
+      projFieldTitlePH:   'Task title…',
+      projFieldProject:   'PROJECT',
+      projFieldStatus:    'STATUS',
+      projFieldPriority:  'PRIORITY',
+      projFieldDue:       'DUE DATE',
+      projFieldTags:      'TAGS',
+      projFieldTagsPH:    'tag1, tag2, …',
+      projFieldNotes:     'NOTES',
+      projFieldNotesPH:   'Additional details…',
+      projNoProject:      '(none)',
+      projFieldProjectTitlePH: 'Project name…',
+      projFieldColor:     'COLOR',
+      projSaved:          'TASK SAVED',
+      projUpdated:        'TASK UPDATED',
+      projDeleted:        'DELETED',
+      projSaveFailed:     'SAVE FAILED',
+      projOffline:        'OFFLINE — SHOWING CACHED DATA',
+      projConfirmDelete:  'Delete this task?',
+      projConfirmDeleteProject: 'Delete project and its {n} tasks?',
+      projConfirmDeleteProjectEmpty: 'Delete this project?',
+      projPriority1: 'LOW',
+      projPriority2: 'NORMAL',
+      projPriority3: 'HIGH',
+      projPriority4: 'CRITICAL',
+      projMissionOps:    'MISSION OPS',
+      projNoProjects:    'NO PROJECTS — TAP + TO BEGIN',
+      projEmptyHint:     'Select a project from the sidebar, or create a new one.',
+      projSelectMilestone: 'SELECT A CHAPTER FROM THE SIDEBAR',
+      projAddMilestone:  '+ ADD SECTION',
+      projEditMilestone: 'EDIT SECTION',
+      projFieldMilestoneTitlePH: 'Section name…',
+      projConfirmDeleteMs:      'Delete chapter and its {n} tasks?',
+      projConfirmDeleteMsEmpty: 'Delete this chapter?',
+      projConfirmDeleteProj:    'Delete project and its {n} chapters?',
+      projConfirmDeleteProjEmpty: 'Delete this project?',
+      projApplyTemplate:   'APPLY TEMPLATE',
+      projTemplateHint:    'Select a template to create tasks for this chapter.',
+      projApply:           'APPLY',
+      projTasks:           'tasks',
+      projTemplateApplied: 'TEMPLATE APPLIED',
+      projStatus_TODO:        'TODO',
+      projStatus_IN_PROGRESS: 'IN PROGRESS',
+      projStatus_DONE:        'DONE',
+      // Workspace subtabs
+      workspaceSubProject:    'PROJECT TRACKER',
+      workspaceSubAttendance: 'ATTENDANCE',
+      wsTabProject:           'PROJECT',
+      wsTabAttendance:        'ATTENDANCE',
+      // Attendance
+      attAddRecord:    '+ ADD RECORD',
+      attLeaveAnnual:  'ANNUAL LEAVE',
+      attLeaveComp:    'COMP LEAVE',
+      attLeavePersonal:'PERSONAL LEAVE',
+      attLeaveSick:    'SICK LEAVE',
+      attUsed:         'USED',
+      attQuota:        'QUOTA',
+      attBalance:      'BALANCE',
+      attRemaining:    'REMAINING',
+      attNoRecords:    'NO RECORDS THIS MONTH',
+      attAddTitle:     'ADD RECORD',
+      attEditTitle:    'EDIT RECORD',
+      attFieldDate:    'DATE',
+      attFieldType:    'LEAVE TYPE',
+      attFieldHours:   'HOURS',
+      attFieldNotes:   'NOTES',
+      attFieldNotesPH: 'Optional notes…',
+      attSetQuota:     'SET QUOTA',
+      attSetComp:      'SET COMP BALANCE',
+      attSaved:        'RECORD SAVED',
+      attUpdated:      'RECORD UPDATED',
+      attDeleted:      'RECORD DELETED',
+      attSaveFailed:   'SAVE FAILED',
+      attOffline:      'OFFLINE — CACHED DATA',
+      attConfirmDeleteTitle:'CONFIRM DELETE',
+      attConfirmDelete:'Delete this record?',
+      attHours:        'h',
+      attQuotaLabel:   'Annual Leave Quota',
+      attCompLabel:    'Comp Leave Balance',
       financeSub:      'MARKET DATA · LIVE FEED',
       scoresSub:       'MLB · GAMES OF THE DAY',
       librarySub:      'SERIES TRACKER',
@@ -147,8 +245,106 @@
       libEpDelBody:       'Delete the log entry for episode {n}?',
       libRatingUnrated:   'Unrated',
       // Page subtitles & empty state messages
-      projectSub:      'AWAITING CONFIGURATION',
+      workspaceSub: 'MISSION OPERATIONS',
       projectEmptyMsg: 'This station is reserved and ready. Tell Claude what you want to track here — projects, tasks, milestones, deadlines, or something else entirely.',
+      // Project page
+      projAllProjects:    'ALL PROJECTS',
+      projAddProject:     '+ NEW PROJECT',
+      projAddTask:        '+ ADD TASK',
+      projAll:            'ALL',
+      projStatusPENDING:  'PENDING',
+      projStatusACTIVE:   'ACTIVE',
+      projStatusCOMPLETE: 'COMPLETE',
+      projStatusBLOCKED:  'BLOCKED',
+      projSortBy:         'SORT:',
+      projSortDue:        'DUE DATE',
+      projSortPriority:   'PRIORITY',
+      projSortCreated:    'CREATED',
+      projColEmpty:       'NO TASKS',
+      projEdit:           'EDIT',
+      projReopen:         'REOPEN',
+      projAddProject:     '+ PROJECT',
+      projEditProject:    'EDIT PROJECT',
+      projEditTask:       'EDIT TASK',
+      projFieldTitle:     'TITLE',
+      projFieldTitlePH:   'Task title…',
+      projFieldProject:   'PROJECT',
+      projFieldStatus:    'STATUS',
+      projFieldPriority:  'PRIORITY',
+      projFieldDue:       'DUE DATE',
+      projFieldTags:      'TAGS',
+      projFieldTagsPH:    'tag1, tag2, …',
+      projFieldNotes:     'NOTES',
+      projFieldNotesPH:   'Additional details…',
+      projNoProject:      '(none)',
+      projFieldProjectTitlePH: 'Project name…',
+      projFieldColor:     'COLOR',
+      projSaved:          'TASK SAVED',
+      projUpdated:        'TASK UPDATED',
+      projDeleted:        'DELETED',
+      projSaveFailed:     'SAVE FAILED',
+      projOffline:        'OFFLINE — SHOWING CACHED DATA',
+      projConfirmDelete:  'Delete this task?',
+      projConfirmDeleteProject: 'Delete project and its {n} tasks?',
+      projConfirmDeleteProjectEmpty: 'Delete this project?',
+      projPriority1: 'LOW',
+      projPriority2: 'NORMAL',
+      projPriority3: 'HIGH',
+      projPriority4: 'CRITICAL',
+      projMissionOps:    'MISSION OPS',
+      projNoProjects:    'NO PROJECTS — TAP + TO BEGIN',
+      projEmptyHint:     'Select a project from the sidebar, or create a new one.',
+      projSelectMilestone: 'SELECT A CHAPTER FROM THE SIDEBAR',
+      projAddMilestone:  '+ ADD SECTION',
+      projEditMilestone: 'EDIT SECTION',
+      projFieldMilestoneTitlePH: 'Section name…',
+      projConfirmDeleteMs:      'Delete chapter and its {n} tasks?',
+      projConfirmDeleteMsEmpty: 'Delete this chapter?',
+      projConfirmDeleteProj:    'Delete project and its {n} chapters?',
+      projConfirmDeleteProjEmpty: 'Delete this project?',
+      projApplyTemplate:   'APPLY TEMPLATE',
+      projTemplateHint:    'Select a template to create tasks for this chapter.',
+      projApply:           'APPLY',
+      projTasks:           'tasks',
+      projTemplateApplied: 'TEMPLATE APPLIED',
+      projStatus_TODO:        'TODO',
+      projStatus_IN_PROGRESS: 'IN PROGRESS',
+      projStatus_DONE:        'DONE',
+      // Workspace subtabs
+      workspaceSubProject:    'PROJECT TRACKER',
+      workspaceSubAttendance: 'ATTENDANCE',
+      wsTabProject:           'PROJECT',
+      wsTabAttendance:        'ATTENDANCE',
+      // Attendance
+      attAddRecord:    '+ ADD RECORD',
+      attLeaveAnnual:  'ANNUAL LEAVE',
+      attLeaveComp:    'COMP LEAVE',
+      attLeavePersonal:'PERSONAL LEAVE',
+      attLeaveSick:    'SICK LEAVE',
+      attUsed:         'USED',
+      attQuota:        'QUOTA',
+      attBalance:      'BALANCE',
+      attRemaining:    'REMAINING',
+      attNoRecords:    'NO RECORDS THIS MONTH',
+      attAddTitle:     'ADD RECORD',
+      attEditTitle:    'EDIT RECORD',
+      attFieldDate:    'DATE',
+      attFieldType:    'LEAVE TYPE',
+      attFieldHours:   'HOURS',
+      attFieldNotes:   'NOTES',
+      attFieldNotesPH: 'Optional notes…',
+      attSetQuota:     'SET QUOTA',
+      attSetComp:      'SET COMP BALANCE',
+      attSaved:        'RECORD SAVED',
+      attUpdated:      'RECORD UPDATED',
+      attDeleted:      'RECORD DELETED',
+      attSaveFailed:   'SAVE FAILED',
+      attOffline:      'OFFLINE — CACHED DATA',
+      attConfirmDeleteTitle:'CONFIRM DELETE',
+      attConfirmDelete:'Delete this record?',
+      attHours:        'h',
+      attQuotaLabel:   'Annual Leave Quota',
+      attCompLabel:    'Comp Leave Balance',
       financeSub:      'MARKET DATA · LIVE FEED',
       scoresSub:       'MLB · GAMES OF THE DAY',
       // Finance
@@ -184,6 +380,7 @@
       finPortfolioPrice:  'Price',
       finPortfolioValue:  'Value',
       finPortfolioPnl:    'P&L',
+      finPortfolioAlloc: 'ALLOC%',
       finPortfolioRet:    'Return',
       finPortfolioTotal:  'TOTAL',
       finPortfolioAlloc:  'ALLOCATION (TWD)',
@@ -324,20 +521,117 @@
       grpTools:    '工具',
       // Tabs
       tabMain:    'MAIN · 主控',
-      tabProject: 'PROJECT · 專案',
+      tabWorkspace: 'WORKSPACE · 工作區',
       tabFinance: 'FINANCE · 財務',
       tabScores:  'SCORES · 賽事',
       tabLibrary: 'LIBRARY · 收藏',
       // Header page titles (used by top header-bar; shorter than sidebar tabs)
       pageMain:    '主控',
-      pageProject: '專案',
+      pageWorkspace: '工作區',
       pageFinance: '財務',
       pageScores:  '賽事',
       pageLibrary: '收藏',
       // Page subtitles & empty state messages
       mainSub:         '主控介面',
-      projectSub:      '等待設定中',
+      workspaceSub: '任務作戰中心',
       projectEmptyMsg: '此工作站已備妥保留。告訴 Claude 你想在這裡追蹤什麼——專案、任務、里程碑、截止日,或其他完全不同的東西都可以。',
+      // Project page
+      projAllProjects:    '全部專案',
+      projAddProject:     '+ 新專案',
+      projAddTask:        '+ 新增任務',
+      projAll:            '全部',
+      projStatusPENDING:  '待處理',
+      projStatusACTIVE:   '進行中',
+      projStatusCOMPLETE: '已完成',
+      projStatusBLOCKED:  '受阻',
+      projSortBy:         '排序:',
+      projSortDue:        '截止日',
+      projSortPriority:   '優先級',
+      projSortCreated:    '建立時間',
+      projColEmpty:       '無任務',
+      projEdit:           '編輯',
+      projReopen:         '重開',
+      projEditProject:    '編輯專案',
+      projEditTask:       '編輯任務',
+      projFieldTitle:     '標題',
+      projFieldTitlePH:   '任務名稱…',
+      projFieldProject:   '所屬專案',
+      projFieldStatus:    '狀態',
+      projFieldPriority:  '優先級',
+      projFieldDue:       '截止日',
+      projFieldTags:      '標籤',
+      projFieldTagsPH:    '標籤1, 標籤2, …',
+      projFieldNotes:     '備註',
+      projFieldNotesPH:   '詳細内容…',
+      projNoProject:      '(無)',
+      projFieldProjectTitlePH: '專案名稱…',
+      projFieldColor:     '顏色',
+      projSaved:          '任務已儲存',
+      projUpdated:        '任務已更新',
+      projDeleted:        '已刪除',
+      projSaveFailed:     '儲存失敗',
+      projOffline:        '離線—顯示快取資料',
+      projConfirmDelete:  '確認刪除此任務？',
+      projConfirmDeleteProject: '刪除此專案及其 {n} 個任務？',
+      projConfirmDeleteProjectEmpty: '確認刪除此專案？',
+      projPriority1: '低',
+      projPriority2: '普通',
+      projPriority3: '高',
+      projPriority4: '緊急',
+      projMissionOps:    '任務作戰',
+      projNoProjects:    '尚無專案 — 點 + 開始',
+      projEmptyHint:     '從左側選擇專案，或建立新專案。',
+      projSelectMilestone: '請從左側選擇章節',
+      projAddMilestone:  '+ 新增章節',
+      projEditMilestone: '編輯章節',
+      projFieldMilestoneTitlePH: '章節名稱…',
+      projConfirmDeleteMs:      '刪除章節及其 {n} 個任務？',
+      projConfirmDeleteMsEmpty: '確認刪除此章節？',
+      projConfirmDeleteProj:    '刪除專案及其 {n} 個章節？',
+      projConfirmDeleteProjEmpty: '確認刪除此專案？',
+      projApplyTemplate:   '套用範本',
+      projTemplateHint:    '選擇範本，自動建立此章節的任務清單。',
+      projApply:           '套用',
+      projTasks:           '項任務',
+      projTemplateApplied: '範本已套用',
+      projStatus_TODO:        'TODO',
+      projStatus_IN_PROGRESS: '進行中',
+      projStatus_DONE:        '已完成',
+      // Workspace subtabs
+      workspaceSubProject:    '專案追蹤',
+      workspaceSubAttendance: '考勤紀錄',
+      wsTabProject:           '專案',
+      wsTabAttendance:        '考勤',
+      // Attendance
+      attAddRecord:    '+ 新增紀錄',
+      attLeaveAnnual:  '特休',
+      attLeaveComp:    '補休',
+      attLeavePersonal:'事假',
+      attLeaveSick:    '病假',
+      attUsed:         '已用',
+      attQuota:        '配額',
+      attBalance:      '餘額',
+      attRemaining:    '剩餘',
+      attNoRecords:    '本月無紀錄',
+      attAddTitle:     '新增紀錄',
+      attEditTitle:    '編輯紀錄',
+      attFieldDate:    '日期',
+      attFieldType:    '假別',
+      attFieldHours:   '時數',
+      attFieldNotes:   '備註',
+      attFieldNotesPH: '備註（選填）…',
+      attSetQuota:     '設定配額',
+      attSetComp:      '調整補休餘額',
+      attSaved:        '紀錄已儲存',
+      attUpdated:      '紀錄已更新',
+      attDeleted:      '紀錄已刪除',
+      attSaveFailed:   '儲存失敗',
+      attOffline:      '離線—顯示快取資料',
+      attConfirmDeleteTitle:'確認刪除',
+      attConfirmDelete:'確認刪除此筆紀錄？',
+      attHours:        'h',
+      attQuotaLabel:   '特休配額',
+      attCompLabel:    '補休餘額',
       financeSub:      '市場行情 · 即時資料',
       scoresSub:       'MLB · 今日賽事',
       librarySub:      '追劇紀錄',
@@ -492,6 +786,7 @@
       finPortfolioPrice:  '股價',
       finPortfolioValue:  '現值',
       finPortfolioPnl:    '損益',
+      finPortfolioAlloc: 'ALLOC%',
       finPortfolioRet:    '報酬率',
       finPortfolioTotal:  '合計',
       finPortfolioAlloc:  '配置比例（台幣）',
@@ -944,7 +1239,7 @@
      and its handler is wired up later via setPageActionButton(). */
   const PAGE_META = {
     main:    { icon: '#i-ops',      title: 'pageMain',    sub: 'mainSub'    },
-    project: { icon: '#i-missions', title: 'pageProject', sub: 'projectSub' },
+    project: { icon: '#i-missions', title: 'pageWorkspace', sub: 'workspaceSub' },
     finance: { icon: '#i-stocks',   title: 'pageFinance', sub: 'financeSub' },
     scores:  { icon: '#i-scores',   title: 'pageScores',  sub: 'scoresSub'  },
     library: { icon: '#i-library',  title: 'pageLibrary', sub: 'libSubSeries' /* overridden by sub-tab */ }
@@ -976,6 +1271,18 @@
     updateRefreshVisibility();
     // Update page-action button (ADD …) per page
     updatePageActionButton();
+    // Lazy-load project data on first visit
+    if (name === 'project') {
+      if (typeof fetchProject === 'function' &&
+          typeof projProjects !== 'undefined' && projProjects.length === 0 &&
+          typeof projLoading !== 'undefined' && !projLoading) {
+        fetchProject();
+      }
+      if (typeof fetchAttendance === 'function' &&
+          typeof attLoading !== 'undefined' && !attLoading) {
+        fetchAttendance();
+      }
+    }
   }
 
   /* Sync the top header-bar to the active page's metadata. */
@@ -1005,7 +1312,13 @@
   }
 
   /* The header REFRESH button is contextual — only visible on FINANCE / SCORES */
-  const REFRESHABLE_PAGES = { finance: 'fetchStocks', scores: 'fetchScores' };
+  const REFRESHABLE_PAGES = { finance: 'fetchStocks', scores: 'fetchScores', project: 'fetchProjectOrAttendance' };
+  function fetchProjectOrAttendance() {
+    if (currentWsSubtab === 'attendance' && typeof fetchAttendance === 'function') fetchAttendance();
+    else if (typeof fetchProject === 'function') fetchProject();
+  }
+  window.fetchProjectOrAttendance = fetchProjectOrAttendance;
+
   function updateRefreshVisibility() {
     const btn = document.getElementById('refreshBtn');
     if (!btn) return;
@@ -1222,9 +1535,49 @@
   updateUptime();
   initNotes();
   initLibrary();
+  // ── Workspace sub-tabs ───────────────────────────────────────────────────
+  const WS_SUBTABS = {
+    project:    { sub: 'workspaceSubProject'    },
+    attendance: { sub: 'workspaceSubAttendance' },
+  };
+
+  let currentWsSubtab = 'project';
+  try {
+    const saved = sessionStorage.getItem('lcars_ws_subtab');
+    if (saved && WS_SUBTABS[saved]) currentWsSubtab = saved;
+  } catch(e) {}
+
+  function setWsSubtab(name) {
+    if (!WS_SUBTABS[name]) return;
+    currentWsSubtab = name;
+    try { sessionStorage.setItem('lcars_ws_subtab', name); } catch(e) {}
+    document.querySelectorAll('.ws-subtab-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-subtab') === name);
+    });
+    document.querySelectorAll('.ws-subtab-panel').forEach(p => {
+      p.hidden = p.getAttribute('data-subtab-panel') !== name;
+    });
+    // Lazy-load attendance on first switch
+    if (name === 'attendance' && typeof fetchAttendance === 'function'
+        && typeof attLoading !== 'undefined' && !attLoading
+        && attRecords.length === 0) {
+      fetchAttendance();
+    }
+    if (currentPage === 'project' && typeof updatePageHeader === 'function') {
+      updatePageHeader();
+      updatePageActionButton();
+    }
+    beep(560);
+  }
+  window.setWsSubtab = setWsSubtab;
+
+  if (typeof initProject === 'function') initProject();
+  if (typeof initAttendance === 'function') initAttendance();
   fetchWeather();
   // If the user's last page was library, kick off the fetch immediately
   if (currentPage === 'library') fetchLibrary();
+  // Same for project page
+  if (currentPage === 'project' && typeof fetchProject === 'function') fetchProject();
   // Render cached data instantly (if any) so SCORES/FINANCE tabs are
   // never empty. Then quietly fetch fresh data in the background.
   const stocksFromCache = renderStocksFromCache();

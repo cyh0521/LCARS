@@ -31,6 +31,27 @@
   const STOCKS_CACHE_KEY = 'lcars_stocks_cache_v2';
   // Stores buildTiles(pw) functions keyed by tab id, called after DOM paint
   const _treemapBuilders = {};
+
+  function renderActiveTreemap() {
+    // Small delay lets the browser finish painting the newly-visible panel
+    // before we measure its width.
+    setTimeout(() => {
+      const builder = _treemapBuilders[currentFinanceTab];
+      if (!builder) return;
+      const wrap = document.getElementById('treemap-wrap-' + currentFinanceTab);
+      if (!wrap) return;
+      const realW = Math.round(wrap.getBoundingClientRect().width);
+      if (realW > 50) {
+        wrap.innerHTML = builder(realW);
+      } else {
+        // Width still 0 — try once more after a longer delay
+        setTimeout(() => {
+          const w2 = Math.round(wrap.getBoundingClientRect().width);
+          if (w2 > 50) wrap.innerHTML = builder(w2);
+        }, 150);
+      }
+    }, 30);
+  }
   const FUND_CACHE_KEY   = 'lcars_fund_cache_v1';
   const FX_CACHE_KEY     = 'lcars_fx_cache';
 
@@ -438,8 +459,7 @@
       row.className = 'ticker-row';
       const dir = s.pct == null ? 'flat' : (s.pct > 0 ? 'up' : (s.pct < 0 ? 'down' : 'flat'));
       const arrow = s.pct == null ? '·' : (s.pct > 0 ? '▲' : (s.pct < 0 ? '▼' : '·'));
-      const sign = (s.pct != null && s.pct > 0) ? '+' : '';
-      const pctStr = s.pct == null ? '—' : sign + s.pct.toFixed(2) + '%';
+      const pctStr = s.pct == null ? '—' : Math.abs(s.pct).toFixed(2) + '%';
 
       const detailUrl = stockDetailUrl(s.code);
       row.innerHTML = `
@@ -494,8 +514,7 @@
       row.className = 'ticker-row';
       const dir = s.pct == null ? 'flat' : (s.pct > 0 ? 'up' : (s.pct < 0 ? 'down' : 'flat'));
       const arrow = s.pct == null ? '·' : (s.pct > 0 ? '▲' : (s.pct < 0 ? '▼' : '·'));
-      const sign = (s.pct != null && s.pct > 0) ? '+' : '';
-      const pctStr = s.pct == null ? '—' : sign + s.pct.toFixed(2) + '%';
+      const pctStr = s.pct == null ? '—' : Math.abs(s.pct).toFixed(2) + '%';
       const ccy = s.currency || 'TWD';
       row.innerHTML = `
         <div class="ticker-head">
@@ -676,15 +695,8 @@
       panel.hidden = panel.getAttribute('data-finance-tab-panel') !== currentFinanceTab;
     });
 
-    // Paint treemaps with real container width after DOM is ready
-    requestAnimationFrame(() => {
-      Object.entries(_treemapBuilders).forEach(([tabId, builder]) => {
-        const wrap = document.getElementById('treemap-wrap-' + tabId);
-        if (!wrap) return;
-        const realW = Math.round(wrap.getBoundingClientRect().width);
-        if (realW > 50) wrap.innerHTML = builder(realW);
-      });
-    });
+    // Paint the active tab's treemap now that its panel is visible
+    renderActiveTreemap();
 
     bar.querySelectorAll('[data-finance-tab]').forEach(btn => {
       attachFinanceTabDragHandlers(btn);
@@ -992,6 +1004,11 @@
                color: LCARS_BAR_PALETTE[i % LCARS_BAR_PALETTE.length] };
     });
 
+    // ── Compute allocation % after totalTwd is known ──
+    rows.forEach(r => {
+      r.allocPct = (r.valueTwd != null && totalTwd > 0) ? (r.valueTwd / totalTwd * 100) : null;
+    });
+
     // ── Summary cards ──
     const foreignInTwd = totalTwd - totalTwdStocks;  // all non-TWD converted
     const sumTwd   = fmtNum(totalTwdStocks, 0);
@@ -1203,18 +1220,23 @@
           const hp = Math.max(0, (h - GAP) / TREEMAP_H * 100).toFixed(3);
           const bg = pctColor(item.pct);
           const pctStr = item.pct != null
-            ? (item.pct >= 0 ? '+' : '') + item.pct.toFixed(2) + '%' : '—';
-          const showCode = w > 55  && h > 30;
-          const showPct  = w > 55  && h > 55;
-          const showAttr = showCode && showPct ? 'full' : showCode ? 'code' : 'none';
-          const fontSize = w > 220 ? '15px' : w > 120 ? '13px' : '11px';
+            ? (item.pct > 0 ? '▲' : item.pct < 0 ? '▼' : '') + Math.abs(item.pct).toFixed(2) + '%' : '—';
+          const showCode  = w > 55  && h > 30;
+          const showPct   = w > 55  && h > 55;
+          const showAlloc = w > 55  && h > 75;
+          const showAttr  = showCode && showPct ? 'full' : showCode ? 'code' : 'none';
+          const fontSize  = w > 220 ? '15px' : w > 120 ? '13px' : '11px';
+          const allocStr  = item.allocPct != null ? item.allocPct.toFixed(1) + '%' : '';
+          const allocStr2 = item.allocPct != null ? item.allocPct.toFixed(1) + '%' : '';
           return `<div class="treemap-tile has-tooltip"
             style="left:${xp}%;top:${yp}%;width:${wp}%;height:${hp}%;background:${bg}"
             data-code="${escapeAttr(item.code)}"
             data-pct="${escapeAttr(pctStr)}"
+            data-alloc="${escapeAttr(allocStr2)}"
             data-show="${showAttr}">
-            ${showCode ? `<span class="treemap-code" style="font-size:${fontSize}">${escapeHtml(item.code)}</span>` : ''}
-            ${showPct  ? `<span class="treemap-pct">${escapeHtml(pctStr)}</span>` : ''}
+            ${showCode  ? `<span class="treemap-code" style="font-size:${fontSize}">${escapeHtml(item.code)}</span>` : ''}
+            ${showPct   ? `<span class="treemap-pct">${escapeHtml(pctStr)}</span>` : ''}
+            ${showAlloc && allocStr ? `<span class="treemap-alloc">${escapeHtml(allocStr)}</span>` : ''}
           </div>`;
         }).join('');
       }
@@ -1460,8 +1482,10 @@
       const tooltip = document.getElementById('treemap-tooltip');
       if (!tooltip) return;
       if (tile && tile.dataset.show !== 'full') {
-        document.getElementById('treemap-tooltip-code').textContent = tile.dataset.code || '';
-        document.getElementById('treemap-tooltip-pct').textContent  = tile.dataset.pct  || '';
+        document.getElementById('treemap-tooltip-code').textContent  = tile.dataset.code  || '';
+        document.getElementById('treemap-tooltip-pct').textContent   = tile.dataset.pct   || '';
+        const allocEl = document.getElementById('treemap-tooltip-alloc');
+        if (allocEl) allocEl.textContent = tile.dataset.alloc ? tile.dataset.alloc : '';
         tooltip.classList.add('visible');
         const pad = 14;
         let tx = e.clientX + pad;
