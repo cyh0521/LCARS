@@ -418,18 +418,26 @@
   // (e.g. naming a finance tab) feels native to the rest of the UI.
   // Resolves with the trimmed string the user entered, or null on cancel.
   /* ── Modal overlay helpers ───────────────────────────────────
-     openOverlay(el)  : append to body, lock background scroll
-     closeOverlay(el) : remove from DOM, restore scroll if no
-                        other overlays remain                   */
+     openOverlay(el)  : append to body, track open count
+     closeOverlay(el) : remove from DOM
+     Scroll-lock is handled purely via CSS overscroll-behavior:contain
+     on .alert-stack / .alert-body — no overflow manipulation needed
+     because .alert-overlay is position:fixed and covers the viewport. */
   let _scrollLockCount = 0;
-  let _savedScrollY = 0;
   function openOverlay(el) {
     document.body.appendChild(el);
     _scrollLockCount++;
+    // Prevent the page behind from scrolling via wheel/touch events
+    if (_scrollLockCount === 1) {
+      document.body.style.overflow = 'hidden';
+    }
   }
   function closeOverlay(el) {
     el.remove();
     _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+    if (_scrollLockCount === 0) {
+      document.body.style.overflow = '';
+    }
   }
   /* Helper: install backdrop-close handler that ignores drags starting
      inside the card and ending on the backdrop (e.g. text selection) */
@@ -443,8 +451,9 @@
       downOnBackdrop = false;
     });
   }
-  window.openOverlay  = openOverlay;
-  window.closeOverlay = closeOverlay;
+  window.openOverlay   = openOverlay;
+  window.closeOverlay  = closeOverlay;
+  window._overlayClose = closeOverlay;  // alias for project.js (avoids self-reference trap)
   window.installBackdropClose = installBackdropClose;
 
   function lcarsPrompt(opts) {

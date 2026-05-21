@@ -43,10 +43,10 @@
   };
 
   const PRIORITY_CFG = {
-    1: { badge: '▽', color: 'var(--lcars-muted)' },
-    2: { badge: '◇', color: 'var(--lcars-blue)'  },
-    3: { badge: '△', color: 'var(--lcars-gold)'  },
-    4: { badge: '▲', color: 'var(--lcars-rust)'  },
+    1: { dot: '■', color: '#4a6080' },   /* muted blue-grey — LOW    */
+    2: { dot: '■', color: '#7a9bd6' },   /* blue            — NORMAL */
+    3: { dot: '■', color: '#d4a23a' },   /* gold            — HIGH   */
+    4: { dot: '■', color: '#cc6666' },   /* red             — CRITICAL */
   };
 
   const PROJ_COLORS = [
@@ -492,7 +492,7 @@
 
     // Priority badge
     const badge = el('span', 'proj-task-badge');
-    badge.textContent = pCfg.badge;
+    badge.textContent = pCfg.dot;
     badge.style.color = pCfg.color;
     card.appendChild(badge);
 
@@ -633,20 +633,26 @@
       </div>
       <div class="proj-modal-field">
         <label class="proj-modal-label">${t('projFieldPriority')}</label>
-        <select class="proj-modal-select" id="pm-priority">
+        <select class="proj-modal-select proj-priority-select" id="pm-priority"
+                onchange="projPriorityChange(this)">
           ${Object.entries(PRIORITY_CFG).map(([k,v]) =>
-            `<option value="${k}" ${(task?.priority||2)==k?'selected':''}>${v.badge} ${t('projPriority'+k)||k}</option>`
+            `<option value="${k}" ${(task?.priority||2)==k?'selected':''}>${t('projPriority'+k)||k}</option>`
           ).join('')}
         </select>
       </div>`;
     body.appendChild(row1);
+    // Set initial priority border colour
+    requestAnimationFrame(() => {
+      const sel = document.getElementById('pm-priority');
+      if (sel) projPriorityChange(sel);
+    });
 
     // Due date + Tags row
     const row2 = el('div', 'proj-modal-row');
     row2.innerHTML = `
       <div class="proj-modal-field">
         <label class="proj-modal-label">${t('projFieldDue')}</label>
-        <input class="proj-modal-input" id="pm-due" type="date"
+        <input class="proj-modal-input" id="pm-due" type="date" lang="en"
                value="${task?.due_date ? task.due_date.slice(0,10) : ''}">
       </div>
       <div class="proj-modal-field">
@@ -977,6 +983,12 @@
     return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
                         .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
+  function projPriorityChange(sel) {
+    const cfg = PRIORITY_CFG[sel.value];
+    if (cfg) sel.style.borderLeftColor = cfg.color;
+  }
+  window.projPriorityChange = projPriorityChange;
+
   function mField(label, inputHtml) {
     const w = el('div', 'proj-modal-field');
     w.innerHTML = `<label class="proj-modal-label">${label}</label>${inputHtml}`;
@@ -1002,7 +1014,12 @@
   function closeOverlay(el) {
     el.style.opacity = '0';
     el.style.transition = 'opacity 0.15s';
-    setTimeout(() => el.remove(), 160);
+    setTimeout(() => {
+      // Use the shared closeOverlay from notes.js (exposed as window.closeOverlay)
+      // which handles scroll-lock counter. Fallback to plain remove().
+      const globalClose = window._overlayClose;
+      if (globalClose) globalClose(el); else el.remove();
+    }, 160);
   }
 
   // ── Sidebar drag-resize ──────────────────────────────────────────────────

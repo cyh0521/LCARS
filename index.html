@@ -1837,17 +1837,51 @@
   /* Series card */
   .series-card {
     background: var(--lcars-panel);
-    padding: 14px 16px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 3px solid var(--lcars-frame);
+    overflow: hidden;
+  }
+  .series-card.status-watching { border-top-color: var(--lcars-orange); }
+  .series-card.status-complete { border-top-color: var(--lcars-cream); }
+  .series-card.status-planned  { border-top-color: var(--lcars-blue); }
+  .series-card.status-paused   { border-top-color: var(--lcars-violet); }
+  .series-card.status-dropped  { border-top-color: var(--lcars-frame); }
+
+  /* Poster — sits on top, full width, natural height */
+  .series-poster {
+    width: 100%;
+    background: var(--lcars-frame);
+    overflow: hidden;
+    line-height: 0;
+  }
+  .series-poster img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .series-poster-placeholder {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.18;
+    font-size: 28px;
+    user-select: none;
+  }
+
+  /* Content below poster */
+  .series-card-body {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    border-left: 3px solid var(--lcars-frame);
   }
-  .series-card.status-watching { border-left-color: var(--lcars-orange); }
-  .series-card.status-complete { border-left-color: var(--lcars-cream); }
-  .series-card.status-planned  { border-left-color: var(--lcars-blue); }
-  .series-card.status-paused   { border-left-color: var(--lcars-violet); }
-  .series-card.status-dropped  { border-left-color: var(--lcars-frame); }
 
   /* Card top row: title + status pill */
   .series-card-head {
@@ -2010,6 +2044,109 @@
     opacity: 0.6;
   }
 
+  .lib-state-add-btn {
+    display: inline-block;
+    margin-top: 14px;
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    border: 1px solid var(--lcars-muted);
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .lib-state-add-btn:hover { background: var(--lcars-muted); opacity: 1; }
+
+  /* ── Film card status colours ──────────────────────────────────────────── */
+  .series-card.status-film-watched     { border-top-color: var(--lcars-cream); }
+  .series-card.status-film-want        { border-top-color: var(--lcars-blue); }
+  .series-card.status-film-rewatching  { border-top-color: var(--lcars-orange); }
+  .series-card.status-film-dropped     { border-top-color: var(--lcars-frame); }
+
+  .series-status-pill.watched     { background: var(--lcars-cream);   color: var(--lcars-bg); }
+  .series-status-pill.want        { background: var(--lcars-blue);    color: var(--lcars-bg); }
+  .series-status-pill.rewatching  { background: var(--lcars-orange);  color: var(--lcars-bg); }
+
+  /* ── Book card status colours ──────────────────────────────────────────── */
+  .series-card.status-book-reading    { border-top-color: var(--lcars-violet); }
+  .series-card.status-book-want       { border-top-color: var(--lcars-blue); }
+  .series-card.status-book-completed  { border-top-color: var(--lcars-cream); }
+  .series-card.status-book-paused     { border-top-color: var(--lcars-gold); }
+  .series-card.status-book-dropped    { border-top-color: var(--lcars-frame); }
+
+  .series-status-pill.reading    { background: var(--lcars-violet); color: var(--lcars-bg); }
+  .series-status-pill.completed  { background: var(--lcars-cream);  color: var(--lcars-bg); }
+  .series-status-pill.paused     { background: var(--lcars-gold);   color: var(--lcars-bg); }
+
+  /* ── Star rating display (on cards) ───────────────────────────────────── */
+  .film-rating-display {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 18px;
+  }
+  .film-star {
+    font-size: 14px;
+    color: var(--lcars-muted);
+    transition: color 0.1s;
+    line-height: 1;
+  }
+  .film-star.lit { color: var(--lcars-gold); }
+  .film-note-badge {
+    font-size: 11px;
+    margin-left: 6px;
+    opacity: 0.7;
+    cursor: default;
+  }
+
+  /* ── Star picker (in forms) ────────────────────────────────────────────── */
+  .lib-star-picker {
+    display: flex;
+    gap: 3px;
+    padding: 4px 2px;
+  }
+  .lib-star-picker .lib-star {
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--lcars-muted);
+    transition: color 0.1s, transform 0.1s;
+    line-height: 1;
+    user-select: none;
+  }
+  .lib-star-picker .lib-star:hover,
+  .lib-star-picker .lib-star.lit { color: var(--lcars-gold); }
+  .lib-star-picker .lib-star:hover { transform: scale(1.2); }
+
+  /* ── Context menu (⋯ menu) ─────────────────────────────────────────────── */
+  .lib-ctx-menu {
+    background: var(--lcars-frame);
+    border: 1px solid var(--lcars-muted);
+    border-radius: 6px;
+    min-width: 160px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  }
+  .lib-ctx-item {
+    display: block;
+    width: 100%;
+    padding: 9px 14px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--lcars-cream);
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .lib-ctx-item:hover { background: var(--lcars-muted); }
+  .lib-ctx-item.danger { color: var(--lcars-rust); }
+  .lib-ctx-item.danger:hover { background: rgba(204,102,102,0.15); }
+
   /* ---- Series Add/Edit modal ---- */
   .lib-form-grid {
     display: grid;
@@ -2044,6 +2181,18 @@
   }
   .lib-form-textarea { resize: vertical; min-height: 60px; }
   .lib-form-select option { background: var(--lcars-bg); }
+  .lib-form-id-row { margin-top: 4px; border-top: 1px solid var(--lcars-frame); padding-top: 12px; }
+  .lib-form-id-box {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--lcars-bg); border: 1px solid var(--lcars-frame);
+    padding: 6px 10px; cursor: pointer; border-radius: 2px;
+    transition: border-color 0.14s;
+  }
+  .lib-form-id-box:hover { border-color: var(--lcars-violet); }
+  .lib-form-id-box.copied { border-color: var(--lcars-cream); }
+  .lib-form-id-box.copied .lib-form-id-copy::after { content: ' ✓'; }
+  .lib-form-id-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--lcars-cream); flex: 1; }
+  .lib-form-id-copy { font-size: 14px; color: var(--lcars-muted); opacity: 0.6; flex-shrink: 0; }
   /* Section divider inside the form (e.g. "— SEASON 1 —") */
   .lib-form-divider {
     grid-column: 1 / -1;
@@ -2563,6 +2712,11 @@
   .proj-color-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 2px 0; }
   .proj-color-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.14s, border-color 0.14s; }
   .proj-color-dot:hover { transform: scale(1.2); }
+  /* date input: force en-US locale formatting via lang trick */
+  input[type="date"].proj-modal-input { color-scheme: dark; }
+  input[type="date"].proj-modal-input::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+  /* Priority select — left border acts as colour indicator */
+  select.proj-priority-select { border-left-width: 4px; transition: border-left-color 0.15s, border-color 0.14s; }
   .proj-color-dot.selected { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.3); transform: scale(1.15); }
 
   /* ── Template modal ── */
@@ -3542,6 +3696,7 @@
     overflow-y: auto;
     width: 100%;
     max-width: 420px;
+    overscroll-behavior: contain;
   }
   .alert-card {
     background: var(--lcars-bg);
@@ -3593,6 +3748,12 @@
     word-break: break-word;
     max-height: 50vh;
     overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Form modals inject HTML — disable pre-wrap so template indentation
+     doesn't render as blank space at the top of the body */
+  .alert-body:has(.lib-form-grid) {
+    white-space: normal;
   }
   .alert-body.empty {
     color: var(--lcars-cream);
@@ -4436,21 +4597,19 @@
         </div>
       </div>
 
-      <!-- Sub-tab content: FILMS (placeholder) -->
+      <!-- Sub-tab content: FILMS -->
       <div class="lib-subtab-panel" data-subtab-panel="films" hidden>
-        <div class="lib-coming-soon">
-          <svg class="icon icon-lg"><use href="#i-library"/></svg>
-          <div class="lib-cs-title" data-i18n="libComingSoon">COMING SOON</div>
-          <div class="lib-cs-msg" data-i18n="libCsFilms">Film log subsystem reserved for future deployment.</div>
+        <div class="lib-filter-bar" id="film-filter-bar"></div>
+        <div class="lib-grid" id="film-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
         </div>
       </div>
 
-      <!-- Sub-tab content: READING (placeholder) -->
+      <!-- Sub-tab content: READING -->
       <div class="lib-subtab-panel" data-subtab-panel="reading" hidden>
-        <div class="lib-coming-soon">
-          <svg class="icon icon-lg"><use href="#i-library"/></svg>
-          <div class="lib-cs-title" data-i18n="libComingSoon">COMING SOON</div>
-          <div class="lib-cs-msg" data-i18n="libCsReading">Reading log subsystem reserved for future deployment.</div>
+        <div class="lib-filter-bar" id="book-filter-bar"></div>
+        <div class="lib-grid" id="book-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
         </div>
       </div>
 
@@ -4492,6 +4651,8 @@
 <script src="js/scores.js"></script>
 <script src="js/notes.js"></script>
 <script src="js/library.js"></script>
+<script src="js/films.js"></script>
+<script src="js/reading.js"></script>
 <script src="js/attendance.js"></script>
 <script src="js/project.js"></script>
 <script src="js/core.js"></script>

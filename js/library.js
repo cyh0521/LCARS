@@ -503,7 +503,8 @@
     metaParts.push(seasonLabel);
     if (se.year)     metaParts.push(se.year);
     if (s.language)  metaParts.push(langShort(s.language));
-    if (s.platform)  metaParts.push(s.platform);
+    const platform = se.platform || s.platform;
+    if (platform)    metaParts.push(platform);
     meta.textContent = metaParts.join(' · ');
 
     // EP line + progress (season already labelled in the meta line above)
@@ -575,12 +576,34 @@
     actions.appendChild(spacer);
     actions.appendChild(moreBtn);
 
-    card.appendChild(head);
-    card.appendChild(meta);
-    card.appendChild(epLine);
-    card.appendChild(progWrap);
-    card.appendChild(lastSeen);
-    card.appendChild(actions);
+    // POSTER column
+    const poster = document.createElement('div');
+    poster.className = 'series-poster';
+    const posterPath = `images/posters/series/${s.id}.jpg`;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = posterPath;
+    img.onerror = function() {
+      poster.removeChild(img);
+      const ph = document.createElement('div');
+      ph.className = 'series-poster-placeholder';
+      ph.textContent = '📺';
+      poster.appendChild(ph);
+    };
+    poster.appendChild(img);
+
+    // BODY column — wraps all existing content
+    const body = document.createElement('div');
+    body.className = 'series-card-body';
+    body.appendChild(head);
+    body.appendChild(meta);
+    body.appendChild(epLine);
+    body.appendChild(progWrap);
+    body.appendChild(lastSeen);
+    body.appendChild(actions);
+
+    card.appendChild(poster);
+    card.appendChild(body);
     return card;
   }
 
@@ -1050,7 +1073,7 @@
   function buildSeriesFormBody(s, se) {
     const isEdit = !!s;
     const platformOpts = ['', ...PLATFORMS].map(p =>
-      `<option value="${p}" ${s && s.platform === p ? 'selected' : ''}>${p || '—'}</option>`
+      `<option value="${p}" ${se && se.platform === p ? 'selected' : (!se && !p ? 'selected' : '')}>${p || '—'}</option>`
     ).join('');
     const langOpts = LANGUAGES.map(L =>
       `<option value="${L}" ${s && s.language === L ? 'selected' : ''}>${langLabel(L)}</option>`
@@ -1062,14 +1085,9 @@
       }>${st}</option>`
     ).join('');
 
-    // The form always covers BOTH series-level fields and one season's
-    // settings (its number / title / total episodes / status). On add the
-    // user picks which season number; on edit it's the current card's season.
     const totalEpVal     = se ? (se.total_episodes || '') : '';
     const seasonTitleVal = se ? (se.season_title || '') : '';
     const seasonNumVal   = se ? (parseInt(se.season_number) || 1) : 1;
-    // Neutral divider label: now that the season number is editable in both
-    // modes, "SEASON 1" is no longer always correct, so use a generic header.
     const dividerLabel = t('libFormSeasonInfo');
 
     return `
@@ -1082,20 +1100,12 @@
           <label class="lib-form-label">${t('libFormTitleZh')}</label>
           <input id="lf-title-zh" class="lib-form-input" placeholder="${t('libFormTitleZhPH')}" value="${escapeAttr(s ? (s.title_zh || '') : '')}">
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('libFormLanguage')}</label>
-            <select id="lf-language" class="lib-form-select">${langOpts}</select>
-          </div>
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('libFormPlatform')}</label>
-            <select id="lf-platform" class="lib-form-select">${platformOpts}</select>
-          </div>
+        <div class="lib-form-field full">
+          <label class="lib-form-label">${t('libFormLanguage')}</label>
+          <select id="lf-language" class="lib-form-select">${langOpts}</select>
         </div>
 
         <div class="lib-form-divider full">${dividerLabel}</div>
-        <!-- Season row: number / year / season title / total episodes.
-             Year sits next to season number because both are season-level. -->
         <div class="lib-form-field full" style="display:grid; grid-template-columns: 70px 90px 1fr 90px; gap:12px;">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormSeasonNum')}</label>
@@ -1114,15 +1124,29 @@
             <input id="lf-total-ep" class="lib-form-input" type="number" min="0" placeholder="?" value="${escapeAttr(totalEpVal)}">
           </div>
         </div>
-        <div class="lib-form-field full">
-          <label class="lib-form-label">${t('libFormStatus')}</label>
-          <select id="lf-status" class="lib-form-select">${statusOpts}</select>
+        <div class="lib-form-field full" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('libFormStatus')}</label>
+            <select id="lf-status" class="lib-form-select">${statusOpts}</select>
+          </div>
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('libFormPlatform')}</label>
+            <select id="lf-platform" class="lib-form-select">${platformOpts}</select>
+          </div>
         </div>
 
         <div class="lib-form-field full">
           <label class="lib-form-label">${t('libFormNote')}</label>
           <textarea id="lf-note" class="lib-form-textarea" placeholder="${t('libFormNotePH')}">${escapeHtml(s ? (s.notes || '') : '')}</textarea>
         </div>
+        ${isEdit ? `
+        <div class="lib-form-field full lib-form-id-row">
+          <label class="lib-form-label">SERIES ID</label>
+          <div class="lib-form-id-box" id="lib-copy-id-btn" onclick="(function(el){navigator.clipboard.writeText('${s.id}').then(()=>{el.classList.add('copied');setTimeout(()=>el.classList.remove('copied'),1200)})})(document.getElementById('lib-copy-id-btn'))" title="點擊複製">
+            <span class="lib-form-id-val">${s.id}</span>
+            <span class="lib-form-id-copy">⎘</span>
+          </div>
+        </div>` : ''}
       </div>`;
   }
 
@@ -1223,13 +1247,13 @@
         title_original: result.title_original,
         title_zh:       result.title_zh,
         language:       result.language,
-        platform:       result.platform,
         notes:          result.notes,
         create_first_season:    true,
         first_season_number:    result.season_number,
         first_season_title:     result.season_title,
         first_season_year:      result.year,
         first_season_total_eps: result.total_episodes,
+        first_season_platform:  result.platform,
         status:                 result.status
       });
       beep(620);
@@ -1252,7 +1276,6 @@
           title_original: result.title_original,
           title_zh:       result.title_zh,
           language:       result.language,
-          platform:       result.platform,
           notes:          result.notes
         }),
         libPost({
@@ -1262,7 +1285,8 @@
           season_title:   result.season_title,
           year:           result.year,
           total_episodes: result.total_episodes,
-          status:         result.status
+          status:         result.status,
+          platform:       result.platform
         })
       ]);
       beep(560);
@@ -1313,6 +1337,9 @@
       const statusOpts = STATUSES.map(st =>
         `<option value="${st}" ${st === 'PLANNED' ? 'selected' : ''}>${st}</option>`
       ).join('');
+      const platformOpts = ['', ...PLATFORMS].map(p =>
+        `<option value="${p}">${p || '—'}</option>`
+      ).join('');
 
       body.innerHTML = `
         <div class="lib-form-grid">
@@ -1334,9 +1361,15 @@
               <input id="as-eps" class="lib-form-input" type="number" min="0" placeholder="?">
             </div>
           </div>
-          <div class="lib-form-field full">
-            <label class="lib-form-label">${t('libFormStatus')}</label>
-            <select id="as-status" class="lib-form-select">${statusOpts}</select>
+          <div class="lib-form-field full" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div class="lib-form-field">
+              <label class="lib-form-label">${t('libFormStatus')}</label>
+              <select id="as-status" class="lib-form-select">${statusOpts}</select>
+            </div>
+            <div class="lib-form-field">
+              <label class="lib-form-label">${t('libFormPlatform')}</label>
+              <select id="as-platform" class="lib-form-select">${platformOpts}</select>
+            </div>
           </div>
         </div>`;
 
@@ -1367,7 +1400,8 @@
           year:           parseInt(document.getElementById('as-year').value) || '',
           season_title:   document.getElementById('as-title').value.trim(),
           total_episodes: parseInt(document.getElementById('as-eps').value) || 0,
-          status:         document.getElementById('as-status').value || 'PLANNED'
+          status:         document.getElementById('as-status').value || 'PLANNED',
+          platform:       document.getElementById('as-platform').value || ''
         });
       });
       installBackdropClose(overlay, () => close(null));
@@ -1402,8 +1436,8 @@
 
   const LIB_SUBTABS = {
     series:     { sub: 'libSubSeries',     add: 'libAddSeries', handler: () => showLibraryAddForm() },
-    films:      { sub: 'libSubFilms',      add: 'libAddFilm',   handler: null },
-    reading:    { sub: 'libSubReading',    add: 'libAddBook',   handler: null },
+    films:      { sub: 'libSubFilms',      add: 'libAddFilm',   handler: () => showFilmAddForm() },
+    reading:    { sub: 'libSubReading',    add: 'libAddBook',   handler: () => showBookAddForm() },
     collection: { sub: 'libSubCollection', add: 'libAddItem',   handler: null }
   };
 
@@ -1425,6 +1459,11 @@
       p.hidden = p.getAttribute('data-subtab-panel') !== name;
     });
 
+    // Lazy-load each sub-tab's data on first switch
+    if (name === 'series'  && currentPage === 'library' && libSeriesCache.length === 0 && !libLoading) fetchLibrary();
+    if (name === 'films'   && currentPage === 'library' && typeof filmsCache !== 'undefined' && filmsCache.length === 0 && !filmLoading) fetchFilms();
+    if (name === 'reading' && currentPage === 'library' && typeof booksCache !== 'undefined' && booksCache.length === 0 && !bookLoading) fetchReading();
+
     if (currentPage === 'library' && typeof updatePageHeader === 'function') {
       updatePageHeader();
       updatePageActionButton();
@@ -1444,7 +1483,9 @@
 
     document.querySelectorAll('.tab-btn[data-tab="library"]').forEach(btn => {
       btn.addEventListener('click', () => {
-        if (libSeriesCache.length === 0 && !libLoading) fetchLibrary();
+        if (currentLibSubtab === 'series' && libSeriesCache.length === 0 && !libLoading) fetchLibrary();
+        if (currentLibSubtab === 'films'   && typeof filmsCache !== 'undefined' && filmsCache.length === 0 && !filmLoading) fetchFilms();
+        if (currentLibSubtab === 'reading' && typeof booksCache !== 'undefined' && booksCache.length === 0 && !bookLoading) fetchReading();
       });
     });
     // Render filter bar with initial counts (zero) on load
@@ -1455,5 +1496,9 @@
     window.setLibSearch = setLibSearch;
     window.setLibSubtab = setLibSubtab;
     window.libraryAddBtnClick = libraryAddBtnClick;
+
+    // Init sub-modules
+    if (typeof initFilms   === 'function') initFilms();
+    if (typeof initReading === 'function') initReading();
   }
 
