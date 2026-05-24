@@ -1785,6 +1785,13 @@
     gap: var(--gap);
   }
 
+  /* Films / Books grids: use a wider minmax so the side-poster cards have room to breathe.
+     Selector covers both direct lib-grid-inner and ones nested inside year groups. */
+  #film-grid .lib-grid-inner,
+  #book-grid .lib-grid-inner {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+
   /* Month group — wrapped in a Finance-style panel:
        - 6px coloured border on the left as the vertical marker
        - Generous left padding so cards sit clearly inside the "panel"
@@ -1834,7 +1841,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Series card */
+  /* Series card — poster on top */
   .series-card {
     background: var(--lcars-panel);
     padding: 0;
@@ -1850,26 +1857,81 @@
   .series-card.status-paused   { border-top-color: var(--lcars-violet); }
   .series-card.status-dropped  { border-top-color: var(--lcars-frame); }
 
-  /* Poster — sits on top, full width, natural height */
-  .series-poster {
-    width: 100%;
+  /* Films / Books: side-poster card.
+     Poster is fixed width AND fixed height (2:3).
+     All cards in a row are same height via CSS grid's row equalisation. */
+  .series-card.card-side-poster {
+    display: flex;
+    flex-direction: row;
+    border-top: none;
+    border-left: 3px solid var(--lcars-frame);
+    height: 200px;
+  }
+  .card-side-poster .series-poster {
+    flex: 0 0 133px;
+    width: 133px;
+    height: 200px;
     background: var(--lcars-frame);
     overflow: hidden;
     line-height: 0;
   }
-  .series-poster img {
-    width: 100%;
-    height: auto;
+  .card-side-poster .series-poster img {
     display: block;
-  }
-  .series-poster-placeholder {
     width: 100%;
-    height: 80px;
+    height: 100%;
+  }
+  .card-side-poster .series-poster-placeholder {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0.18;
-    font-size: 28px;
+    font-size: 22px;
+  }
+  .card-side-poster .series-card-body {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+  }
+  .card-side-poster .series-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-side-poster .series-title-zh { margin-top: 0; }
+  .card-side-poster .series-actions  { margin-top: auto; }
+
+  /* Poster — series: full width on top, 16:9 ratio */
+  .series-poster {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--lcars-frame);
+    overflow: hidden;
+    line-height: 0;
+    flex-shrink: 0;
+  }
+  .series-poster img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center top;
+  }
+  .series-poster-placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.18;
+    font-size: 22px;
     user-select: none;
   }
 
@@ -2061,21 +2123,56 @@
   .lib-state-add-btn:hover { background: var(--lcars-muted); opacity: 1; }
 
   /* ── Film card status colours ──────────────────────────────────────────── */
-  .series-card.status-film-watched     { border-top-color: var(--lcars-cream); }
-  .series-card.status-film-want        { border-top-color: var(--lcars-blue); }
-  .series-card.status-film-rewatching  { border-top-color: var(--lcars-orange); }
-  .series-card.status-film-dropped     { border-top-color: var(--lcars-frame); }
+  .series-card.status-film-watched     { border-left-color: var(--lcars-cream); }
+  .series-card.status-film-want        { border-left-color: var(--lcars-blue); }
+  .series-card.status-film-rewatching  { border-left-color: var(--lcars-orange); }
 
   .series-status-pill.watched     { background: var(--lcars-cream);   color: var(--lcars-bg); }
   .series-status-pill.want        { background: var(--lcars-blue);    color: var(--lcars-bg); }
   .series-status-pill.rewatching  { background: var(--lcars-orange);  color: var(--lcars-bg); }
 
-  /* ── Book card status colours ──────────────────────────────────────────── */
-  .series-card.status-book-reading    { border-top-color: var(--lcars-violet); }
-  .series-card.status-book-want       { border-top-color: var(--lcars-blue); }
-  .series-card.status-book-completed  { border-top-color: var(--lcars-cream); }
-  .series-card.status-book-paused     { border-top-color: var(--lcars-gold); }
-  .series-card.status-book-dropped    { border-top-color: var(--lcars-frame); }
+  /* ── Book format segment selector ─────────────────────────────────────── */
+  .lib-format-seg {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .lib-format-opt {
+    display: flex;
+    cursor: pointer;
+  }
+  .lib-format-opt input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .lib-format-opt span {
+    display: inline-block;
+    padding: 5px 14px;
+    border: 1px solid var(--lcars-muted);
+    border-radius: 999px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--lcars-cream);
+    background: var(--lcars-frame);
+    transition: background 0.12s, border-color 0.12s;
+    user-select: none;
+  }
+  .lib-format-opt input[type="radio"]:checked + span {
+    background: var(--lcars-violet);
+    border-color: var(--lcars-violet);
+    color: var(--lcars-bg);
+  }
+  .lib-format-opt:hover span {
+    border-color: var(--lcars-violet);
+  }
+  .series-card.status-book-reading    { border-left-color: var(--lcars-violet); }
+  .series-card.status-book-want       { border-left-color: var(--lcars-blue); }
+  .series-card.status-book-completed  { border-left-color: var(--lcars-cream); }
+  .series-card.status-book-paused     { border-left-color: var(--lcars-gold); }
+  .series-card.status-book-dropped    { border-left-color: var(--lcars-frame); }
 
   .series-status-pill.reading    { background: var(--lcars-violet); color: var(--lcars-bg); }
   .series-status-pill.completed  { background: var(--lcars-cream);  color: var(--lcars-bg); }

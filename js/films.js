@@ -1,10 +1,10 @@
 // js/films.js — Film Log tracker (Library › FILMS sub-tab)
 //
 // Data model (Google Sheets columns):
-//   id, title_original, title_zh, year, director, language, genre,
-//   platform, status, rating, watched_date, runtime_min, notes
+//   id, title_original, title_zh, year, language, genre,
+//   platform, status, rating, watched_date, rewatch_count, notes
 //
-// Statuses: WATCHED · WANT_TO_WATCH · REWATCHING · DROPPED
+// Statuses: WATCHED · WANT_TO_WATCH · REWATCHING
 
   /* ============================================================
      CONFIG
@@ -12,15 +12,15 @@
   // Reuse the same Apps Script as library.js — the sheet is 'films'
   const FILMS_API_URL = 'https://script.google.com/macros/s/AKfycbz95Pnc9LeWAMtVmPIQePNK45-7akEonTCry3jjtH3UUdNTf4rUtzCpkeelQED0orLA/exec';
 
-  const FILM_STATUSES    = ['WATCHED', 'WANT_TO_WATCH', 'REWATCHING', 'DROPPED'];
+  const FILM_STATUSES    = ['WATCHED', 'WANT_TO_WATCH', 'REWATCHING'];
   const FILM_STATUS_KEY  = {
     'WATCHED':       'watched',
     'WANT_TO_WATCH': 'want',
     'REWATCHING':    'rewatching',
-    'DROPPED':       'dropped',
   };
-  const FILM_LANGUAGES   = ['CHINESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'OTHER'];
-  const FILM_PLATFORMS   = ['Netflix', 'Disney+', 'Apple TV+', 'HBO Max', 'MyVideo', 'YouTube', '院線', '其他'];
+  const FILM_LANGUAGES   = ['CHINESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'FRENCH', 'GERMAN', 'SPANISH', 'OTHER'];
+  // Platforms with sentinel values for free-text entry
+  const FILM_PLATFORMS = ['Netflix', 'Disney+', 'Apple TV+', 'HBO Max', 'MyVideo', 'YouTube', 'Cinema', 'Other'];
   const FILM_GENRES      = ['ACTION', 'ANIMATION', 'COMEDY', 'CRIME', 'DOCUMENTARY', 'DRAMA',
                              'FANTASY', 'HORROR', 'ROMANCE', 'SCI-FI', 'THRILLER', 'OTHER'];
 
@@ -63,7 +63,7 @@
   async function filmsPost(body) {
     const res = await fetch(FILMS_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ sheet: 'films', ...body }),
+      body: JSON.stringify(body),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -144,7 +144,7 @@
     const bar = document.getElementById('film-filter-bar');
     if (!bar) return;
 
-    const counts = { all: filmsCache.length, watched: 0, want: 0, rewatching: 0, dropped: 0 };
+    const counts = { all: filmsCache.length, watched: 0, want: 0, rewatching: 0 };
     filmsCache.forEach(f => {
       const k = FILM_STATUS_KEY[String(f.status || 'WANT_TO_WATCH').toUpperCase()] || 'want';
       if (counts[k] !== undefined) counts[k]++;
@@ -155,7 +155,6 @@
       ['watched',    t('filmFilterWatched')],
       ['want',       t('filmFilterWant')],
       ['rewatching', t('filmFilterRewatching')],
-      ['dropped',    t('filmFilterDropped')],
     ];
 
     const btns = filters.map(([key, label]) => `
@@ -206,7 +205,49 @@
     }
 
     grid.innerHTML = '';
-    list.forEach(f => grid.appendChild(buildFilmCard(f)));
+
+    // Group by watched_date year (descending). Films with no date go into a
+    // catch-all group at the end.
+    const YEAR_PALETTE = [
+      'var(--lcars-orange)',
+      'var(--lcars-cream)',
+      'var(--lcars-blue)',
+      'var(--lcars-violet)',
+      'var(--lcars-gold)',
+      'var(--lcars-rust)'
+    ];
+    const yearMap = new Map();
+    list.forEach(f => {
+      const yr = f.watched_date ? String(f.watched_date).slice(0, 4) : '__';
+      if (!yearMap.has(yr)) yearMap.set(yr, []);
+      yearMap.get(yr).push(f);
+    });
+    // Sort years descending; no-date group last
+    const sortedYears = [...yearMap.keys()].sort((a, b) => {
+      if (a === '__') return 1;
+      if (b === '__') return -1;
+      return b - a;
+    });
+    sortedYears.forEach((yr, idx) => {
+      const films = yearMap.get(yr);
+      const groupEl = document.createElement('div');
+      groupEl.className = 'lib-month-group';
+      groupEl.style.setProperty('--month-color', YEAR_PALETTE[idx % YEAR_PALETTE.length]);
+
+      const header = document.createElement('div');
+      header.className = 'lib-month-header';
+      header.innerHTML = `
+        <span class="lib-month-tag"></span>
+        <span class="lib-month-title">${escapeHtml(yr === '__' ? t('filmYearNone') : yr)}</span>
+        <span class="lib-month-count">${films.length}</span>`;
+      groupEl.appendChild(header);
+
+      const inner = document.createElement('div');
+      inner.className = 'lib-grid-inner';
+      films.forEach(f => inner.appendChild(buildFilmCard(f)));
+      groupEl.appendChild(inner);
+      grid.appendChild(groupEl);
+    });
   }
 
   function renderFilmsError() {
@@ -227,7 +268,7 @@
     const rating    = parseFloat(f.rating) || 0;
 
     const card = document.createElement('div');
-    card.className = `series-card status-film-${statusCls}`;
+    card.className = `series-card card-side-poster status-film-${statusCls}`;
     card.dataset.filmId = f.id;
 
     // POSTER
@@ -270,23 +311,23 @@
     head.appendChild(titleWrap);
     head.appendChild(pill);
 
-    // Meta line: year · director · lang · genre · platform
+    // Meta line: year · lang · genre · platform
     const meta = document.createElement('div');
     meta.className = 'series-meta';
     const metaParts = [];
     if (f.year)     metaParts.push(f.year);
-    if (f.director) metaParts.push(f.director);
     if (f.language) metaParts.push(langShort(f.language));
     if (f.genre)    metaParts.push(f.genre);
     if (f.platform) metaParts.push(f.platform);
     meta.textContent = metaParts.join(' · ');
 
-    // Runtime + watched date
+    // Watched date + rewatch count
     const info = document.createElement('div');
     info.className = 'series-ep-line';
     const infoParts = [];
-    if (f.runtime_min) infoParts.push(`${f.runtime_min} ${t('filmMin')}`);
     if (f.watched_date) infoParts.push(`${t('libLastSeen')} ${fmtDate(f.watched_date)}`);
+    const rewatchCount = parseInt(f.rewatch_count) || 0;
+    if (rewatchCount > 0) infoParts.push(t('filmRewatchCount').replace('{n}', rewatchCount));
     info.textContent = infoParts.join('  ·  ') || t('libNeverSeen');
 
     // Star rating display
@@ -298,46 +339,38 @@
       s.textContent = '★';
       stars.appendChild(s);
     }
-    if (f.notes) {
-      const noteBadge = document.createElement('span');
-      noteBadge.className = 'film-note-badge';
-      noteBadge.title = f.notes;
-      noteBadge.textContent = '📝';
-      stars.appendChild(noteBadge);
-    }
 
-    // Actions
+    // Actions — only the ⋯ menu button
     const actions = document.createElement('div');
     actions.className = 'series-actions';
 
-    // Mark watched (only for WANT_TO_WATCH)
     if (status === 'WANT_TO_WATCH') {
       const watchBtn = document.createElement('button');
       watchBtn.className = 'series-btn primary';
       watchBtn.textContent = t('filmBtnMarkWatched');
       watchBtn.addEventListener('click', () => showFilmMarkWatchedModal(f));
       actions.appendChild(watchBtn);
+    } else if (status === 'REWATCHING') {
+      const rewatchBtn = document.createElement('button');
+      rewatchBtn.className = 'series-btn primary';
+      rewatchBtn.textContent = t('filmBtnLogRewatch');
+      rewatchBtn.addEventListener('click', () => showFilmRewatchModal(f));
+      actions.appendChild(rewatchBtn);
     }
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'series-btn';
-    editBtn.textContent = t('filmBtnEdit');
-    editBtn.addEventListener('click', () => showFilmEditForm(f));
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'series-btn icon-btn';
-    delBtn.textContent = '⋯';
-    delBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      showFilmMenu(f, delBtn);
-    });
 
     const spacer = document.createElement('div');
     spacer.style.flex = '1';
 
-    if (status !== 'WANT_TO_WATCH') actions.appendChild(editBtn);
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'series-btn icon-btn';
+    moreBtn.textContent = '⋯';
+    moreBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      showFilmMenu(f, moreBtn);
+    });
+
     actions.appendChild(spacer);
-    actions.appendChild(delBtn);
+    actions.appendChild(moreBtn);
 
     body.appendChild(head);
     body.appendChild(meta);
@@ -397,8 +430,9 @@
      ============================================================ */
   function buildFilmFormBody(f) {
     const isEdit = !!f;
+
     const platformOpts = ['', ...FILM_PLATFORMS].map(p =>
-      `<option value="${p}" ${f && f.platform === p ? 'selected' : (!f && !p ? 'selected' : '')}>${p || '—'}</option>`
+      `<option value="${escapeAttr(p)}" ${(f ? f.platform : '') === p ? 'selected' : (!f && !p ? 'selected' : '')}>${p || '—'}</option>`
     ).join('');
     const langOpts = FILM_LANGUAGES.map(L =>
       `<option value="${L}" ${f && f.language === L ? 'selected' : ''}>${langLabel(L)}</option>`
@@ -426,16 +460,6 @@
             <input id="ff-year" class="lib-form-input" type="number" min="1900" max="2100" placeholder="?" value="${escapeAttr(f ? (f.year || '') : '')}">
           </div>
           <div class="lib-form-field">
-            <label class="lib-form-label">${t('filmFormDirector')}</label>
-            <input id="ff-director" class="lib-form-input" placeholder="${t('filmFormDirectorPH')}" value="${escapeAttr(f ? (f.director || '') : '')}">
-          </div>
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('filmFormRuntime')}</label>
-            <input id="ff-runtime" class="lib-form-input" type="number" min="0" placeholder="?" value="${escapeAttr(f ? (f.runtime_min || '') : '')}">
-          </div>
-        </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormLanguage')}</label>
             <select id="ff-language" class="lib-form-select">${langOpts}</select>
           </div>
@@ -451,7 +475,7 @@
           </div>
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormPlatform')}</label>
-            <select id="ff-platform" class="lib-form-select">${platformOpts}</select>
+            <select id="ff-platform-select" class="lib-form-select">${platformOpts}</select>
           </div>
         </div>
         <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end;">
@@ -554,12 +578,10 @@
           title_original: document.getElementById('ff-title-orig').value.trim(),
           title_zh:       document.getElementById('ff-title-zh').value.trim(),
           year:           document.getElementById('ff-year').value.trim(),
-          director:       document.getElementById('ff-director').value.trim(),
-          runtime_min:    document.getElementById('ff-runtime').value.trim(),
           language:       document.getElementById('ff-language').value,
           genre:          document.getElementById('ff-genre').value,
           status:         document.getElementById('ff-status').value,
-          platform:       document.getElementById('ff-platform').value,
+          platform:       document.getElementById('ff-platform-select').value,
           watched_date:   document.getElementById('ff-date').value,
           rating:         document.getElementById('ff-rating').value,
           notes:          document.getElementById('ff-note').value.trim(),
@@ -589,7 +611,7 @@
     const result = await showFilmFormModal(null, t('filmAddTitle'));
     if (!result) return;
     try {
-      await filmsPost({ action: 'add', ...result });
+      await filmsPost({ action: 'add_film', ...result });
       beep(720);
       await fetchFilms();
     } catch(e) {
@@ -603,7 +625,7 @@
     const result = await showFilmFormModal(f, t('filmEditTitle'));
     if (!result) return;
     try {
-      await filmsPost({ action: 'update', id: f.id, ...result });
+      await filmsPost({ action: 'update_film', id: f.id, ...result });
       beep(720);
       await fetchFilms();
     } catch(e) {
@@ -678,7 +700,7 @@
         const rating = document.getElementById('fmw-rating').value;
         close(true);
         try {
-          await filmsPost({ action: 'update', id: f.id, status: 'WATCHED', watched_date: date, rating });
+          await filmsPost({ action: 'update_film', id: f.id, status: 'WATCHED', watched_date: date, rating });
           beep(720);
           await fetchFilms();
         } catch(e) {
@@ -720,6 +742,119 @@
   /* ============================================================
      DELETE
      ============================================================ */
+  /* ============================================================
+     LOG REWATCH MODAL — increments rewatch_count + updates date
+     ============================================================ */
+  async function showFilmRewatchModal(f) {
+    const today = new Date().toISOString().slice(0, 10);
+    const currentCount = parseInt(f.rewatch_count) || 1;  // already watched at least once
+
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'alert-overlay';
+      overlay.style.zIndex = 10000;
+      const stack = document.createElement('div');
+      stack.className = 'alert-stack';
+      overlay.appendChild(stack);
+
+      const card = document.createElement('div');
+      card.className = 'alert-card';
+
+      const head = document.createElement('div');
+      head.className = 'alert-head';
+      head.style.background = 'var(--lcars-orange)';
+      head.innerHTML = `<span class="alert-head-title">${escapeHtml(t('filmRewatchTitle'))}</span>`;
+
+      const body = document.createElement('div');
+      body.className = 'alert-body';
+      body.style.padding = '20px 24px';
+      body.innerHTML = `
+        <div style="margin-bottom:14px; font-size:14px; color:var(--lcars-cream);">${escapeHtml(f.title_original)}</div>
+        <div style="margin-bottom:16px; font-size:12px; letter-spacing:0.12em; color:var(--lcars-orange);">
+          ${escapeHtml(t('filmRewatchCurrent').replace('{n}', currentCount))}
+          &nbsp;→&nbsp;
+          <strong>${currentCount + 1}</strong>
+        </div>
+        <div class="lib-form-grid">
+          <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end;">
+            <div class="lib-form-field">
+              <label class="lib-form-label">${t('filmRewatchDate')}</label>
+              <input id="frw-date" class="lib-form-input" type="date" value="${today}">
+            </div>
+            <div class="lib-form-field">
+              <label class="lib-form-label">${t('filmFormRating')}</label>
+              <div id="frw-star-picker" class="lib-star-picker">${buildFilmRewatchStarPickerHTML(parseFloat(f.rating)||0)}</div>
+              <input id="frw-rating" type="hidden" value="${escapeAttr(f.rating || 0)}">
+            </div>
+          </div>
+        </div>`;
+
+      const footer = document.createElement('div');
+      footer.className = 'alert-footer confirm';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'alert-ok';
+      cancelBtn.textContent = t('libCancel');
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'alert-ok';
+      saveBtn.style.cssText = 'background:var(--lcars-orange); color:var(--lcars-bg);';
+      saveBtn.textContent = t('filmBtnLogRewatch');
+
+      const close = r => {
+        document.removeEventListener('keydown', onKey);
+        closeOverlay(overlay);
+        resolve(r);
+      };
+      const onKey = e => { if (e.key === 'Escape') close(null); };
+      document.addEventListener('keydown', onKey);
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      cancelBtn.addEventListener('click', () => close(null));
+      saveBtn.addEventListener('click', async () => {
+        const date   = document.getElementById('frw-date').value;
+        const rating = document.getElementById('frw-rating').value;
+        close(true);
+        try {
+          await filmsPost({
+            action:        'update_film',
+            id:            f.id,
+            watched_date:  date,
+            rating:        rating,
+            rewatch_count: currentCount + 1,
+          });
+          beep(720);
+          await fetchFilms();
+        } catch(e) {
+          console.error('[FILMS] Log rewatch failed:', e);
+          beep(280);
+        }
+      });
+
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      card.appendChild(head);
+      card.appendChild(body);
+      card.appendChild(footer);
+      stack.appendChild(card);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.style.opacity = '1');
+
+      window._filmRewatchStarClick = val => {
+        const h = document.getElementById('frw-rating');
+        const cur = parseInt(h.value) || 0;
+        const nv = cur === val ? 0 : val;
+        h.value = nv;
+        document.querySelectorAll('#frw-star-picker .lib-star').forEach((s, i) => s.classList.toggle('lit', i < nv));
+      };
+    });
+  }
+
+  function buildFilmRewatchStarPickerHTML(initial) {
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      html += `<span class="lib-star${i <= initial ? ' lit' : ''}" onclick="window._filmRewatchStarClick(${i})">★</span>`;
+    }
+    return html;
+  }
+
   async function confirmFilmDelete(f) {
     // Use the app's existing alert pattern
     const confirmed = await new Promise(resolve => {
@@ -768,7 +903,7 @@
 
     if (!confirmed) return;
     try {
-      await filmsPost({ action: 'delete', id: f.id });
+      await filmsPost({ action: 'delete_film', id: f.id });
       beep(720);
       await fetchFilms();
     } catch(e) {

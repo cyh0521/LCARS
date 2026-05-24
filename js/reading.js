@@ -1,8 +1,8 @@
 // js/reading.js — Reading Log tracker (Library › READING sub-tab)
 //
 // Data model (Google Sheets columns):
-//   id, title, title_zh, author, year, language, genre,
-//   status, rating, start_date, finish_date, pages, notes
+//   id, title, title_zh, author, translator, year, language, isbn, edition, format,
+//   genre, status, rating, start_date, finish_date, source, price, notes
 //
 // Statuses: READING · WANT_TO_READ · COMPLETED · PAUSED · DROPPED
 
@@ -19,7 +19,8 @@
     'PAUSED':        'paused',
     'DROPPED':       'dropped',
   };
-  const BOOK_LANGUAGES   = ['CHINESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'OTHER'];
+  const BOOK_LANGUAGES   = ['CHINESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'FRENCH', 'GERMAN', 'SPANISH', 'OTHER'];
+  const BOOK_FORMATS     = ['紙本', 'ePub', 'PDF'];
   const BOOK_GENRES      = ['FICTION', 'NON-FICTION', 'BIOGRAPHY', 'HISTORY', 'SCIENCE',
                              'PHILOSOPHY', 'TECHNOLOGY', 'SELF-HELP', 'MYSTERY', 'FANTASY',
                              'SCI-FI', 'POETRY', 'MANGA', 'OTHER'];
@@ -63,7 +64,7 @@
   async function readingPost(body) {
     const res = await fetch(READING_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ sheet: 'reading', ...body }),
+      body: JSON.stringify(body),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -214,7 +215,48 @@
     }
 
     grid.innerHTML = '';
-    list.forEach(b => grid.appendChild(buildBookCard(b)));
+
+    // Group by finish_date year (or start_date if no finish). No-date last.
+    const YEAR_PALETTE = [
+      'var(--lcars-orange)',
+      'var(--lcars-cream)',
+      'var(--lcars-blue)',
+      'var(--lcars-violet)',
+      'var(--lcars-gold)',
+      'var(--lcars-rust)'
+    ];
+    const yearMap = new Map();
+    list.forEach(b => {
+      const dateStr = b.finish_date || b.start_date || '';
+      const yr = dateStr ? String(dateStr).slice(0, 4) : '__';
+      if (!yearMap.has(yr)) yearMap.set(yr, []);
+      yearMap.get(yr).push(b);
+    });
+    const sortedYears = [...yearMap.keys()].sort((a, b) => {
+      if (a === '__') return 1;
+      if (b === '__') return -1;
+      return b - a;
+    });
+    sortedYears.forEach((yr, idx) => {
+      const books = yearMap.get(yr);
+      const groupEl = document.createElement('div');
+      groupEl.className = 'lib-month-group';
+      groupEl.style.setProperty('--month-color', YEAR_PALETTE[idx % YEAR_PALETTE.length]);
+
+      const header = document.createElement('div');
+      header.className = 'lib-month-header';
+      header.innerHTML = `
+        <span class="lib-month-tag"></span>
+        <span class="lib-month-title">${escapeHtml(yr === '__' ? t('bookYearNone') : yr)}</span>
+        <span class="lib-month-count">${books.length}</span>`;
+      groupEl.appendChild(header);
+
+      const inner = document.createElement('div');
+      inner.className = 'lib-grid-inner';
+      books.forEach(b => inner.appendChild(buildBookCard(b)));
+      groupEl.appendChild(inner);
+      grid.appendChild(groupEl);
+    });
   }
 
   function renderReadingError() {
@@ -233,10 +275,9 @@
     const status    = String(b.status || 'WANT_TO_READ').toUpperCase();
     const statusCls = BOOK_STATUS_KEY[status] || 'want';
     const rating    = parseFloat(b.rating) || 0;
-    const pages     = parseInt(b.pages) || 0;
 
     const card = document.createElement('div');
-    card.className = `series-card status-book-${statusCls}`;
+    card.className = `series-card card-side-poster status-book-${statusCls}`;
     card.dataset.bookId = b.id;
 
     // POSTER (book cover)
@@ -279,38 +320,35 @@
     head.appendChild(titleWrap);
     head.appendChild(pill);
 
-    // Meta: author · year · lang · genre
+    // Meta: author · translator · year · lang · format · genre
     const meta = document.createElement('div');
     meta.className = 'series-meta';
     const metaParts = [];
-    if (b.author)   metaParts.push(b.author);
-    if (b.year)     metaParts.push(b.year);
-    if (b.language) metaParts.push(langShort(b.language));
-    if (b.genre)    metaParts.push(b.genre);
+    if (b.author)     metaParts.push(b.author);
+    if (b.translator) metaParts.push(`${t('bookCardTranslator')} ${b.translator}`);
+    if (b.year)       metaParts.push(b.year);
+    if (b.language)   metaParts.push(langShort(b.language));
+    if (b.format)     metaParts.push(b.format);
+    if (b.genre)      metaParts.push(b.genre);
     meta.textContent = metaParts.join(' · ');
 
-    // Pages + date range
+    // ISBN + edition + source + price
     const info = document.createElement('div');
     info.className = 'series-ep-line';
     const infoParts = [];
-    if (pages)           infoParts.push(`${pages} ${t('bookPages')}`);
-    if (b.start_date)    infoParts.push(`${t('bookStarted')} ${fmtDate(b.start_date)}`);
-    if (b.finish_date)   infoParts.push(`${t('bookFinished')} ${fmtDate(b.finish_date)}`);
-    info.textContent = infoParts.join('  ·  ') || (status === 'WANT_TO_READ' ? t('bookNotStarted') : '');
+    if (b.edition) infoParts.push(`${t('bookCardEdition')} ${b.edition}`);
+    if (b.isbn)    infoParts.push(`ISBN ${b.isbn}`);
+    if (b.source)  infoParts.push(b.source);
+    if (b.price)   infoParts.push(b.price);
+    info.textContent = infoParts.join('  ·  ');
 
-    // Reading progress bar (only if READING + pages > 0)
-    let progressEl = null;
-    if (status === 'READING' && b.current_page && pages) {
-      const cur = parseInt(b.current_page) || 0;
-      const pct = Math.min(100, Math.round(cur / pages * 100));
-      progressEl = document.createElement('div');
-      progressEl.className = 'series-progress-wrap';
-      progressEl.innerHTML = `
-        <div class="series-progress-bar">
-          <div class="series-progress-fill" style="width:${pct}%; background:var(--lcars-violet);"></div>
-        </div>
-        <div class="series-progress-pct">${pct}%</div>`;
-    }
+    // Date info line
+    const dateInfo = document.createElement('div');
+    dateInfo.className = 'series-ep-line';
+    const dateParts = [];
+    if (b.start_date)  dateParts.push(`${t('bookStarted')} ${fmtDate(b.start_date)}`);
+    if (b.finish_date) dateParts.push(`${t('bookFinished')} ${fmtDate(b.finish_date)}`);
+    dateInfo.textContent = dateParts.join('  ·  ') || (status === 'WANT_TO_READ' ? t('bookNotStarted') : '');
 
     // Star rating
     const stars = document.createElement('div');
@@ -320,13 +358,6 @@
       s.className = 'film-star' + (i <= rating ? ' lit' : '');
       s.textContent = '★';
       stars.appendChild(s);
-    }
-    if (b.notes) {
-      const noteBadge = document.createElement('span');
-      noteBadge.className = 'film-note-badge';
-      noteBadge.title = b.notes;
-      noteBadge.textContent = '📝';
-      stars.appendChild(noteBadge);
     }
 
     // Actions
@@ -364,14 +395,14 @@
     const spacer = document.createElement('div');
     spacer.style.flex = '1';
 
-    if (!['WANT_TO_READ', 'READING'].includes(status)) actions.appendChild(editBtn);
+    actions.appendChild(editBtn);
     actions.appendChild(spacer);
     actions.appendChild(moreBtn);
 
     body.appendChild(head);
     body.appendChild(meta);
     body.appendChild(info);
-    if (progressEl) body.appendChild(progressEl);
+    body.appendChild(dateInfo);
     body.appendChild(stars);
     body.appendChild(actions);
 
@@ -397,7 +428,7 @@
   async function bookMarkReading(b) {
     try {
       const today = new Date().toISOString().slice(0, 10);
-      await readingPost({ action: 'update', id: b.id, status: 'READING', start_date: today });
+      await readingPost({ action: 'update_book', id: b.id, status: 'READING', start_date: today });
       beep(720);
       await fetchReading();
     } catch(e) {
@@ -461,7 +492,7 @@
         const rating = document.getElementById('bfin-rating').value;
         close(true);
         try {
-          await readingPost({ action: 'update', id: b.id, status: 'COMPLETED', finish_date: date, rating });
+          await readingPost({ action: 'update_book', id: b.id, status: 'COMPLETED', finish_date: date, rating });
           beep(720);
           await fetchReading();
         } catch(e) {
@@ -509,7 +540,6 @@
     menu.className = 'lib-ctx-menu';
 
     const items = [
-      { label: t('filmMenuEdit'),   fn: () => showBookEditForm(b) },
       { label: t('filmMenuDelete'), fn: () => confirmBookDelete(b), danger: true },
     ];
     items.forEach(({ label, fn, danger }) => {
@@ -544,8 +574,6 @@
       `<option value="${g}" ${b && b.genre === g ? 'selected' : (!b && !g ? 'selected' : '')}>${g || '—'}</option>`
     ).join('');
 
-    const curPage = b ? (b.current_page || '') : '';
-
     return `
       <div class="lib-form-grid">
         <div class="lib-form-field full">
@@ -556,21 +584,21 @@
           <label class="lib-form-label">${t('filmFormTitleZh')}</label>
           <input id="bf-title-zh" class="lib-form-input" placeholder="${t('bookFormTitleZhPH')}" value="${escapeAttr(b ? (b.title_zh || '') : '')}">
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 80px 80px; gap:12px;">
+        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('bookFormAuthor')}</label>
             <input id="bf-author" class="lib-form-input" placeholder="${t('bookFormAuthorPH')}" value="${escapeAttr(b ? (b.author || '') : '')}">
           </div>
           <div class="lib-form-field">
+            <label class="lib-form-label">${t('bookFormTranslator')}</label>
+            <input id="bf-translator" class="lib-form-input" placeholder="${t('bookFormTranslatorPH')}" value="${escapeAttr(b ? (b.translator || '') : '')}">
+          </div>
+        </div>
+        <div class="lib-form-field full" style="display:grid; grid-template-columns:80px 1fr 1fr; gap:12px;">
+          <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormYear')}</label>
             <input id="bf-year" class="lib-form-input" type="number" min="0" max="2100" placeholder="?" value="${escapeAttr(b ? (b.year || '') : '')}">
           </div>
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('bookFormPages')}</label>
-            <input id="bf-pages" class="lib-form-input" type="number" min="0" placeholder="?" value="${escapeAttr(b ? (b.pages || '') : '')}">
-          </div>
-        </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormLanguage')}</label>
             <select id="bf-language" class="lib-form-select">${langOpts}</select>
@@ -578,6 +606,32 @@
           <div class="lib-form-field">
             <label class="lib-form-label">${t('filmFormGenre')}</label>
             <select id="bf-genre" class="lib-form-select">${genreOpts}</select>
+          </div>
+        </div>
+        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 80px; gap:12px;">
+          <div class="lib-form-field">
+            <label class="lib-form-label">ISBN</label>
+            <input id="bf-isbn" class="lib-form-input" placeholder="978-…" value="${escapeAttr(b ? (b.isbn || '') : '')}">
+          </div>
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('bookFormEdition')}</label>
+            <input id="bf-edition" class="lib-form-input" placeholder="${t('bookFormEditionPH')}" value="${escapeAttr(b ? (b.edition || '') : '')}">
+          </div>
+        </div>
+        <div class="lib-form-field full">
+          <label class="lib-form-label">${t('bookFormFormat')}</label>
+          <div class="lib-format-seg">
+            ${BOOK_FORMATS.map(fmt => `
+              <label class="lib-format-opt">
+                <input type="radio" name="bf-format" value="${escapeAttr(fmt)}"
+                       ${(b ? b.format : '') === fmt ? 'checked' : ''}>
+                <span>${escapeHtml(fmt)}</span>
+              </label>`).join('')}
+            <label class="lib-format-opt">
+              <input type="radio" name="bf-format" value=""
+                     ${!b || !b.format ? 'checked' : ''}>
+              <span>—</span>
+            </label>
           </div>
         </div>
         <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end;">
@@ -591,7 +645,7 @@
             <input id="bf-rating" type="hidden" value="${escapeAttr(b ? (b.rating || 0) : 0)}">
           </div>
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('bookFormStartDate')}</label>
             <input id="bf-start" class="lib-form-input" type="date" value="${escapeAttr(b ? (b.start_date ? String(b.start_date).slice(0,10) : '') : '')}">
@@ -600,9 +654,15 @@
             <label class="lib-form-label">${t('bookFormFinishDate')}</label>
             <input id="bf-finish" class="lib-form-input" type="date" value="${escapeAttr(b ? (b.finish_date ? String(b.finish_date).slice(0,10) : '') : '')}">
           </div>
+        </div>
+        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="lib-form-field">
-            <label class="lib-form-label">${t('bookFormCurrentPage')}</label>
-            <input id="bf-curpage" class="lib-form-input" type="number" min="0" placeholder="0" value="${escapeAttr(curPage)}">
+            <label class="lib-form-label">${t('bookFormSource')}</label>
+            <input id="bf-source" class="lib-form-input" placeholder="${t('bookFormSourcePH')}" value="${escapeAttr(b ? (b.source || '') : '')}">
+          </div>
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('bookFormPrice')}</label>
+            <input id="bf-price" class="lib-form-input" placeholder="${t('bookFormPricePH')}" value="${escapeAttr(b ? (b.price || '') : '')}">
           </div>
         </div>
         <div class="lib-form-field full">
@@ -686,19 +746,24 @@
       overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', () => {
+        const formatEl = document.querySelector('input[name="bf-format"]:checked');
         const result = {
           title:        document.getElementById('bf-title').value.trim(),
           title_zh:     document.getElementById('bf-title-zh').value.trim(),
           author:       document.getElementById('bf-author').value.trim(),
+          translator:   document.getElementById('bf-translator').value.trim(),
           year:         document.getElementById('bf-year').value.trim(),
-          pages:        document.getElementById('bf-pages').value.trim(),
           language:     document.getElementById('bf-language').value,
+          isbn:         document.getElementById('bf-isbn').value.trim(),
+          edition:      document.getElementById('bf-edition').value.trim(),
+          format:       formatEl ? formatEl.value : '',
           genre:        document.getElementById('bf-genre').value,
           status:       document.getElementById('bf-status').value,
           rating:       document.getElementById('bf-rating').value,
           start_date:   document.getElementById('bf-start').value,
           finish_date:  document.getElementById('bf-finish').value,
-          current_page: document.getElementById('bf-curpage').value.trim(),
+          source:       document.getElementById('bf-source').value.trim(),
+          price:        document.getElementById('bf-price').value.trim(),
           notes:        document.getElementById('bf-note').value.trim(),
         };
         if (!result.title) { beep(280); return; }
@@ -720,7 +785,7 @@
     const result = await showBookFormModal(null, t('bookAddTitle'));
     if (!result) return;
     try {
-      await readingPost({ action: 'add', ...result });
+      await readingPost({ action: 'add_book', ...result });
       beep(720);
       await fetchReading();
     } catch(e) {
@@ -734,7 +799,7 @@
     const result = await showBookFormModal(b, t('bookEditTitle'));
     if (!result) return;
     try {
-      await readingPost({ action: 'update', id: b.id, ...result });
+      await readingPost({ action: 'update_book', id: b.id, ...result });
       beep(720);
       await fetchReading();
     } catch(e) {
@@ -793,7 +858,7 @@
 
     if (!confirmed) return;
     try {
-      await readingPost({ action: 'delete', id: b.id });
+      await readingPost({ action: 'delete_book', id: b.id });
       beep(720);
       await fetchReading();
     } catch(e) {

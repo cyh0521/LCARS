@@ -426,6 +426,9 @@
       'ENGLISH':  t('libLangEnglish'),
       'JAPANESE': t('libLangJapanese'),
       'KOREAN':   t('libLangKorean'),
+      'FRENCH':   t('libLangFrench'),
+      'GERMAN':   t('libLangGerman'),
+      'SPANISH':  t('libLangSpanish'),
       'OTHER':    t('libLangOther'),
       // Legacy codes — kept for backward compatibility with rows entered
       // before the v2.2 split. The Sheet should be migrated manually but
@@ -444,6 +447,9 @@
       'ENGLISH':  'EN',
       'JAPANESE': 'JA',
       'KOREAN':   'KO',
+      'FRENCH':   'FR',
+      'GERMAN':   'DE',
+      'SPANISH':  'ES',
       'OTHER':    'OTHER',
       'WESTERN':  'EN',     // legacy
       'JP_KR':    'JA/KO'   // legacy
