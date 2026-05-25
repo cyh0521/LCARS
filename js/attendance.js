@@ -14,15 +14,23 @@
   let attError    = null;
   let attYear     = new Date().getFullYear();
 
+  // Timeline filter — which types are visible (all on by default)
+  let attTlFilter = null; // initialized after ATT_TYPES
+
   // ── Config ────────────────────────────────────────────────────────────────
-  const ATT_TYPES = ['annual', 'comp', 'personal', 'sick'];
+  const ATT_TYPES = ['annual', 'comp', 'personal', 'sick', 'overtime', 'holiday'];
 
   const ATT_TYPE_CFG = {
     annual:   { color: 'var(--lcars-orange)', key: 'attLeaveAnnual'   },
     comp:     { color: 'var(--lcars-violet)', key: 'attLeaveComp'     },
     personal: { color: 'var(--lcars-gold)',   key: 'attLeavePersonal' },
     sick:     { color: 'var(--lcars-rust)',   key: 'attLeaveSick'     },
+    overtime: { color: 'var(--lcars-blue)',   key: 'attOvertime'      },
+    holiday:  { color: '#2ecfb0',             key: 'attHoliday'       },
   };
+
+  // Now that ATT_TYPES is defined, initialize the filter
+  attTlFilter = new Set(ATT_TYPES);
 
   const WEEKDAYS_ZH = ['日','一','二','三','四','五','六'];
   const WEEKDAYS_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -87,6 +95,9 @@
     if (!root) return;
     root.innerHTML = '';
 
+    // Remove stale tooltip
+    document.getElementById('att-tl-tip')?.remove();
+
     if (attLoading && attRecords.length === 0) {
       root.innerHTML = '<div class="proj-loading" data-i18n="loadingMsg">LOADING…</div>';
       return;
@@ -103,8 +114,11 @@
     // Year navigator
     root.appendChild(renderAttYearNav());
 
-    // Summary cards
-    root.appendChild(renderAttSummary());
+    // Radial gauges (replaces old summary cards)
+    root.appendChild(renderAttGauges());
+
+    // Year timeline
+    root.appendChild(renderAttTimeline());
 
     // Monthly breakdown
     root.appendChild(renderAttMonths());
@@ -144,60 +158,300 @@
     return wrap;
   }
 
-  // ── Summary cards ─────────────────────────────────────────────────────────
+  // ── Radial Gauges ──────────────────────────────────────────────────────────
 
-  function renderAttSummary() {
-    const wrap = attEl('div', 'att-summary');
+  // Types that have a settable quota → radial arc gauge
+  const ATT_QUOTA_TYPES = new Set(['annual', 'comp']);
+
+  function renderAttGauges() {
+    const wrap = attEl('div', 'att-gauges');
     const quota = attGetQuota(attYear);
 
-    // Calculate used hours per type for this year
     const yearRecords = attRecords.filter(r => r.date && String(r.date).slice(0,4) === String(attYear));
-    const used = { annual: 0, comp: 0, personal: 0, sick: 0 };
+    const used = { annual: 0, comp: 0, personal: 0, sick: 0, overtime: 0, holiday: 0 };
     yearRecords.forEach(r => { if (used[r.type] !== undefined) used[r.type] += r.hours; });
 
     ATT_TYPES.forEach(type => {
       const cfg  = ATT_TYPE_CFG[type];
-      const card = attEl('div', 'att-summary-card');
+      const card = attEl('div', 'att-gauge-card');
       card.style.setProperty('--att-color', cfg.color);
 
-      const typeLabel = attEl('div', 'att-summary-type');
-      typeLabel.textContent = t(cfg.key);
-      card.appendChild(typeLabel);
+      if (ATT_QUOTA_TYPES.has(type)) {
+        // ── Quota type → radial arc ──
+        let capacity = 0, pct = 0;
+        if (type === 'annual' && quota.annual > 0) {
+          capacity = quota.annual;
+          pct = Math.min(100, Math.round(used.annual / quota.annual * 100));
+        } else if (type === 'comp') {
+          capacity = quota.comp;
+          pct = capacity > 0 ? Math.min(100, Math.round(used.comp / capacity * 100)) : 0;
+        }
 
-      const usedEl = attEl('div', 'att-summary-used');
-      usedEl.innerHTML = `<span class="att-summary-num">${attToDH(used[type]) || used[type] + t('attHours')}</span>`;
-      const usedLabel = attEl('span', 'att-summary-sublabel');
-      usedLabel.textContent = t('attUsed');
-      usedEl.appendChild(usedLabel);
-      card.appendChild(usedEl);
+        card.innerHTML = attBuildGaugeSVG(used[type], capacity, pct, cfg.color);
 
-      if (type === 'annual' && quota.annual > 0) {
-        // Quota bar
-        const remaining = Math.max(0, quota.annual - used.annual);
-        const pct = Math.min(100, Math.round(used.annual / quota.annual * 100));
+        const typeLabel = attEl('div', 'att-gauge-type');
+        typeLabel.textContent = t(cfg.key);
+        card.appendChild(typeLabel);
 
-        const barWrap = attEl('div', 'att-summary-bar-wrap');
-        const bar = attEl('div', 'att-summary-bar');
-        const fill = attEl('div', 'att-summary-bar-fill');
-        fill.style.width = pct + '%';
-        bar.appendChild(fill);
-        barWrap.appendChild(bar);
-        card.appendChild(barWrap);
-
-        const detail = attEl('div', 'att-summary-detail');
-        detail.innerHTML = `<span>${t('attRemaining')} <strong>${attToDH(remaining) || remaining + t('attHours')}</strong></span><span>${t('attQuota')} ${attToDH(quota.annual) || quota.annual + t('attHours')}</span>`;
+        const detail = attEl('div', 'att-gauge-detail');
+        if (capacity > 0) {
+          const remaining = Math.max(0, capacity - used[type]);
+          detail.innerHTML = `${t('attRemaining')} ${attToDH(remaining) || remaining + t('attHours')}` +
+            `<br>${type === 'annual' ? t('attQuota') : t('attBalance')} ${attToDH(capacity) || capacity + t('attHours')}`;
+        } else {
+          detail.textContent = attToDH(used[type]) || '0' + t('attHours');
+        }
         card.appendChild(detail);
-      }
+      } else {
+        // ── No-quota type (personal / sick / overtime) → plain numeric ──
+        const numEl = attEl('div', 'att-counter-value');
+        numEl.textContent = attToDH(used[type]) || '0h';
+        card.appendChild(numEl);
 
-      if (type === 'comp') {
-        const remaining = Math.max(0, quota.comp - used.comp);
-        const detail = attEl('div', 'att-summary-detail');
-        detail.innerHTML = `<span>${t('attRemaining')} <strong>${attToDH(remaining) || remaining + t('attHours')}</strong></span><span>${t('attBalance')} ${attToDH(quota.comp) || quota.comp + t('attHours')}</span>`;
+        const subEl = attEl('div', 'att-counter-sublabel');
+        subEl.textContent = t('attUsed');
+        card.appendChild(subEl);
+
+        const typeLabel = attEl('div', 'att-gauge-type');
+        typeLabel.textContent = t(cfg.key);
+        card.appendChild(typeLabel);
+
+        // Count of records this year
+        const recCount = yearRecords.filter(r => r.type === type).length;
+        const detail = attEl('div', 'att-gauge-detail');
+        detail.textContent = recCount + ' ' + (recCount === 1 ? t('attRecord') : t('attRecords'));
         card.appendChild(detail);
       }
 
       wrap.appendChild(card);
     });
+
+    return wrap;
+  }
+
+  function attBuildGaugeSVG(usedH, capacity, pct, color, type) {
+    // Arc parameters: 270° sweep, starts at 135° (bottom-left → clockwise → bottom-right)
+    const cx = 60, cy = 60, r = 46;
+    const startAngle = 135;
+    const sweepAngle = 270;
+    const endAngle = startAngle + sweepAngle;
+
+    function polarToXY(angleDeg) {
+      const rad = (angleDeg - 90) * Math.PI / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    }
+
+    // Full arc path
+    const s = polarToXY(startAngle);
+    const e = polarToXY(endAngle);
+    const trackD = `M ${s.x} ${s.y} A ${r} ${r} 0 1 1 ${e.x} ${e.y}`;
+
+    // Circumference of the 270° arc
+    const arcLen = 2 * Math.PI * r * (sweepAngle / 360);
+
+    // Fill amount — only for types with a quota
+    let fillPct = 0;
+    if (capacity > 0) {
+      fillPct = Math.min(100, pct);
+    }
+    // personal/sick have no quota → arc stays empty (track only)
+    const dashFill = arcLen * (fillPct / 100);
+    const dashGap  = arcLen - dashFill;
+
+    // Center text — shift apart to avoid overlap
+    const valueText = capacity > 0 ? `${pct}%` : (attToDH(usedH) || '0h');
+    const subText   = t('attUsed');
+
+    return `<svg class="att-gauge-svg" viewBox="0 0 120 120">
+      <path class="att-gauge-track" d="${trackD}"/>
+      ${fillPct > 0 ? `<path class="att-gauge-fill" d="${trackD}"
+            stroke="${color}"
+            stroke-dasharray="${dashFill} ${dashGap}"
+            style="--att-color:${color}"/>` : ''}
+      <text class="att-gauge-value" x="${cx}" y="${cy}">${valueText}</text>
+      <text class="att-gauge-sublabel" x="${cx}" y="${cy + 6}">${subText}</text>
+    </svg>`;
+  }
+
+  // ── Timeline ──────────────────────────────────────────────────────────────
+
+  // Color map — built once, reused
+  function attColorMap() {
+    const m = {};
+    ATT_TYPES.forEach(tp => { m[tp] = ATT_TYPE_CFG[tp].color; });
+    return m;
+  }
+
+  // Generate just the SVG string (used by both initial render and filter toggle)
+  function attBuildTimelineSVG(yearRecords, visibleTypes) {
+    const marginLeft  = 40;
+    const marginRight = 10;
+    const headerHeight = 16;
+    const rowHeight   = 22;
+    const svgHeight   = headerHeight + 12 * rowHeight + 12;
+    const svgWidth    = 750;
+    const dayWidth    = (svgWidth - marginLeft - marginRight) / 31;
+
+    let s = `<svg class="att-timeline-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="xMinYMid meet">`;
+
+    const isZh = (typeof currentLang !== 'undefined') && currentLang === 'zh';
+    const monthNames = isZh
+      ? ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+      : ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+    // Day number header
+    [1, 5, 10, 15, 20, 25, 31].forEach(d => {
+      const x = marginLeft + (d - 0.5) * dayWidth;
+      s += `<text class="att-tl-day-label" x="${x}" y="${headerHeight - 3}" text-anchor="middle">${d}</text>`;
+    });
+
+    const now = new Date();
+    const todayYear  = now.getFullYear();
+    const todayMonth = now.getMonth() + 1;
+    const todayDay   = now.getDate();
+    const colorMap   = attColorMap();
+
+    for (let m = 1; m <= 12; m++) {
+      const y = headerHeight + (m - 1) * rowHeight + 4;
+      const daysInMonth = new Date(parseInt(attYear), m, 0).getDate();
+
+      s += `<text class="att-tl-month-label" x="2" y="${y + 5}">${monthNames[m-1]}</text>`;
+      s += `<line class="att-tl-gridline" x1="${marginLeft}" y1="${y + 10}" x2="${marginLeft + daysInMonth * dayWidth}" y2="${y + 10}"/>`;
+
+      // Filter records by month AND visible types
+      const monthRecs = yearRecords.filter(r => {
+        if (!r.date) return false;
+        if (!visibleTypes.has(r.type)) return false;
+        return parseInt(String(r.date).slice(5,7)) === m;
+      });
+
+      const dayMap = {};
+      monthRecs.forEach(r => {
+        const day = parseInt(String(r.date).slice(8,10));
+        if (!dayMap[day]) dayMap[day] = [];
+        dayMap[day].push(r);
+      });
+
+      Object.entries(dayMap).forEach(([day, recs]) => {
+        const d = parseInt(day);
+        const x = marginLeft + (d - 1) * dayWidth;
+        const blockH = Math.min(rowHeight - 4, 16);
+
+        if (recs.length === 1) {
+          const r   = recs[0];
+          const col = colorMap[r.type] || colorMap.annual;
+          const tipText = attEsc(`${String(r.date).slice(5)} · ${t(ATT_TYPE_CFG[r.type]?.key || 'attLeaveAnnual')} ${r.hours}${t('attHours')}${r.notes ? ' · ' + r.notes : ''}`);
+          s += `<rect class="att-tl-block" x="${x + 1}" y="${y + 1}" width="${dayWidth - 2}" height="${blockH}"
+            fill="${col}" data-tip="${tipText}" data-record-id="${r.id}"/>`;
+        } else {
+          const segH = Math.max(3, blockH / recs.length);
+          recs.forEach((r, i) => {
+            const col = colorMap[r.type] || colorMap.annual;
+            const tipText = attEsc(`${String(r.date).slice(5)} · ${t(ATT_TYPE_CFG[r.type]?.key || 'attLeaveAnnual')} ${r.hours}${t('attHours')}${r.notes ? ' · ' + r.notes : ''}`);
+            s += `<rect class="att-tl-block" x="${x + 1}" y="${y + 1 + i * segH}" width="${dayWidth - 2}" height="${segH - 1}"
+              fill="${col}" data-tip="${tipText}" data-record-id="${r.id}"/>`;
+          });
+        }
+      });
+
+      if (parseInt(attYear) === todayYear && m === todayMonth) {
+        const tx = marginLeft + (todayDay - 0.5) * dayWidth;
+        s += `<line class="att-tl-today" x1="${tx}" y1="${y}" x2="${tx}" y2="${y + rowHeight - 2}"/>`;
+        s += `<text class="att-tl-today-label" x="${tx}" y="${y - 5}" text-anchor="middle">TODAY</text>`;
+      }
+    }
+
+    s += '</svg>';
+    return s;
+  }
+
+  // Attach tooltip + click handlers to all .att-tl-block inside container
+  function attBindTimelineEvents(container) {
+    requestAnimationFrame(() => {
+      let tip = document.getElementById('att-tl-tip');
+      if (!tip) {
+        tip = attEl('div', 'att-tl-tooltip');
+        tip.id = 'att-tl-tip';
+        document.body.appendChild(tip);
+      }
+      container.querySelectorAll('.att-tl-block').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+          const raw = el.getAttribute('data-tip') || '';
+          // data-tip format: "MM/DD · TYPE Xh · notes"
+          // Split on " · " to show notes on a second line
+          const parts = raw.split(' · ');
+          if (parts.length >= 3) {
+            // date+type+hours on line 1, notes on line 2
+            tip.innerHTML = `<span>${parts.slice(0, 2).join(' · ')}</span><br><span style="opacity:0.7">${parts.slice(2).join(' · ')}</span>`;
+          } else {
+            tip.textContent = raw;
+          }
+          tip.classList.add('visible');
+        });
+        el.addEventListener('mousemove', e => {
+          tip.style.left = (e.clientX + 12) + 'px';
+          tip.style.top  = (e.clientY - 28) + 'px';
+        });
+        el.addEventListener('mouseleave', () => {
+          tip.classList.remove('visible');
+        });
+        el.addEventListener('click', () => {
+          tip.classList.remove('visible');
+          const rid = el.getAttribute('data-record-id');
+          if (!rid) return;
+          const rec = attRecords.find(r => String(r.id) === String(rid));
+          if (rec) openAttModal(rec);
+        });
+      });
+    });
+  }
+
+  // Redraw only the SVG portion inside an existing timeline wrapper
+  function attRefreshTimelineSVG(wrap) {
+    const svgContainer = wrap.querySelector('.att-tl-svg-container');
+    if (!svgContainer) return;
+    const yearRecords = attRecords.filter(r => r.date && String(r.date).slice(0,4) === String(attYear));
+    svgContainer.innerHTML = attBuildTimelineSVG(yearRecords, attTlFilter);
+    attBindTimelineEvents(svgContainer);
+  }
+
+  function renderAttTimeline() {
+    const wrap = attEl('div', 'att-timeline');
+
+    const title = attEl('div', 'att-timeline-title');
+    title.textContent = attYear + ' · ' + t('attTimeline');
+    wrap.appendChild(title);
+
+    // SVG container (replaced on filter toggle)
+    const svgContainer = attEl('div', 'att-tl-svg-container');
+    const yearRecords = attRecords.filter(r => r.date && String(r.date).slice(0,4) === String(attYear));
+    svgContainer.innerHTML = attBuildTimelineSVG(yearRecords, attTlFilter);
+    wrap.appendChild(svgContainer);
+    attBindTimelineEvents(svgContainer);
+
+    // Legend — toggleable filter buttons
+    const colorMap = attColorMap();
+    const legend = attEl('div', 'att-tl-legend');
+    ATT_TYPES.forEach(tp => {
+      const item = attEl('button', 'att-tl-legend-btn' + (attTlFilter.has(tp) ? ' active' : ''));
+      item.setAttribute('data-type', tp);
+      item.innerHTML = `<span class="att-tl-legend-dot" style="background:${colorMap[tp]}"></span>${t(ATT_TYPE_CFG[tp].key)}`;
+      item.onclick = () => {
+        // Toggle this type
+        if (attTlFilter.has(tp)) {
+          // Don't allow deselecting ALL — keep at least one
+          if (attTlFilter.size <= 1) return;
+          attTlFilter.delete(tp);
+          item.classList.remove('active');
+        } else {
+          attTlFilter.add(tp);
+          item.classList.add('active');
+        }
+        attRefreshTimelineSVG(wrap);
+      };
+      legend.appendChild(item);
+    });
+    wrap.appendChild(legend);
 
     return wrap;
   }
@@ -243,7 +497,7 @@
     const isZh = (typeof currentLang !== 'undefined') && currentLang === 'zh';
 
     // Monthly totals per type
-    const totals = { annual: 0, comp: 0, personal: 0, sick: 0 };
+    const totals = { annual: 0, comp: 0, personal: 0, sick: 0, overtime: 0, holiday: 0 };
     records.forEach(r => { if (totals[r.type] !== undefined) totals[r.type] += r.hours; });
 
     // Summary string for collapsed header
@@ -398,6 +652,8 @@
         attCloseOverlay(overlay);
         await deleteAttRecord(record);
       });
+      delBtn.classList.add('danger');
+      delBtn.style.marginRight = 'auto';
       footer.appendChild(delBtn);
     } else { footer.appendChild(attEl('span')); }
 
@@ -561,7 +817,7 @@
     const ov = attEl('div','alert-overlay'); ov.style.zIndex='10001';
     const stack = attEl('div','alert-stack'); stack.style.maxWidth='420px';
     ov.appendChild(stack);
-    ov.addEventListener('click', e => { if(e.target===ov) attCloseOverlay(ov); });
+    /* backdrop-close disabled */
     return ov;
   }
   function attCloseOverlay(el) { closeOverlay(el); }

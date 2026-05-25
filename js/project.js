@@ -605,10 +605,10 @@
     const overlay = makeOverlay();
 
     const card = el('div', 'alert-card');
-    card.style.borderColor = proj?.color || 'var(--lcars-violet)';
+    card.style.borderColor = 'var(--lcars-cream)';
 
     const head = el('div', 'alert-head');
-    head.style.background = proj?.color || 'var(--lcars-violet)';
+    head.style.background = 'var(--lcars-cream)';
     head.innerHTML = `<span class="alert-head-title"><svg class="alert-head-icon"><use href="#i-missions"/></svg>${isNew ? t('projAddTask') : t('projEditTask')}</span>`;
     card.appendChild(head);
 
@@ -674,7 +674,13 @@
 
     if (!isNew) {
       const delBtn = makeBtn(t('libDelete'), 'var(--lcars-rust)', async () => {
-        if (!confirm(t('projConfirmDelete'))) return;
+        const ok = await lcarsConfirm({
+          title:   t('projConfirmDeleteTitle'),
+          body:    t('projConfirmDelete'),
+          okLabel: t('libDelete'),
+          danger:  true
+        });
+        if (!ok) return;
         closeOverlay(overlay);
         await deleteTask(task);
       });
@@ -686,7 +692,7 @@
     const btnRow = el('div'); btnRow.style.cssText = 'display:flex;gap:8px';
     btnRow.appendChild(makeBtn(t('libCancel'), 'var(--lcars-frame)', () => closeOverlay(overlay), 'var(--lcars-cream)'));
 
-    const saveBtn = makeBtn(t('libSave'), proj?.color || 'var(--lcars-violet)', async () => {
+    const saveBtn = makeBtn(t('libSave'), 'var(--lcars-cream)', async () => {
       const title = v('pm-title');
       if (!title) { document.getElementById('pm-title')?.classList.add('invalid'); return; }
       saveBtn.disabled = true; saveBtn.textContent = '…';
@@ -726,10 +732,10 @@
     const isNew = !ms;
     const overlay = makeOverlay();
     const card = el('div', 'alert-card');
-    card.style.borderColor = proj?.color || 'var(--lcars-gold)';
+    card.style.borderColor = 'var(--lcars-gold)';
 
     const head = el('div', 'alert-head');
-    head.style.background = proj?.color || 'var(--lcars-gold)';
+    head.style.background = 'var(--lcars-gold)';
     head.innerHTML = `<span class="alert-head-title"><svg class="alert-head-icon"><use href="#i-missions"/></svg>${isNew ? t('projAddMilestone') : t('projEditMilestone')}</span>`;
     card.appendChild(head);
 
@@ -745,9 +751,15 @@
     if (!isNew) {
       const delBtn = makeBtn(t('libDelete'), 'var(--lcars-rust)', async () => {
         const taskCount = projTasks.filter(t => t.milestone_id === ms.id).length;
-        if (!confirm(taskCount > 0
-          ? t('projConfirmDeleteMs').replace('{n}', taskCount)
-          : t('projConfirmDeleteMsEmpty'))) return;
+        const ok = await lcarsConfirm({
+          title:   t('projConfirmDeleteMsTitle'),
+          body:    taskCount > 0
+            ? t('projConfirmDeleteMs').replace('{n}', taskCount)
+            : t('projConfirmDeleteMsEmpty'),
+          okLabel: t('libDelete'),
+          danger:  true
+        });
+        if (!ok) return;
         closeOverlay(overlay);
         await deleteMilestone(ms);
       });
@@ -758,7 +770,7 @@
 
     const btnRow = el('div'); btnRow.style.cssText = 'display:flex;gap:8px';
     btnRow.appendChild(makeBtn(t('libCancel'), 'var(--lcars-frame)', () => closeOverlay(overlay), 'var(--lcars-cream)'));
-    const saveBtn = makeBtn(t('libSave'), proj?.color || 'var(--lcars-gold)', async () => {
+    const saveBtn = makeBtn(t('libSave'), 'var(--lcars-gold)', async () => {
       const title = v('msm-title');
       if (!title) { document.getElementById('msm-title')?.classList.add('invalid'); return; }
       saveBtn.disabled = true; saveBtn.textContent = '…';
@@ -788,11 +800,12 @@
     const isNew = !proj;
     const overlay = makeOverlay();
     const card = el('div', 'alert-card');
+    const MODAL_COLOR = 'var(--lcars-cream)';
     let selectedColor = proj?.color || PROJ_COLORS[0];
-    card.style.borderColor = selectedColor;
+    card.style.borderColor = MODAL_COLOR;
 
     const head = el('div', 'alert-head');
-    head.style.background = selectedColor;
+    head.style.background = MODAL_COLOR;
     head.innerHTML = `<span class="alert-head-title"><svg class="alert-head-icon"><use href="#i-missions"/></svg>${isNew ? t('projAddProject') : t('projEditProject')}</span>`;
     card.appendChild(head);
 
@@ -814,8 +827,6 @@
       dot.onclick = e => {
         e.preventDefault();
         selectedColor = c;
-        card.style.borderColor = c;
-        head.style.background  = c;
         colorRow.querySelectorAll('.proj-color-dot').forEach(d => d.classList.remove('selected'));
         dot.classList.add('selected');
       };
@@ -829,9 +840,15 @@
     if (!isNew) {
       const delBtn = makeBtn(t('libDelete'), 'var(--lcars-rust)', async () => {
         const msCount = projMilestones.filter(m => m.project_id === proj.id).length;
-        if (!confirm(msCount > 0
-          ? t('projConfirmDeleteProj').replace('{n}', msCount)
-          : t('projConfirmDeleteProjEmpty'))) return;
+        const ok = await lcarsConfirm({
+          title:   t('projConfirmDeleteProjTitle'),
+          body:    msCount > 0
+            ? t('projConfirmDeleteProj').replace('{n}', msCount)
+            : t('projConfirmDeleteProjEmpty'),
+          okLabel: t('libDelete'),
+          danger:  true
+        });
+        if (!ok) return;
         closeOverlay(overlay);
         await deleteProject(proj);
       });
@@ -840,7 +857,7 @@
 
     const btnRow = el('div'); btnRow.style.cssText = 'display:flex;gap:8px';
     btnRow.appendChild(makeBtn(t('libCancel'), 'var(--lcars-frame)', () => closeOverlay(overlay), 'var(--lcars-cream)'));
-    const saveBtn = makeBtn(t('libSave'), selectedColor, async () => {
+    const saveBtn = makeBtn(t('libSave'), MODAL_COLOR, async () => {
       const title = v('pjm-title');
       if (!title) { document.getElementById('pjm-title')?.classList.add('invalid'); return; }
       saveBtn.disabled = true; saveBtn.textContent = '…';
@@ -1000,6 +1017,8 @@
     if (color) b.style.color = color;
     b.textContent = label;
     b.onclick = onclick;
+    // Tag destructive (rust-coloured) buttons so CSS layout recognises them
+    if (bg && bg.indexOf('rust') >= 0) b.classList.add('danger');
     return b;
   }
   function makeOverlay() {
@@ -1008,7 +1027,7 @@
     const stack = el('div', 'alert-stack');
     stack.style.maxWidth = '480px';
     ov.appendChild(stack);
-    ov.addEventListener('click', e => { if (e.target === ov) closeOverlay(ov); });
+    /* backdrop-close disabled */
     return ov;
   }
   function closeOverlay(el) {

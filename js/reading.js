@@ -20,10 +20,30 @@
     'DROPPED':       'dropped',
   };
   const BOOK_LANGUAGES   = ['CHINESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'FRENCH', 'GERMAN', 'SPANISH', 'OTHER'];
-  const BOOK_FORMATS     = ['紙本', 'ePub', 'PDF'];
+  const BOOK_FORMATS     = ['Paperback', 'Hardcover', 'ePub', 'PDF'];
   const BOOK_GENRES      = ['FICTION', 'NON-FICTION', 'BIOGRAPHY', 'HISTORY', 'SCIENCE',
                              'PHILOSOPHY', 'TECHNOLOGY', 'SELF-HELP', 'MYSTERY', 'FANTASY',
                              'SCI-FI', 'POETRY', 'MANGA', 'OTHER'];
+  const BOOK_GENRE_ZH   = {
+    'FICTION':      '小說',
+    'NON-FICTION':  '非虛構',
+    'BIOGRAPHY':   '傳記',
+    'HISTORY':     '歷史',
+    'SCIENCE':     '科學',
+    'PHILOSOPHY':  '哲學',
+    'TECHNOLOGY':  '科技',
+    'SELF-HELP':   '自我成長',
+    'MYSTERY':     '推理',
+    'FANTASY':     '奇幻',
+    'SCI-FI':      '科幻',
+    'POETRY':      '詩集',
+    'MANGA':       '漫畫',
+    'OTHER':       '其他',
+  };
+  function genreLabel(g) {
+    const isZh = (typeof currentLang !== 'undefined') && currentLang === 'zh';
+    return isZh ? (BOOK_GENRE_ZH[g] || g) : g;
+  }
 
   /* ============================================================
      STATE
@@ -329,15 +349,16 @@
     if (b.year)       metaParts.push(b.year);
     if (b.language)   metaParts.push(langShort(b.language));
     if (b.format)     metaParts.push(b.format);
-    if (b.genre)      metaParts.push(b.genre);
+    if (b.genre)      metaParts.push(genreLabel(b.genre));
     meta.textContent = metaParts.join(' · ');
 
     // ISBN + edition + source + price
     const info = document.createElement('div');
     info.className = 'series-ep-line';
     const infoParts = [];
-    if (b.edition) infoParts.push(`${t('bookCardEdition')} ${b.edition}`);
-    if (b.isbn)    infoParts.push(`ISBN ${b.isbn}`);
+    if (b.edition)   infoParts.push(`${t('bookCardEdition')} ${b.edition}`);
+    if (b.publisher) infoParts.push(b.publisher);
+    if (b.isbn)      infoParts.push(`ISBN ${b.isbn}`);
     if (b.source)  infoParts.push(b.source);
     if (b.price)   infoParts.push(b.price);
     info.textContent = infoParts.join('  ·  ');
@@ -350,15 +371,37 @@
     if (b.finish_date) dateParts.push(`${t('bookFinished')} ${fmtDate(b.finish_date)}`);
     dateInfo.textContent = dateParts.join('  ·  ') || (status === 'WANT_TO_READ' ? t('bookNotStarted') : '');
 
-    // Star rating
+    // Star rating — clickable for direct rating
     const stars = document.createElement('div');
     stars.className = 'film-rating-display';
+    const starEls = [];
+    let currentRating = parseFloat(b.rating) || 0;
     for (let i = 1; i <= 5; i++) {
       const s = document.createElement('span');
-      s.className = 'film-star' + (i <= rating ? ' lit' : '');
+      s.className = 'film-star' + (i <= currentRating ? ' lit' : '');
       s.textContent = '★';
+      s.addEventListener('mouseenter', () => {
+        starEls.forEach((st, idx) => st.classList.toggle('preview', idx < i));
+      });
+      s.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const newRating = (i === currentRating) ? 0 : i;
+        starEls.forEach(st => st.classList.remove('pulse'));
+        void s.offsetWidth;
+        s.classList.add('pulse');
+        try {
+          await readingPost({ action: 'update_book', id: b.id, rating: newRating });
+          currentRating = newRating;
+          b.rating = newRating;
+          starEls.forEach((st, idx) => st.classList.toggle('lit', idx < newRating));
+        } catch(err) { beep(280); }
+      });
+      starEls.push(s);
       stars.appendChild(s);
     }
+    stars.addEventListener('mouseleave', () => {
+      starEls.forEach(st => st.classList.remove('preview'));
+    });
 
     // Actions
     const actions = document.createElement('div');
@@ -379,23 +422,17 @@
       actions.appendChild(finishBtn);
     }
 
-    const editBtn = document.createElement('button');
-    editBtn.className = 'series-btn';
-    editBtn.textContent = t('filmBtnEdit');
-    editBtn.addEventListener('click', () => showBookEditForm(b));
-
     const moreBtn = document.createElement('button');
     moreBtn.className = 'series-btn icon-btn';
     moreBtn.textContent = '⋯';
     moreBtn.addEventListener('click', e => {
       e.stopPropagation();
-      showBookMenu(b, moreBtn);
+      showBookEditForm(b);
     });
 
     const spacer = document.createElement('div');
     spacer.style.flex = '1';
 
-    actions.appendChild(editBtn);
     actions.appendChild(spacer);
     actions.appendChild(moreBtn);
 
@@ -452,7 +489,6 @@
 
       const head = document.createElement('div');
       head.className = 'alert-head';
-      head.style.background = 'var(--lcars-violet)';
       head.innerHTML = `<span class="alert-head-title">${escapeHtml(t('bookFinishTitle'))}</span>`;
 
       const body = document.createElement('div');
@@ -481,11 +517,17 @@
       cancelBtn.textContent = t('libCancel');
       const saveBtn = document.createElement('button');
       saveBtn.className = 'alert-ok';
-      saveBtn.style.cssText = 'background:var(--lcars-violet); color:var(--lcars-bg);';
+      saveBtn.style.cssText = 'background:var(--lcars-orange); color:var(--lcars-bg);';
       saveBtn.textContent = t('bookBtnMarkCompleted');
 
-      const close = r => { closeOverlay(overlay); resolve(r); };
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      const close = r => {
+        document.removeEventListener('keydown', onKey);
+        closeOverlay(overlay);
+        resolve(r);
+      };
+      const onKey = e => { if (e.key === 'Escape') close(null); };
+      document.addEventListener('keydown', onKey);
+      /* backdrop-close disabled */
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', async () => {
         const date   = document.getElementById('bfin-date').value;
@@ -507,7 +549,7 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => overlay.style.opacity = '1');
 
       window._bookFinishStarClick = val => {
@@ -571,7 +613,7 @@
       `<option value="${st}" ${b && String(b.status).toUpperCase() === st ? 'selected' : (!b && st === 'WANT_TO_READ' ? 'selected' : '')}>${bookStatusLabel(st)}</option>`
     ).join('');
     const genreOpts = ['', ...BOOK_GENRES].map(g =>
-      `<option value="${g}" ${b && b.genre === g ? 'selected' : (!b && !g ? 'selected' : '')}>${g || '—'}</option>`
+      `<option value="${g}" ${b && b.genre === g ? 'selected' : (!b && !g ? 'selected' : '')}>${g ? genreLabel(g) : '—'}</option>`
     ).join('');
 
     return `
@@ -608,41 +650,30 @@
             <select id="bf-genre" class="lib-form-select">${genreOpts}</select>
           </div>
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 80px; gap:12px;">
+        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr 80px; gap:12px;">
           <div class="lib-form-field">
             <label class="lib-form-label">ISBN</label>
             <input id="bf-isbn" class="lib-form-input" placeholder="978-…" value="${escapeAttr(b ? (b.isbn || '') : '')}">
+          </div>
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('bookFormPublisher')}</label>
+            <input id="bf-publisher" class="lib-form-input" placeholder="${t('bookFormPublisherPH')}" value="${escapeAttr(b ? (b.publisher || '') : '')}">
           </div>
           <div class="lib-form-field">
             <label class="lib-form-label">${t('bookFormEdition')}</label>
             <input id="bf-edition" class="lib-form-input" placeholder="${t('bookFormEditionPH')}" value="${escapeAttr(b ? (b.edition || '') : '')}">
           </div>
         </div>
-        <div class="lib-form-field full">
-          <label class="lib-form-label">${t('bookFormFormat')}</label>
-          <div class="lib-format-seg">
-            ${BOOK_FORMATS.map(fmt => `
-              <label class="lib-format-opt">
-                <input type="radio" name="bf-format" value="${escapeAttr(fmt)}"
-                       ${(b ? b.format : '') === fmt ? 'checked' : ''}>
-                <span>${escapeHtml(fmt)}</span>
-              </label>`).join('')}
-            <label class="lib-format-opt">
-              <input type="radio" name="bf-format" value=""
-                     ${!b || !b.format ? 'checked' : ''}>
-              <span>—</span>
-            </label>
+        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('bookFormFormat')}</label>
+            <select id="bf-format" class="lib-form-select">
+              ${BOOK_FORMATS.map(fmt => `<option value="${escapeAttr(fmt)}" ${(b && b.format === fmt) || (!b && fmt === BOOK_FORMATS[0]) ? 'selected' : ''}>${escapeHtml(fmt)}</option>`).join('')}
+            </select>
           </div>
-        </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end;">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormStatus')}</label>
             <select id="bf-status" class="lib-form-select">${statusOpts}</select>
-          </div>
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('filmFormRating')}</label>
-            <div id="bf-star-picker" class="lib-star-picker">${buildBookFormStarPickerHTML(b ? parseFloat(b.rating)||0 : 0)}</div>
-            <input id="bf-rating" type="hidden" value="${escapeAttr(b ? (b.rating || 0) : 0)}">
           </div>
         </div>
         <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -703,6 +734,7 @@
      MODAL — ADD / EDIT
      ============================================================ */
   function showBookFormModal(b, title) {
+    const isEdit = !!b;
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'alert-overlay';
@@ -718,7 +750,6 @@
 
       const head = document.createElement('div');
       head.className = 'alert-head';
-      head.style.background = 'var(--lcars-violet)';
       head.innerHTML = `<span class="alert-head-title"><svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${escapeHtml(title)}</span></span>`;
 
       const body = document.createElement('div');
@@ -728,12 +759,29 @@
 
       const footer = document.createElement('div');
       footer.className = 'alert-footer confirm';
+
+      // Edit mode: Delete button on the left
+      if (isEdit) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'alert-ok danger';
+        delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg); margin-right:auto;';
+        delBtn.textContent = t('libDelete');
+        delBtn.addEventListener('click', async () => {
+          close(null);
+          await confirmBookDelete(b);
+        });
+        footer.appendChild(delBtn);
+      } else {
+        const spacer = document.createElement('span');
+        footer.appendChild(spacer);
+      }
+
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'alert-ok';
       cancelBtn.textContent = t('libCancel');
       const saveBtn = document.createElement('button');
       saveBtn.className = 'alert-ok';
-      saveBtn.style.cssText = 'background:var(--lcars-violet); color:var(--lcars-bg);';
+      saveBtn.style.cssText = 'background:var(--lcars-orange); color:var(--lcars-bg);';
       saveBtn.textContent = t('libSave');
 
       const close = result => {
@@ -743,10 +791,10 @@
       };
       const onKey = e => { if (e.key === 'Escape') close(null); };
       document.addEventListener('keydown', onKey);
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      /* backdrop-close disabled */
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', () => {
-        const formatEl = document.querySelector('input[name="bf-format"]:checked');
+        const formatEl = document.getElementById('bf-format');
         const result = {
           title:        document.getElementById('bf-title').value.trim(),
           title_zh:     document.getElementById('bf-title-zh').value.trim(),
@@ -756,10 +804,10 @@
           language:     document.getElementById('bf-language').value,
           isbn:         document.getElementById('bf-isbn').value.trim(),
           edition:      document.getElementById('bf-edition').value.trim(),
+          publisher:    document.getElementById('bf-publisher').value.trim(),
           format:       formatEl ? formatEl.value : '',
           genre:        document.getElementById('bf-genre').value,
           status:       document.getElementById('bf-status').value,
-          rating:       document.getElementById('bf-rating').value,
           start_date:   document.getElementById('bf-start').value,
           finish_date:  document.getElementById('bf-finish').value,
           source:       document.getElementById('bf-source').value.trim(),
@@ -770,13 +818,17 @@
         close(result);
       });
 
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex; gap:8px;';
+      btnRow.appendChild(cancelBtn);
+      btnRow.appendChild(saveBtn);
+      footer.appendChild(btnRow);
+
       card.appendChild(head);
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => overlay.style.opacity = '1');
     });
   }
@@ -841,18 +893,24 @@
       delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg);';
       delBtn.textContent = t('libDelete');
 
-      const close = r => { closeOverlay(overlay); resolve(r); };
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+      const close = r => {
+        document.removeEventListener('keydown', onKey);
+        closeOverlay(overlay);
+        resolve(r);
+      };
+      const onKey = e => { if (e.key === 'Escape') close(false); };
+      document.addEventListener('keydown', onKey);
+      /* backdrop-close disabled */
       cancelBtn.addEventListener('click', () => close(false));
       delBtn.addEventListener('click', () => close(true));
 
-      footer.appendChild(cancelBtn);
       footer.appendChild(delBtn);
+      footer.appendChild(cancelBtn);
       card.appendChild(head);
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => overlay.style.opacity = '1');
     });
 

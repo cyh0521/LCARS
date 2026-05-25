@@ -110,42 +110,53 @@
     const pad = 8;  // viewport padding
     const preferAbove = !!(opts && opts.preferAbove);
     document.body.appendChild(popover);
-    const a = anchor.getBoundingClientRect();
-    const p = popover.getBoundingClientRect();
 
-    // Default: align right edge of popover with right edge of anchor.
-    let left = a.right - p.width;
-    let top;
+    function reposition() {
+      const a = anchor.getBoundingClientRect();
+      const p = popover.getBoundingClientRect();
 
-    if (preferAbove) {
-      // Try above first; fall back below if there's no room
-      const above = a.top - p.height - gap;
-      if (above >= pad) {
-        top = above;
+      let left = a.right - p.width;
+      let top;
+
+      if (preferAbove) {
+        const above = a.top - p.height - gap;
+        if (above >= pad) {
+          top = above;
+        } else {
+          top = a.bottom + gap;
+        }
       } else {
         top = a.bottom + gap;
+        if (top + p.height > window.innerHeight - pad) {
+          const above = a.top - p.height - gap;
+          if (above >= pad) top = above;
+        }
       }
-    } else {
-      top = a.bottom + gap;
-      // If below would overflow, flip above
+
+      if (left < pad) left = pad;
+      if (left + p.width > window.innerWidth - pad) {
+        left = window.innerWidth - p.width - pad;
+      }
+      if (top < pad) top = pad;
       if (top + p.height > window.innerHeight - pad) {
-        const above = a.top - p.height - gap;
-        if (above >= pad) top = above;
+        top = window.innerHeight - p.height - pad;
       }
+      popover.style.left = left + 'px';
+      popover.style.top  = top + 'px';
     }
 
-    // Clamp horizontally so it doesn't fall off either side
-    if (left < pad) left = pad;
-    if (left + p.width > window.innerWidth - pad) {
-      left = window.innerWidth - p.width - pad;
-    }
-    // Last-resort vertical clamp
-    if (top < pad) top = pad;
-    if (top + p.height > window.innerHeight - pad) {
-      top = window.innerHeight - p.height - pad;
-    }
-    popover.style.left = left + 'px';
-    popover.style.top  = top + 'px';
+    reposition();
+
+    // Follow the anchor when the page scrolls
+    window.addEventListener('scroll', reposition, { passive: true, capture: true });
+    // Clean up the scroll listener when the popover is removed
+    const observer = new MutationObserver(() => {
+      if (!document.body.contains(popover)) {
+        window.removeEventListener('scroll', reposition, { capture: true });
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   // Combined "more actions" menu: color picker row + DELETE button
@@ -337,7 +348,7 @@
       stack.className = 'alert-stack';
       stack.id = 'alert-stack';
       overlay.appendChild(stack);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
     }
     return overlay;
   }
@@ -424,36 +435,43 @@
      on .alert-stack / .alert-body — no overflow manipulation needed
      because .alert-overlay is position:fixed and covers the viewport. */
   let _scrollLockCount = 0;
+  const _overlayStack  = [];   // tracks open overlays for Escape key handling
+
+  function _globalEscHandler(ev) {
+    if (ev.key !== 'Escape' || _overlayStack.length === 0) return;
+    ev.stopPropagation();
+    const top = _overlayStack[_overlayStack.length - 1];
+    closeOverlay(top);
+  }
+
   function openOverlay(el) {
     document.body.appendChild(el);
     _scrollLockCount++;
-    // Prevent the page behind from scrolling via wheel/touch events
+    _overlayStack.push(el);
     if (_scrollLockCount === 1) {
-      document.body.style.overflow = 'hidden';
+      document.documentElement.classList.add('scroll-locked');
+      document.addEventListener('keydown', _globalEscHandler, true);
     }
   }
   function closeOverlay(el) {
     el.remove();
+    const idx = _overlayStack.indexOf(el);
+    if (idx >= 0) _overlayStack.splice(idx, 1);
     _scrollLockCount = Math.max(0, _scrollLockCount - 1);
     if (_scrollLockCount === 0) {
-      document.body.style.overflow = '';
+      document.documentElement.classList.remove('scroll-locked');
+      document.removeEventListener('keydown', _globalEscHandler, true);
     }
   }
-  /* Helper: install backdrop-close handler that ignores drags starting
-     inside the card and ending on the backdrop (e.g. text selection) */
+  /* Backdrop-close has been disabled: modals can only be closed via explicit
+     buttons (Cancel/Close/Save) or the ESC key. The function is kept as a
+     no-op so existing call sites don't need changes. */
   function installBackdropClose(overlay, onClose) {
-    let downOnBackdrop = false;
-    overlay.addEventListener('mousedown', ev => {
-      downOnBackdrop = (ev.target === overlay);
-    });
-    overlay.addEventListener('mouseup', ev => {
-      if (downOnBackdrop && ev.target === overlay) onClose();
-      downOnBackdrop = false;
-    });
+    // intentionally empty
   }
   window.openOverlay   = openOverlay;
   window.closeOverlay  = closeOverlay;
-  window._overlayClose = closeOverlay;  // alias for project.js (avoids self-reference trap)
+  window._overlayClose = closeOverlay;
   window.installBackdropClose = installBackdropClose;
 
   function lcarsPrompt(opts) {
@@ -600,8 +618,14 @@
       document.addEventListener('keydown', onKey);
 
       const singleButton = (opts.cancelLabel === '');
-      if (!singleButton) footer.appendChild(cancelBtn);
-      footer.appendChild(okBtn);
+      if (opts.danger && !singleButton) {
+        // Delete-style confirm: destructive action on the left, Close on the right
+        footer.appendChild(okBtn);
+        footer.appendChild(cancelBtn);
+      } else {
+        if (!singleButton) footer.appendChild(cancelBtn);
+        footer.appendChild(okBtn);
+      }
       card.appendChild(head);
       card.appendChild(body);
       card.appendChild(footer);

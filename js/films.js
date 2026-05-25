@@ -330,15 +330,37 @@
     if (rewatchCount > 0) infoParts.push(t('filmRewatchCount').replace('{n}', rewatchCount));
     info.textContent = infoParts.join('  ·  ') || t('libNeverSeen');
 
-    // Star rating display
+    // Star rating display — clickable for direct rating
     const stars = document.createElement('div');
     stars.className = 'film-rating-display';
+    const starEls = [];
+    let currentRating = parseFloat(f.rating) || 0;
     for (let i = 1; i <= 5; i++) {
       const s = document.createElement('span');
-      s.className = 'film-star' + (i <= rating ? ' lit' : '');
+      s.className = 'film-star' + (i <= currentRating ? ' lit' : '');
       s.textContent = '★';
+      s.addEventListener('mouseenter', () => {
+        starEls.forEach((st, idx) => st.classList.toggle('preview', idx < i));
+      });
+      s.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const newRating = (i === currentRating) ? 0 : i;
+        starEls.forEach(st => st.classList.remove('pulse'));
+        void s.offsetWidth;
+        s.classList.add('pulse');
+        try {
+          await filmsPost({ action: 'update_film', id: f.id, rating: newRating });
+          currentRating = newRating;
+          f.rating = newRating;
+          starEls.forEach((st, idx) => st.classList.toggle('lit', idx < newRating));
+        } catch(err) { beep(280); }
+      });
+      starEls.push(s);
       stars.appendChild(s);
     }
+    stars.addEventListener('mouseleave', () => {
+      starEls.forEach(st => st.classList.remove('preview'));
+    });
 
     // Actions — only the ⋯ menu button
     const actions = document.createElement('div');
@@ -366,7 +388,7 @@
     moreBtn.textContent = '⋯';
     moreBtn.addEventListener('click', e => {
       e.stopPropagation();
-      showFilmMenu(f, moreBtn);
+      showFilmEditForm(f);
     });
 
     actions.appendChild(spacer);
@@ -478,15 +500,10 @@
             <select id="ff-platform-select" class="lib-form-select">${platformOpts}</select>
           </div>
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end;">
+        <div class="lib-form-field full">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('filmFormWatchedDate')}</label>
             <input id="ff-date" class="lib-form-input" type="date" value="${escapeAttr(f ? (f.watched_date ? String(f.watched_date).slice(0,10) : '') : '')}">
-          </div>
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('filmFormRating')}</label>
-            <div id="ff-star-picker" class="lib-star-picker">${buildFilmStarPickerHTML(f ? parseFloat(f.rating)||0 : 0)}</div>
-            <input id="ff-rating" type="hidden" value="${escapeAttr(f ? (f.rating || 0) : 0)}">
           </div>
         </div>
         <div class="lib-form-field full">
@@ -528,6 +545,7 @@
      MODAL — ADD / EDIT
      ============================================================ */
   function showFilmFormModal(f, title) {
+    const isEdit = !!f;
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'alert-overlay';
@@ -543,7 +561,6 @@
 
       const head = document.createElement('div');
       head.className = 'alert-head';
-      head.style.background = 'var(--lcars-rust)';
       const headTitle = document.createElement('span');
       headTitle.className = 'alert-head-title';
       headTitle.innerHTML = `<svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${escapeHtml(title)}</span>`;
@@ -556,13 +573,6 @@
 
       const footer = document.createElement('div');
       footer.className = 'alert-footer confirm';
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'alert-ok';
-      cancelBtn.textContent = t('libCancel');
-      const saveBtn = document.createElement('button');
-      saveBtn.className = 'alert-ok';
-      saveBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg);';
-      saveBtn.textContent = t('libSave');
 
       const close = result => {
         document.removeEventListener('keydown', onKey);
@@ -571,7 +581,31 @@
       };
       const onKey = e => { if (e.key === 'Escape') close(null); };
       document.addEventListener('keydown', onKey);
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      /* backdrop-close disabled */
+
+      // Edit mode: Delete button on the left
+      if (isEdit) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'alert-ok danger';
+        delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg); margin-right:auto;';
+        delBtn.textContent = t('libDelete');
+        delBtn.addEventListener('click', () => {
+          close(null);
+          confirmFilmDelete(f);
+        });
+        footer.appendChild(delBtn);
+      } else {
+        footer.appendChild(document.createElement('span'));
+      }
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'alert-ok';
+      cancelBtn.textContent = t('libCancel');
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'alert-ok';
+      saveBtn.style.cssText = 'background:var(--lcars-orange); color:var(--lcars-bg);';
+      saveBtn.textContent = t('libSave');
+
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', () => {
         const result = {
@@ -583,20 +617,23 @@
           status:         document.getElementById('ff-status').value,
           platform:       document.getElementById('ff-platform-select').value,
           watched_date:   document.getElementById('ff-date').value,
-          rating:         document.getElementById('ff-rating').value,
           notes:          document.getElementById('ff-note').value.trim(),
         };
         if (!result.title_original) { beep(280); return; }
         close(result);
       });
 
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex; gap:8px;';
+      btnRow.appendChild(cancelBtn);
+      btnRow.appendChild(saveBtn);
+      footer.appendChild(btnRow);
+
       card.appendChild(head);
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => overlay.style.opacity = '1');
 
       // Pre-fill today's date if no date set and we're adding
@@ -649,10 +686,11 @@
 
       const card = document.createElement('div');
       card.className = 'alert-card';
+      card.style.borderColor = 'var(--lcars-cream)';
 
       const head = document.createElement('div');
       head.className = 'alert-head';
-      head.style.background = 'var(--lcars-rust)';
+      head.style.background = 'var(--lcars-cream)';
       head.innerHTML = `<span class="alert-head-title">${escapeHtml(t('filmMarkWatchedTitle'))}</span>`;
 
       const body = document.createElement('div');
@@ -683,7 +721,7 @@
       cancelBtn.textContent = t('libCancel');
       const saveBtn = document.createElement('button');
       saveBtn.className = 'alert-ok';
-      saveBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg);';
+      saveBtn.style.cssText = 'background:var(--lcars-cream); color:var(--lcars-bg);';
       saveBtn.textContent = t('filmBtnMarkWatched');
 
       const close = result => {
@@ -693,7 +731,7 @@
       };
       const onKey = e => { if (e.key === 'Escape') close(null); };
       document.addEventListener('keydown', onKey);
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      /* backdrop-close disabled */
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', async () => {
         const date   = document.getElementById('fmw-date').value;
@@ -715,7 +753,7 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => overlay.style.opacity = '1');
 
       // Set up a second star picker for this modal (uses different IDs)
@@ -759,10 +797,11 @@
 
       const card = document.createElement('div');
       card.className = 'alert-card';
+      card.style.borderColor = 'var(--lcars-cream)';
 
       const head = document.createElement('div');
       head.className = 'alert-head';
-      head.style.background = 'var(--lcars-orange)';
+      head.style.background = 'var(--lcars-cream)';
       head.innerHTML = `<span class="alert-head-title">${escapeHtml(t('filmRewatchTitle'))}</span>`;
 
       const body = document.createElement('div');
@@ -796,7 +835,7 @@
       cancelBtn.textContent = t('libCancel');
       const saveBtn = document.createElement('button');
       saveBtn.className = 'alert-ok';
-      saveBtn.style.cssText = 'background:var(--lcars-orange); color:var(--lcars-bg);';
+      saveBtn.style.cssText = 'background:var(--lcars-cream); color:var(--lcars-bg);';
       saveBtn.textContent = t('filmBtnLogRewatch');
 
       const close = r => {
@@ -806,7 +845,7 @@
       };
       const onKey = e => { if (e.key === 'Escape') close(null); };
       document.addEventListener('keydown', onKey);
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      /* backdrop-close disabled */
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', async () => {
         const date   = document.getElementById('frw-date').value;
@@ -834,7 +873,7 @@
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => overlay.style.opacity = '1');
 
       window._filmRewatchStarClick = val => {
@@ -883,21 +922,27 @@
       cancelBtn.textContent = t('libCancel');
       const delBtn = document.createElement('button');
       delBtn.className = 'alert-ok';
-      delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg);';
+      delBtn.style.cssText = 'background:var(--lcars-cream); color:var(--lcars-bg);';
       delBtn.textContent = t('libDelete');
 
-      const close = r => { closeOverlay(overlay); resolve(r); };
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+      const close = r => {
+        document.removeEventListener('keydown', onKey);
+        closeOverlay(overlay);
+        resolve(r);
+      };
+      const onKey = e => { if (e.key === 'Escape') close(false); };
+      document.addEventListener('keydown', onKey);
+      /* backdrop-close disabled */
       cancelBtn.addEventListener('click', () => close(false));
       delBtn.addEventListener('click', () => close(true));
 
-      footer.appendChild(cancelBtn);
       footer.appendChild(delBtn);
+      footer.appendChild(cancelBtn);
       card.appendChild(head);
       card.appendChild(body);
       card.appendChild(footer);
       stack.appendChild(card);
-      document.body.appendChild(overlay);
+      openOverlay(overlay);
       requestAnimationFrame(() => overlay.style.opacity = '1');
     });
 

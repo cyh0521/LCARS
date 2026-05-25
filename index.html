@@ -43,6 +43,11 @@
     overflow-x: hidden;
     min-height: 100vh;
   }
+  html.scroll-locked,
+  html.scroll-locked body {
+    overflow: hidden !important;
+    touch-action: none;
+  }
 
   /* Subtle CRT scanline atmosphere */
   body::before {
@@ -328,12 +333,6 @@
   .tab-btn.active {
     box-shadow: inset 6px 0 0 0 var(--lcars-cream);
     color: var(--lcars-bg);
-  }
-  .tab-btn.active::after {
-    content: '◀';
-    margin-left: 6px;
-    font-size: 10px;
-    opacity: 0.6;
   }
   .tab-btn:not(.active) {
     opacity: 0.7;
@@ -1629,12 +1628,6 @@
     color: var(--lcars-bg);
     opacity: 1;
   }
-  .lib-subtab-btn.active::after {
-    content: '◀';
-    margin-left: 8px;
-    font-size: 9px;
-    opacity: 0.55;
-  }
 
   /* Sub-tab content panels */
   .lib-subtab-panel { display: flex; flex-direction: column; gap: var(--gap); }
@@ -1787,9 +1780,11 @@
 
   /* Films / Books grids: use a wider minmax so the side-poster cards have room to breathe.
      Selector covers both direct lib-grid-inner and ones nested inside year groups. */
-  #film-grid .lib-grid-inner,
-  #book-grid .lib-grid-inner {
+  #film-grid .lib-grid-inner {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+  #book-grid .lib-grid-inner {
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
   }
 
   /* Month group — wrapped in a Finance-style panel:
@@ -2186,12 +2181,25 @@
     min-height: 18px;
   }
   .film-star {
-    font-size: 14px;
+    font-size: 18px;
     color: var(--lcars-muted);
-    transition: color 0.1s;
+    transition: color 0.1s, transform 0.1s;
     line-height: 1;
+    cursor: pointer;
+    user-select: none;
   }
   .film-star.lit { color: var(--lcars-gold); }
+  .film-star:hover { transform: scale(1.25); }
+  /* Hover preview: when hovering a star, all stars up to it light up */
+  .film-rating-display:hover .film-star { color: var(--lcars-muted); }
+  .film-rating-display .film-star.preview { color: var(--lcars-gold); }
+  /* Click pulse */
+  @keyframes star-pulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+  .film-star.pulse { animation: star-pulse 0.3s ease-out; }
   .film-note-badge {
     font-size: 11px;
     margin-left: 6px;
@@ -2278,7 +2286,7 @@
   }
   .lib-form-textarea { resize: vertical; min-height: 60px; }
   .lib-form-select option { background: var(--lcars-bg); }
-  .lib-form-id-row { margin-top: 4px; border-top: 1px solid var(--lcars-frame); padding-top: 12px; }
+  .lib-form-id-row { margin-top: 4px; }
   .lib-form-id-box {
     display: flex; align-items: center; gap: 10px;
     background: var(--lcars-bg); border: 1px solid var(--lcars-frame);
@@ -2489,14 +2497,11 @@
     color: var(--lcars-bg);
     opacity: 1;
   }
-  .ws-subtab-btn.active::after {
-    content: '◀';
-    margin-left: 8px;
-    font-size: 9px;
-    opacity: 0.55;
-  }
   .ws-subtab-panel { display: flex; flex-direction: column; gap: var(--gap); }
   .ws-subtab-panel[hidden] { display: none; }
+
+  /* Attendance sub-tab 內縮，對齊 ws-subtab-bar 的左右邊距 */
+  #att-root { padding: 0 20px 20px; }
 
   /* ============================================================
      PROJECT PAGE — Mission Operations (三層: 專案→章節→任務)
@@ -2871,7 +2876,7 @@
     color: var(--lcars-cream);
     width: 30px; height: 30px;
     border-radius: 50%;
-    font-size: 11px;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.13s;
     display: flex; align-items: center; justify-content: center;
@@ -2879,7 +2884,7 @@
   .att-year-btn:hover { background: var(--lcars-orange); color: var(--lcars-bg); border-color: transparent; }
   .att-year-label {
     font-family: 'Antonio', sans-serif;
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 700;
     letter-spacing: 0.15em;
     color: var(--lcars-text);
@@ -2893,7 +2898,7 @@
     padding: 5px 14px;
     border-radius: var(--radius-pill);
     font-family: 'Antonio', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.14em;
     cursor: pointer;
@@ -2908,7 +2913,7 @@
     padding: 6px 16px;
     border-radius: var(--radius-pill);
     font-family: 'Antonio', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.15em;
     cursor: pointer;
@@ -3011,7 +3016,7 @@
   }
   .att-month-label {
     font-family: 'Antonio', sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.15em;
     color: var(--lcars-text);
@@ -3019,14 +3024,14 @@
   }
   .att-month-summary {
     font-family: 'Antonio', sans-serif;
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 0.1em;
     color: var(--lcars-cream);
     opacity: 0.65;
   }
   .att-month-empty {
     padding: 12px 16px;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--lcars-cream);
     opacity: 0.35;
     font-family: 'Antonio', sans-serif;
@@ -3047,7 +3052,7 @@
   .att-record-row:hover { background: var(--lcars-frame); }
   .att-record-date {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--lcars-cream);
     opacity: 0.8;
     min-width: 90px;
@@ -3055,7 +3060,7 @@
   }
   .att-record-type {
     font-family: 'Antonio', sans-serif;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.12em;
     color: var(--att-color, var(--lcars-orange));
@@ -3064,7 +3069,7 @@
   }
   .att-record-hours {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--lcars-text);
     min-width: 36px;
@@ -3072,7 +3077,7 @@
   }
   .att-record-notes {
     font-family: 'Antonio', sans-serif;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--lcars-cream);
     opacity: 0.6;
     flex: 1;
@@ -3087,7 +3092,7 @@
     padding: 2px 10px;
     border-radius: var(--radius-pill);
     font-family: 'Antonio', sans-serif;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
     cursor: pointer;
@@ -3100,33 +3105,234 @@
 
   .att-summary-dh {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--lcars-cream);
     opacity: 0.5;
     margin-left: 6px;
   }
   .att-dh-small {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
+    font-size: 11px;
     color: var(--lcars-cream);
     opacity: 0.6;
     font-weight: 400;
   }
   .alloc-pct {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--lcars-cream);
     opacity: 0.7;
   }
 
   .att-empty {
     font-family: 'Antonio', sans-serif;
-    font-size: 12px;
+    font-size: 14px;
     letter-spacing: 0.15em;
     color: var(--lcars-cream);
     opacity: 0.35;
     text-align: center;
     padding: 40px 0;
+  }
+
+  /* ── Radial Gauges ── */
+  .att-gauges {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--gap);
+    margin-bottom: 16px;
+  }
+  .att-gauge-card {
+    background: var(--lcars-panel);
+    padding: 16px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    border-top: 3px solid var(--att-color, var(--lcars-orange));
+  }
+  .att-gauge-svg {
+    width: 120px;
+    height: 120px;
+  }
+  .att-gauge-track {
+    fill: none;
+    stroke: var(--lcars-frame);
+    stroke-width: 8;
+    stroke-linecap: round;
+  }
+  .att-gauge-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1);
+    filter: drop-shadow(0 0 4px var(--att-color, var(--lcars-orange)));
+  }
+  .att-gauge-value {
+    font-family: 'Antonio', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    fill: var(--lcars-text);
+    text-anchor: middle;
+    dominant-baseline: auto;
+  }
+  .att-gauge-sublabel {
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    fill: var(--lcars-cream);
+    opacity: 0.55;
+    text-anchor: middle;
+    dominant-baseline: hanging;
+  }
+  .att-gauge-type {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--att-color, var(--lcars-orange));
+    opacity: 0.85;
+  }
+  .att-gauge-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* No-quota counter (personal / sick / overtime / holiday) */
+  .att-counter-value {
+    font-family: 'Antonio', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--lcars-text);
+    line-height: 1;
+    text-align: center;
+    margin-top: 12px;
+  }
+  .att-counter-sublabel {
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  /* ── Timeline ── */
+  .att-timeline {
+    background: var(--lcars-panel);
+    padding: 16px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  .att-timeline-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--lcars-text);
+    opacity: 0.7;
+    margin-bottom: 12px;
+  }
+  .att-timeline-svg {
+    display: block;
+    width: 100%;
+    min-width: 600px;
+  }
+  .att-tl-month-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    fill: var(--lcars-cream);
+    opacity: 0.55;
+  }
+  .att-tl-day-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    fill: var(--lcars-cream);
+    opacity: 0.35;
+  }
+  .att-tl-gridline {
+    stroke: var(--lcars-frame);
+    stroke-width: 1;
+  }
+  .att-tl-block {
+    rx: 2;
+    ry: 2;
+    opacity: 0.85;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .att-tl-block:hover {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+  .att-tl-today {
+    stroke: var(--lcars-text);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    opacity: 0.45;
+  }
+  .att-tl-today-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    fill: var(--lcars-text);
+    opacity: 0.45;
+  }
+  .att-tl-tooltip {
+    position: fixed;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-muted);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--lcars-cream);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 1000;
+    white-space: nowrap;
+  }
+  .att-tl-tooltip.visible { opacity: 1; }
+  .att-tl-legend {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .att-tl-legend-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-cream);
+    background: transparent;
+    border: 1px solid var(--lcars-muted);
+    border-radius: var(--radius-pill);
+    padding: 3px 10px;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+  .att-tl-legend-btn.active {
+    opacity: 1;
+    border-color: var(--lcars-cream);
+  }
+  .att-tl-legend-btn:hover {
+    opacity: 0.85;
+  }
+  .att-tl-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
   }
 
   /* ============================================================
@@ -3861,6 +4067,16 @@
     padding: 10px 16px 14px;
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
+  }
+  .alert-footer.confirm {
+    justify-content: space-between;
+    gap: 8px;
+  }
+  /* When a confirm footer has no destructive (Delete) action and no
+     spacer span, treat it as a regular footer — buttons hug the right. */
+  .alert-footer.confirm:not(:has(.alert-ok.danger)):not(:has(> span)) {
+    justify-content: flex-end;
   }
   .alert-ok {
     background: var(--lcars-orange);
@@ -3885,10 +4101,6 @@
   }
   .alert-card.confirm .alert-head {
     background: var(--lcars-cream);
-  }
-  .alert-footer.confirm {
-    justify-content: space-between;
-    gap: 10px;
   }
   .alert-footer.confirm .alert-ok:not([style*="background"]) {
     background: var(--lcars-frame);

@@ -694,6 +694,7 @@
 
     const card = document.createElement('div');
     card.className = 'alert-card';
+    card.style.borderColor = 'var(--lcars-cream)';
     card.style.maxWidth = '520px';
     card.style.width = '100%';
 
@@ -834,9 +835,14 @@
       });
     }
 
-    footer.appendChild(cancelBtn);
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex; gap:8px;';
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(saveBtn);
+
     if (deleteBtn) footer.appendChild(deleteBtn);
-    footer.appendChild(saveBtn);
+    else footer.appendChild(document.createElement('span'));
+    footer.appendChild(btnRow);
     card.appendChild(head);
     card.appendChild(body);
     card.appendChild(footer);
@@ -919,6 +925,7 @@
 
     const card = document.createElement('div');
     card.className = 'alert-card';
+    card.style.borderColor = 'var(--lcars-cream)';
     card.style.maxWidth = '600px';
     card.style.width = '100%';
 
@@ -977,6 +984,10 @@
   // ── Series ⋯ menu ─────────────────────────────────────────────────────────
 
   function showSeriesMenu(s, se, anchor) {
+    // Toggle: if menu for this season already open, just close it
+    const existing = document.querySelector(`.lib-series-menu[data-owner="${se.season_id}"]`);
+    if (existing) { existing.remove(); return; }
+
     document.querySelectorAll('.lib-series-menu').forEach(m => m.remove());
 
     const menu = document.createElement('div');
@@ -998,8 +1009,6 @@
     // else). Keep the menu focused on the two top-level actions.
     menu.appendChild(makeItem(t('libMenuEdit'), () => showLibraryEditForm(s, se)));
     menu.appendChild(makeItem(t('libMenuAddSeason'), () => showAddSeasonForm(s)));
-    menu.appendChild(makeItem(t('libMenuDelSeason'), () => libDeleteSeason(s, se)));
-    menu.appendChild(makeItem(t('libMenuDelete'), () => libDeleteSeries(s)));
 
     document.body.appendChild(menu);
     positionPopoverBelow(menu, anchor);
@@ -1094,7 +1103,6 @@
     const totalEpVal     = se ? (se.total_episodes || '') : '';
     const seasonTitleVal = se ? (se.season_title || '') : '';
     const seasonNumVal   = se ? (parseInt(se.season_number) || 1) : 1;
-    const dividerLabel = t('libFormSeasonInfo');
 
     return `
       <div class="lib-form-grid">
@@ -1111,7 +1119,6 @@
           <select id="lf-language" class="lib-form-select">${langOpts}</select>
         </div>
 
-        <div class="lib-form-divider full">${dividerLabel}</div>
         <div class="lib-form-field full" style="display:grid; grid-template-columns: 70px 90px 1fr 90px; gap:12px;">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormSeasonNum')}</label>
@@ -1170,6 +1177,7 @@
 
       const card = document.createElement('div');
       card.className = 'alert-card';
+      card.style.borderColor = 'var(--lcars-cream)';
       card.style.maxWidth = '640px';
       card.style.width = '100%';
 
@@ -1192,6 +1200,29 @@
 
       const footer = document.createElement('div');
       footer.className = 'alert-footer confirm';
+
+      const close = (result) => {
+        document.removeEventListener('keydown', onKey);
+        closeOverlay(overlay);
+        resolve(result);
+      };
+      const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close(null); } };
+
+      const isEdit = !!(s && se);
+      if (isEdit) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'alert-ok danger';
+        delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg); margin-right:auto;';
+        delBtn.textContent = t('libDelete');
+        delBtn.addEventListener('click', () => {
+          close(null);
+          libDeleteSeason(s, se);
+        });
+        footer.appendChild(delBtn);
+      } else {
+        footer.appendChild(document.createElement('span'));
+      }
+
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'alert-ok';
       cancelBtn.textContent = t('libCancel');
@@ -1200,13 +1231,6 @@
       saveBtn.style.background = 'var(--lcars-cream)';
       saveBtn.style.color = 'var(--lcars-bg)';
       saveBtn.textContent = t('libSave');
-
-      const close = (result) => {
-        document.removeEventListener('keydown', onKey);
-        closeOverlay(overlay);
-        resolve(result);
-      };
-      const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close(null); } };
 
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', () => {
@@ -1233,8 +1257,11 @@
       installBackdropClose(overlay, () => close(null));
       document.addEventListener('keydown', onKey);
 
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex; gap:8px;';
+      btnRow.appendChild(cancelBtn);
+      btnRow.appendChild(saveBtn);
+      footer.appendChild(btnRow);
       card.appendChild(head);
       card.appendChild(body);
       card.appendChild(footer);
@@ -1323,6 +1350,7 @@
 
       const card = document.createElement('div');
       card.className = 'alert-card';
+      card.style.borderColor = 'var(--lcars-cream)';
       card.style.maxWidth = '640px';
       card.style.width = '100%';
 
