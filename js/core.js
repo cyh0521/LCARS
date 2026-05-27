@@ -615,7 +615,19 @@
       w71:'LIGHT SNOW', w73:'SNOW', w75:'HEAVY SNOW',
       w80:'RAIN SHOWERS', w81:'STRONG SHOWERS', w82:'TORRENTIAL',
       w95:'THUNDERSTORM · ALERT', w96:'STORM W/ HAIL', w99:'SEVERE STORM',
-      wUnk:'UNKNOWN PATTERN', wOff:'SENSORS OFFLINE'
+      wUnk:'UNKNOWN PATTERN', wOff:'SENSORS OFFLINE',
+      // Weather page
+      tabWeather:    'WEATHER',
+      pageWeather:   'WEATHER',
+      weatherSub:    'ATMOSPHERIC SENSORS',
+      wxCountyLabel: 'SECTOR:',
+      wxUpdated:     'UPDATED:',
+      wxRefresh:     '↺ REFRESH',
+      wxScanning:    'SCANNING ATMOSPHERIC SENSORS…',
+      wxObsTitle:    'REAL-TIME OBSERVATION',
+      wxUvTitle:     'UV INDEX',
+      wxFcTitle:     '36-HOUR FORECAST',
+      wx7DayTitle:   '7-DAY FORECAST',
     },
     zh: {
       // Sidebar groups
@@ -627,15 +639,26 @@
       tabFinance: 'FINANCE · 財務',
       tabScores:  'SCORES · 賽事',
       tabLibrary: 'LIBRARY · 收藏',
+      tabWeather: 'WEATHER · 氣象',
       // Header page titles (used by top header-bar; shorter than sidebar tabs)
       pageMain:    '主控',
       pageWorkspace: '工作區',
       pageFinance: '財務',
       pageScores:  '賽事',
       pageLibrary: '收藏',
+      pageWeather: '氣象',
       // Page subtitles & empty state messages
       mainSub:         '主控介面',
       workspaceSub: '任務作戰中心',
+      weatherSub:   '大氣感測站',
+      wxCountyLabel: '地區:',
+      wxUpdated:     '更新:',
+      wxRefresh:     '↺ 重新整理',
+      wxScanning:    '掃描大氣感測器中…',
+      wxObsTitle:    '即時觀測',
+      wxUvTitle:     '紫外線指數',
+      wxFcTitle:     '36 小時預報',
+      wx7DayTitle:   '七天預報',
       projectEmptyMsg: '此工作站已備妥保留。告訴 Claude 你想在這裡追蹤什麼——專案、任務、里程碑、截止日,或其他完全不同的東西都可以。',
       // Project page
       projAllProjects:    '全部專案',
@@ -1276,7 +1299,8 @@
         '--lcars-violet': '#9977bb',
         '--lcars-gold':   '#d4a23a',
         '--lcars-cream':  '#e8d5a8',
-        '--lcars-muted':  '#2a3548'
+        '--lcars-muted':  '#2a3548',
+        '--lcars-dim':    '#6b7a6a'
       }
     },
     {
@@ -1288,13 +1312,14 @@
         '--lcars-panel':  '#0a0a0a',
         '--lcars-frame':  '#3d4757',
         '--lcars-text':   '#a9b4c2',
-        '--lcars-orange': '#e89878',     // coral accent (HELLO color)
+        '--lcars-orange': '#e89878',
         '--lcars-rust':   '#c47a5e',
-        '--lcars-blue':   '#6b8caf',     // muted slate blue
-        '--lcars-violet': '#7a7a9a',     // dusty cool violet
-        '--lcars-gold':   '#9ba6b5',     // cool light slate
-        '--lcars-cream':  '#d8dde5',     // off-white slate
-        '--lcars-muted':  '#252b35'
+        '--lcars-blue':   '#6b8caf',
+        '--lcars-violet': '#7a7a9a',
+        '--lcars-gold':   '#9ba6b5',
+        '--lcars-cream':  '#d8dde5',
+        '--lcars-muted':  '#252b35',
+        '--lcars-dim':    '#6b7a8a'
       }
     },
     {
@@ -1311,7 +1336,8 @@
         '--lcars-violet': '#cc99cc',
         '--lcars-gold':   '#ffcc66',
         '--lcars-cream':  '#ffcc99',
-        '--lcars-muted':  '#333333'
+        '--lcars-muted':  '#333333',
+        '--lcars-dim':    '#7a6a50'
       }
     }
   ];
@@ -1356,11 +1382,22 @@
   /* ============================================================
      LCARS BEEP (tiny synthesized chirp)
      ============================================================ */
-  let audioCtx;
-  function beep(freq) {
+  let audioCtx   = null;
+  let audioReady = false;
+
+  function ensureAudio() {
+    if (audioReady) return;
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      audioReady = true;
+    } catch(e) {}
+  }
+
+  function beep(freq) {
+    if (!audioReady) return; // 等使用者互動後才播音效
+    try {
+      const osc  = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.frequency.value = freq;
       osc.type = 'sine';
@@ -1370,6 +1407,9 @@
       osc.start(); osc.stop(audioCtx.currentTime + 0.1);
     } catch(e) {}
   }
+
+  // 第一次使用者點擊時初始化 AudioContext（瀏覽器安全政策要求）
+  document.addEventListener('click', ensureAudio, { once: true });
 
   // Beep on every nav button click
   document.querySelectorAll('.nav-btn, .bay-link, .tool-btn').forEach(el => {
@@ -1438,14 +1478,15 @@
     project: { icon: '#i-missions', title: 'pageWorkspace', sub: 'workspaceSub' },
     finance: { icon: '#i-stocks',   title: 'pageFinance', sub: 'financeSub' },
     scores:  { icon: '#i-scores',   title: 'pageScores',  sub: 'scoresSub'  },
-    library: { icon: '#i-library',  title: 'pageLibrary', sub: 'libSubSeries' /* overridden by sub-tab */ }
+    library: { icon: '#i-library',  title: 'pageLibrary', sub: 'libSubSeries' /* overridden by sub-tab */ },
+    weather: { icon: '#i-weather',  title: 'pageWeather', sub: 'weatherSub' }
   };
 
   let currentPage = 'main';
   try {
     const saved = sessionStorage.getItem('lcars_page');
     // Validate saved value against current pages — drop stale ones
-    if (['main','project','finance','scores','library'].includes(saved)) currentPage = saved;
+    if (['main','project','finance','scores','library','weather'].includes(saved)) currentPage = saved;
   } catch(e) {}
 
   function switchPage(name) {
@@ -1477,6 +1518,15 @@
       if (typeof fetchAttendance === 'function' &&
           typeof attLoading !== 'undefined' && !attLoading) {
         fetchAttendance();
+      }
+    }
+    // Lazy-load weather on first visit
+    if (name === 'weather') {
+      if (typeof initWeather === 'function' && !document.getElementById('wx-county-select')?.options?.length) {
+        initWeather();
+      } else if (typeof fetchWeatherPage === 'function' && !wxLoading) {
+        // already inited — just refresh if cache is stale
+        if (!wxCurrentData || (Date.now() - wxCurrentData.ts) > 600000) fetchWeatherPage();
       }
     }
   }
@@ -1517,8 +1567,7 @@
 
   function updateRefreshVisibility() {
     const btn = document.getElementById('refreshBtn');
-    if (!btn) return;
-    btn.hidden = !REFRESHABLE_PAGES[currentPage];
+    if (btn) btn.hidden = true; // scores uses its own reload bar in the panel
   }
   function refreshCurrentPage() {
     const fnName = REFRESHABLE_PAGES[currentPage];
@@ -1769,6 +1818,7 @@
 
   if (typeof initProject === 'function') initProject();
   if (typeof initAttendance === 'function') initAttendance();
+  if (typeof initWeather === 'function') initWeather();
   fetchWeather();
   // If the user's last page was library, kick off the fetch immediately
   if (currentPage === 'library') fetchLibrary();

@@ -38,9 +38,12 @@
       cacheSet(SCORES_CACHE_KEY, { events, timestamp });
       renderScores(events, /* fromCache */ false);
       updateScoresTimestamp(timestamp);
+      // Reset countdown after each successful fetch
+      if (typeof startScoresAutoReload === 'function') {
+        startScoresAutoReload();
+      }
     } catch (err) {
       console.warn('ESPN MLB fetch failed:', err);
-      // Only show error state if we have nothing cached
       if (!cacheGet(SCORES_CACHE_KEY)) {
         document.getElementById('orioles-feature').innerHTML =
           `<div class="empty-state"><p>${t('scoresError')}</p></div>`;
@@ -120,38 +123,30 @@
     featContainer.appendChild(card);
     enrichFeaturedCard(event, card);
     setFeaturedTitle(event);
+    // Show the reload bar once we have a game
+    const bar = document.getElementById('scoresReloadBar');
+    if (bar) bar.hidden = false;
   }
 
-  /* Update the featured panel's H2 title.
-     Default (Orioles or no game): the static i18n string.
-     Custom-pinned: "AWAY @ HOME" using team names from the event. */
+  /* Update the featured panel title to "AWAY @ HOME" for every game. */
   function setFeaturedTitle(event) {
-    const titleSpan = document.querySelector('#orioles-feature')
-      ?.closest('.panel')
-      ?.querySelector('.panel-title span[data-i18n], .panel-title span.dynamic-title');
+    const titleSpan = document.getElementById('featured-game-title');
     if (!titleSpan) return;
 
-    // Detect: is this an Orioles game (default) or pinned other?
-    const comp = event?.competitions?.[0];
-    const competitors = comp?.competitors || [];
-    const isOrioles = competitors.some(c => c.team?.abbreviation === ORIOLES_ABBR);
-    const isUserPinned = event && featuredEventId && String(event.id) === String(featuredEventId);
-
-    if (!event || (isOrioles && !isUserPinned)) {
-      // Default mode — restore i18n binding
-      titleSpan.classList.remove('dynamic-title');
+    if (!event) {
       titleSpan.setAttribute('data-i18n', 'orioles');
       titleSpan.textContent = t('orioles');
-    } else {
-      // Pinned other game — show "AWAY @ HOME" with team names
-      const away = competitors.find(c => c.homeAway === 'away') || competitors[0];
-      const home = competitors.find(c => c.homeAway === 'home') || competitors[1];
-      const awayName = away?.team?.name || away?.team?.abbreviation || '?';
-      const homeName = home?.team?.name || home?.team?.abbreviation || '?';
-      titleSpan.removeAttribute('data-i18n');
-      titleSpan.classList.add('dynamic-title');
-      titleSpan.textContent = `${awayName.toUpperCase()} @ ${homeName.toUpperCase()}`;
+      return;
     }
+
+    const comp = event.competitions?.[0];
+    const competitors = comp?.competitors || [];
+    const away = competitors.find(c => c.homeAway === 'away') || competitors[0];
+    const home = competitors.find(c => c.homeAway === 'home') || competitors[1];
+    const awayName = away?.team?.name || away?.team?.abbreviation || '?';
+    const homeName = home?.team?.name || home?.team?.abbreviation || '?';
+    titleSpan.removeAttribute('data-i18n');
+    titleSpan.textContent = `${awayName.toUpperCase()} @ ${homeName.toUpperCase()}`;
   }
 
   /* Pin a game from the all-games list to the featured slot */
@@ -196,14 +191,23 @@
 
   // Synchronous: takes the espnEvent (already in memory) and the card element,
   // renders the linescore + pitcher cards directly. No network calls.
-  function enrichFeaturedCard(espnEvent, cardEl /* hasCachedUi unused */) {
+  function enrichFeaturedCard(espnEvent, cardEl) {
     try {
       const detailsHtml = renderEspnDetails(espnEvent);
       if (!detailsHtml) return;
       const detailsEl = document.createElement('div');
       detailsEl.className = 'game-details';
       detailsEl.innerHTML = detailsHtml;
-      // Replace any placeholder/skeleton/cached details
+
+      // Clicking the details area opens the ESPN game page
+      const espnUrl = `https://www.espn.com/mlb/game/_/gameId/${espnEvent.id}`;
+      detailsEl.style.cursor = 'pointer';
+      detailsEl.title = t('openOnEspn');
+      detailsEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.open(espnUrl, '_blank', 'noopener');
+      });
+
       const existing = cardEl.querySelector('.game-details');
       if (existing) existing.replaceWith(detailsEl);
       else cardEl.appendChild(detailsEl);
@@ -248,19 +252,7 @@
     const pitcherHtml = renderEspnPitcherCards(comp, stateType);
 
     if (!lineHtml && !pitcherHtml) return '';
-
-    // ESPN link — top-right of linescore
-    const espnUrl = `https://www.espn.com/mlb/game/_/gameId/${espnEvent.id}`;
-    const espnLink = `<a class="pin-btn score-link-btn ls-espn-link"
-       href="${espnUrl}" target="_blank" rel="noopener"
-       onclick="event.stopPropagation();"
-       title="${escapeAttr(t('openOnEspn'))}"
-       aria-label="${escapeAttr(t('openOnEspn'))}">
-      <svg class="icon icon-sm"><use href="#i-external"/></svg>
-    </a>`;
-
-    const linescoreWrapped = `<div class="ls-wrapper">${espnLink}${lineHtml}</div>`;
-    return [linescoreWrapped, situationHtml, pitcherHtml].filter(Boolean).join('');
+    return [lineHtml, situationHtml, pitcherHtml].filter(Boolean).join('');
   }
 
   /* Extract situation data for live games */
@@ -712,7 +704,43 @@
       }
     }
   }
-  window.fetchStandings = fetchStandings;
+  // ── Auto-reload countdown ─────────────────────────────────────────────────
+
+  const SCORES_RELOAD_SEC = 30;
+  let _scoresCountdown = SCORES_RELOAD_SEC;
+  let _scoresTimerEl   = null;
+  let _scoresInterval  = null;
+
+  function _scoresTimerTick() {
+    _scoresCountdown--;
+    _updateScoresCountdownUI();
+    if (_scoresCountdown <= 0) {
+      _scoresCountdown = SCORES_RELOAD_SEC;
+      fetchScores();
+    }
+  }
+
+  function _updateScoresCountdownUI() {
+    const el = document.getElementById('scores-countdown');
+    if (el) el.textContent = String(_scoresCountdown);
+  }
+
+  function startScoresAutoReload() {
+    if (_scoresInterval) clearInterval(_scoresInterval);
+    _scoresCountdown = SCORES_RELOAD_SEC;
+    _scoresInterval  = setInterval(_scoresTimerTick, 1000);
+    _updateScoresCountdownUI();
+  }
+
+  function manualReloadScores() {
+    _scoresCountdown = SCORES_RELOAD_SEC;
+    _updateScoresCountdownUI();
+    fetchScores();
+  }
+
+  window.startScoresAutoReload  = startScoresAutoReload;
+  window.manualReloadScores     = manualReloadScores;
+  window.fetchStandings         = fetchStandings;
 
   // ESPN standings API only groups by AL/NL — no division sub-grouping.
   // We map each team to its division using a static lookup (MLB divisions are stable).
