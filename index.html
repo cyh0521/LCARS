@@ -814,17 +814,16 @@
 
   /* ---------- LINESCORE TABLE ---------- */
   .linescore {
-    /* Auto width — table only takes the space it needs (no awkward
-       stretched-out team-name column). Combined with table-layout: fixed
-       and a colgroup, every column gets a consistent, predictable width. */
-    width: auto;
+    /* 100% width + table-layout:fixed + colgroup = every column at a
+       consistent position regardless of team name or situation text length. */
+    width: 100%;
     border-collapse: collapse;
     font-size: 13px;
     color: var(--lcars-text);
     table-layout: fixed;
   }
   /* Column-width specs (consumed by <colgroup>) */
-  .linescore col.team-col-spec    { width: 130px; }
+  .linescore col.team-col-spec    { width: 72px; }
   .linescore col.inning-col-spec  { width: 28px; }
   .linescore col.rhe-col-spec     { width: 36px; }
   .linescore th, .linescore td {
@@ -888,6 +887,150 @@
   }
   .linescore .inning-divider {
     border-left: 1px solid var(--lcars-muted);
+  }
+
+  /* Linescore wrapper — positions the ESPN link button */
+  .ls-wrapper {
+    position: relative;
+  }
+  .ls-espn-link {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    z-index: 1;
+  }
+
+  /* ---------- LIVE SITUATION BAR (below linescore) ---------- */
+  .ls-situation-bar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 14px 4px 10px;
+    border-top: 1px dashed var(--lcars-muted);
+    flex-wrap: wrap;
+  }
+  .ls-sit-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .ls-sit-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ls-sit-outs-big {
+    font-family: 'Antonio', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--lcars-text);
+    letter-spacing: 0.06em;
+  }
+  .ls-sit-outs-label {
+    font-size: 12px;
+    opacity: 0.6;
+    font-weight: 400;
+  }
+  .ls-sit-count {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--lcars-gold);
+    letter-spacing: 0.06em;
+  }
+  .ls-due-up-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .due-up-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .due-up-photo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--lcars-frame);
+    flex-shrink: 0;
+  }
+  .due-up-photo.placeholder {
+    background: var(--lcars-frame);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+  }
+  .due-up-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .due-up-order {
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--lcars-orange);
+    line-height: 1;
+  }
+  .due-up-name {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--lcars-text);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .due-up-stats {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 11px;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    line-height: 1;
+  }
+
+  /* Live inning indicator inside the header's team-col th */
+  .linescore thead th.team-col {
+    text-align: left;
+    padding-left: 0;
+  }
+  .ls-live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--lcars-orange);
+    box-shadow: 0 0 5px var(--lcars-orange);
+    animation: pulse 1.4s ease-in-out infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+    flex-shrink: 0;
+  }
+  .ls-live-detail {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--lcars-orange);
+    vertical-align: middle;
+  }
+  .ls-status-detail {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+    vertical-align: middle;
+  }
+
+  /* Live game: status row only holds link button */
+  .game-status-row--link {
+    display: flex;
+    justify-content: flex-end;
   }
 
   /* ---------- PITCHER CARDS ---------- */

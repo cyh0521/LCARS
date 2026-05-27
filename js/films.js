@@ -311,24 +311,28 @@
     head.appendChild(titleWrap);
     head.appendChild(pill);
 
-    // Meta line: year · lang · genre · platform
+    // Meta line: year · lang · platform
     const meta = document.createElement('div');
     meta.className = 'series-meta';
     const metaParts = [];
     if (f.year)     metaParts.push(f.year);
     if (f.language) metaParts.push(langShort(f.language));
-    if (f.genre)    metaParts.push(f.genre);
-    if (f.platform) metaParts.push(f.platform);
+    if (f.platform) {
+      const m = f.platform.match(/^Cinema\s*\((.+)\)$/);
+      metaParts.push(m ? m[1] : f.platform);
+    }
     meta.textContent = metaParts.join(' · ');
 
     // Watched date + rewatch count
     const info = document.createElement('div');
     info.className = 'series-ep-line';
     const infoParts = [];
-    if (f.watched_date) infoParts.push(`${t('libLastSeen')} ${fmtDate(f.watched_date)}`);
+    const isWantCard = String(f.status).toUpperCase() === 'WANT_TO_WATCH';
+    if (!isWantCard && f.watched_date) infoParts.push(`${t('libLastSeen')} ${fmtDate(f.watched_date)}`);
     const rewatchCount = parseInt(f.rewatch_count) || 0;
     if (rewatchCount > 0) infoParts.push(t('filmRewatchCount').replace('{n}', rewatchCount));
-    info.textContent = infoParts.join('  ·  ') || t('libNeverSeen');
+    if (!isWantCard && infoParts.length === 0) infoParts.push(t('libNeverSeen'));
+    info.textContent = infoParts.join('  ·  ');
 
     // Star rating display — clickable for direct rating
     const stars = document.createElement('div');
@@ -453,18 +457,25 @@
   function buildFilmFormBody(f) {
     const isEdit = !!f;
 
-    const platformOpts = ['', ...FILM_PLATFORMS].map(p =>
-      `<option value="${escapeAttr(p)}" ${(f ? f.platform : '') === p ? 'selected' : (!f && !p ? 'selected' : '')}>${p || '—'}</option>`
-    ).join('');
+    const currentPlatform = f ? (f.platform || '') : '';
+    const platformOpts = FILM_PLATFORMS.map(p => {
+      const isSelected = f
+        ? (p === 'Cinema' ? currentPlatform.startsWith('Cinema') : currentPlatform === p)
+        : p === FILM_PLATFORMS[0];
+      return `<option value="${escapeAttr(p)}" ${isSelected ? 'selected' : ''}>${p}</option>`;
+    }).join('');
     const langOpts = FILM_LANGUAGES.map(L =>
       `<option value="${L}" ${f && f.language === L ? 'selected' : ''}>${langLabel(L)}</option>`
     ).join('');
     const statusOpts = FILM_STATUSES.map(st =>
       `<option value="${st}" ${f && String(f.status).toUpperCase() === st ? 'selected' : (!f && st === 'WANT_TO_WATCH' ? 'selected' : '')}>${filmStatusLabel(st)}</option>`
     ).join('');
-    const genreOpts = ['', ...FILM_GENRES].map(g =>
-      `<option value="${g}" ${f && f.genre === g ? 'selected' : (!f && !g ? 'selected' : '')}>${g || '—'}</option>`
-    ).join('');
+
+    // Cinema note
+    const isCinema = f && f.platform && f.platform.startsWith('Cinema');
+    const cinemaNote = isCinema && f.platform !== 'Cinema' ? f.platform.replace(/^Cinema\s*\(?(.*?)\)?$/, '$1') : '';
+
+    const isWant = f ? String(f.status).toUpperCase() === 'WANT_TO_WATCH' : true;
 
     return `
       <div class="lib-form-grid">
@@ -486,25 +497,38 @@
             <select id="ff-language" class="lib-form-select">${langOpts}</select>
           </div>
           <div class="lib-form-field">
-            <label class="lib-form-label">${t('filmFormGenre')}</label>
-            <select id="ff-genre" class="lib-form-select">${genreOpts}</select>
+            <label class="lib-form-label">${t('libFormStatus')}</label>
+            <select id="ff-status" class="lib-form-select" onchange="
+              var isWant = this.value === 'WANT_TO_WATCH';
+              var d = document.getElementById('ff-date');
+              if (d) { d.disabled = isWant; d.style.opacity = isWant ? '0.35' : ''; }
+            ">${statusOpts}</select>
           </div>
         </div>
         <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="lib-form-field">
-            <label class="lib-form-label">${t('libFormStatus')}</label>
-            <select id="ff-status" class="lib-form-select">${statusOpts}</select>
+            <label class="lib-form-label">${t('filmFormWatchedDate')}</label>
+            <input id="ff-date" class="lib-form-input" type="date"
+              value="${escapeAttr(f && f.watched_date ? (function(d){
+                const dt = d instanceof Date ? d : new Date(d);
+                if (isNaN(dt.getTime())) return '';
+                const pad = n => String(n).padStart(2,'0');
+                return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
+              })(f.watched_date) : '')}"
+              ${isWant ? 'disabled style="opacity:0.35"' : ''}>
           </div>
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormPlatform')}</label>
-            <select id="ff-platform-select" class="lib-form-select">${platformOpts}</select>
+            <select id="ff-platform-select" class="lib-form-select" onchange="
+              var v = this.value;
+              var row = document.getElementById('ff-cinema-row');
+              if (row) row.style.display = v === 'Cinema' ? '' : 'none';
+            ">${platformOpts}</select>
           </div>
         </div>
-        <div class="lib-form-field full">
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('filmFormWatchedDate')}</label>
-            <input id="ff-date" class="lib-form-input" type="date" value="${escapeAttr(f ? (f.watched_date ? String(f.watched_date).slice(0,10) : '') : '')}">
-          </div>
+        <div class="lib-form-field full" id="ff-cinema-row" style="display:${isCinema ? '' : 'none'}">
+          <label class="lib-form-label">${t('filmFormCinemaNote')}</label>
+          <input id="ff-cinema-note" class="lib-form-input" placeholder="${t('filmFormCinemaNotePH')}" value="${escapeAttr(cinemaNote)}">
         </div>
         <div class="lib-form-field full">
           <label class="lib-form-label">${t('libFormNote')}</label>
@@ -613,10 +637,17 @@
           title_zh:       document.getElementById('ff-title-zh').value.trim(),
           year:           document.getElementById('ff-year').value.trim(),
           language:       document.getElementById('ff-language').value,
-          genre:          document.getElementById('ff-genre').value,
           status:         document.getElementById('ff-status').value,
-          platform:       document.getElementById('ff-platform-select').value,
-          watched_date:   document.getElementById('ff-date').value,
+          platform:       (() => {
+            const p = document.getElementById('ff-platform-select').value;
+            if (p === 'Cinema') {
+              const note = (document.getElementById('ff-cinema-note')?.value || '').trim();
+              return note ? `Cinema (${note})` : 'Cinema';
+            }
+            return p;
+          })(),
+          watched_date:   document.getElementById('ff-status').value === 'WANT_TO_WATCH'
+                            ? '' : document.getElementById('ff-date').value,
           notes:          document.getElementById('ff-note').value.trim(),
         };
         if (!result.title_original) { beep(280); return; }
@@ -917,13 +948,15 @@
 
       const footer = document.createElement('div');
       footer.className = 'alert-footer confirm';
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'alert-ok danger';
+      delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg); margin-right:auto;';
+      delBtn.textContent = t('libDelete');
+
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'alert-ok';
       cancelBtn.textContent = t('libCancel');
-      const delBtn = document.createElement('button');
-      delBtn.className = 'alert-ok';
-      delBtn.style.cssText = 'background:var(--lcars-cream); color:var(--lcars-bg);';
-      delBtn.textContent = t('libDelete');
 
       const close = r => {
         document.removeEventListener('keydown', onKey);

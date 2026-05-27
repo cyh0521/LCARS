@@ -220,44 +220,106 @@
     const competitors = comp.competitors || [];
     const home = competitors.find(c => c.homeAway === 'home') || competitors[1];
     const away = competitors.find(c => c.homeAway === 'away') || competitors[0];
-    const status = espnEvent.status?.type?.state || comp.status?.type?.state;
+    const stateType  = espnEvent.status?.type?.state || comp.status?.type?.state;
+    const statusName = espnEvent.status?.type?.name || '';
+    const detail     = espnEvent.status?.type?.shortDetail || espnEvent.status?.type?.detail || '';
+    const isCompleted = espnEvent.status?.type?.completed === true;
+    const isPostponed = ['STATUS_POSTPONED','STATUS_CANCELED','STATUS_CANCELLED','STATUS_FORFEIT'].includes(statusName);
+    const isSuspended = statusName === 'STATUS_SUSPENDED';
+    const isTrueFinal = stateType === 'post' && isCompleted && !isPostponed && !isSuspended;
 
-    const lineHtml = renderEspnLinescore(away, home);
-    const pitcherHtml = renderEspnPitcherCards(comp, status);
+    // Build a short status label for the linescore header team-col
+    let statusLabel = '';
+    if (stateType === 'in') {
+      const sit = buildSituationData(espnEvent);
+      statusLabel = sit ? (sit.isTop ? 'TOP' : 'BOT') + ' ' + sit.period : detail;
+    } else if (isTrueFinal)  { statusLabel = t('scoreFinal'); }
+    else if (isSuspended)    { statusLabel = (detail || 'SUSPENDED').toUpperCase(); }
+    else if (isPostponed)    { statusLabel = (detail || 'POSTPONED').toUpperCase(); }
+    else {
+      // Pre-game: show scheduled time
+      const dt = new Date(espnEvent.date);
+      statusLabel = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    const sit = (stateType === 'in') ? buildSituationData(espnEvent) : null;
+    const lineHtml = renderEspnLinescore(away, home, sit, stateType, statusLabel);
+    const situationHtml = (stateType === 'in') ? renderEspnSituationBar(espnEvent) : '';
+    const pitcherHtml = renderEspnPitcherCards(comp, stateType);
 
     if (!lineHtml && !pitcherHtml) return '';
-    return [lineHtml, pitcherHtml].filter(Boolean).join('');
+
+    // ESPN link — top-right of linescore
+    const espnUrl = `https://www.espn.com/mlb/game/_/gameId/${espnEvent.id}`;
+    const espnLink = `<a class="pin-btn score-link-btn ls-espn-link"
+       href="${espnUrl}" target="_blank" rel="noopener"
+       onclick="event.stopPropagation();"
+       title="${escapeAttr(t('openOnEspn'))}"
+       aria-label="${escapeAttr(t('openOnEspn'))}">
+      <svg class="icon icon-sm"><use href="#i-external"/></svg>
+    </a>`;
+
+    const linescoreWrapped = `<div class="ls-wrapper">${espnLink}${lineHtml}</div>`;
+    return [linescoreWrapped, situationHtml, pitcherHtml].filter(Boolean).join('');
+  }
+
+  /* Extract situation data for live games */
+  function buildSituationData(espnEvent) {
+    const comp   = espnEvent.competitions?.[0];
+    const sit    = comp?.situation;
+    const status = espnEvent.status || {};
+    const period = status.period || 0;
+    if (!period) return null;
+    const isTop = sit?.isTopHalf ?? (status.type?.shortDetail?.toLowerCase().includes('top'));
+    const batter  = sit?.batter?.athlete;
+    const pitcher = sit?.pitcher?.athlete;
+    return {
+      period,
+      isTop:    !!isTop,
+      outs:     sit?.outs     ?? '?',
+      onFirst:  !!(sit?.onFirst),
+      onSecond: !!(sit?.onSecond),
+      onThird:  !!(sit?.onThird),
+      balls:    sit?.balls   ?? null,
+      strikes:  sit?.strikes ?? null,
+      batter:   batter  ? (batter.shortName  || batter.displayName  || '') : '',
+      pitcher:  pitcher ? (pitcher.shortName || pitcher.displayName || '') : '',
+    };
   }
 
   /* Build the linescore table from ESPN competitor.linescores arrays */
-  function renderEspnLinescore(away, home) {
+  function renderEspnLinescore(away, home, sit, stateType, statusLabel) {
     const awayLine = away?.linescores || [];
     const homeLine = home?.linescores || [];
     if (!awayLine.length && !homeLine.length) return '';
 
     const numInnings = Math.max(9, awayLine.length, homeLine.length);
 
-    // Build colgroup so columns have consistent widths regardless of
-    // team name length. Inning + R/H/E columns are fixed width;
-    // team column takes whatever's left.
     let colgroup = '<colgroup><col class="team-col-spec">';
     for (let i = 0; i < numInnings; i++) colgroup += '<col class="inning-col-spec">';
     colgroup += '<col class="rhe-col-spec"><col class="rhe-col-spec"><col class="rhe-col-spec"></colgroup>';
 
-    let header = '<tr><th class="team-col"></th>';
+    const isLive = stateType === 'in';
+    let headerStatusHtml = '';
+    if (statusLabel) {
+      headerStatusHtml = isLive
+        ? `<span class="ls-live-dot"></span><span class="ls-live-detail">${escapeHtml(statusLabel)}</span>`
+        : `<span class="ls-status-detail">${escapeHtml(statusLabel)}</span>`;
+    }
+
+    let header = `<tr><th class="team-col">${headerStatusHtml}</th>`;
     for (let i = 1; i <= numInnings; i++) header += `<th>${i}</th>`;
     header += '<th class="rhe-col inning-divider">R</th><th class="rhe-col">H</th><th class="rhe-col">E</th></tr>';
 
     const buildRow = (team, line) => {
       const t_ = team?.team || {};
-      const abbr     = t_.abbreviation || '';
-      const fullName = (t_.name || t_.displayName || abbr).toUpperCase();
+      const abbr = t_.abbreviation || '';
       const logo = t_.logo || '';
       const teamCell = `
         <td class="team-col">
           <span class="team-col-inner">
             ${logo ? `<img class="ls-logo" src="${escapeAttr(logo)}" alt="${escapeAttr(abbr)}">` : ''}
-            <span class="ls-abbr">${escapeHtml(fullName)}</span>
+            <span class="ls-abbr">${escapeHtml(abbr)}</span>
           </span>
         </td>`;
       let inningCells = '';
@@ -286,6 +348,117 @@
           ${buildRow(home, homeLine)}
         </tbody>
       </table>`;
+  }
+
+  /* Live situation bar: bases, outs, count + due-up batters */
+  function renderEspnSituationBar(espnEvent) {
+    const comp = espnEvent.competitions?.[0];
+    const sit  = comp?.situation;
+    const status = espnEvent.status || {};
+    const period = status.period || 0;
+    if (!sit || !period) return '';
+
+    const outs    = sit.outs ?? '?';
+    const onFirst = !!(sit.onFirst);
+    const onSecond= !!(sit.onSecond);
+    const onThird = !!(sit.onThird);
+    const balls   = sit.balls   ?? null;
+    const strikes = sit.strikes ?? null;
+
+    // Bases diamond SVG
+    const bs = 11, pitch = 12;
+    const lit = 'var(--lcars-gold)', dim = 'rgba(255,255,255,0.2)';
+    const svgW = 42, svgH = 34;
+    const cx = svgW / 2, cy = svgH / 2 + 1;
+    const bases = [
+      { x: cx,         y: cy - pitch, filled: onSecond },
+      { x: cx + pitch, y: cy,         filled: onFirst  },
+      { x: cx - pitch, y: cy,         filled: onThird  },
+    ];
+    const half = bs / 2;
+    const rects = bases.map(b =>
+      `<rect x="${b.x-half}" y="${b.y-half}" width="${bs}" height="${bs}"
+             fill="${b.filled ? lit : 'none'}" stroke="${b.filled ? lit : dim}"
+             stroke-width="1.5" transform="rotate(45 ${b.x} ${b.y})"/>`
+    ).join('');
+    const diamondSvg = `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" overflow="visible">${rects}</svg>`;
+
+    // Count label
+    const countHtml = (balls !== null && strikes !== null)
+      ? `<span class="ls-sit-count">${balls}-${strikes}</span>` : '';
+
+    // Helper: make a player card
+    const makeCard = (label, sitPlayer) => {
+      if (!sitPlayer) return '';
+      const ath   = sitPlayer.athlete || {};
+      const name  = ath.shortName || ath.displayName || '';
+      if (!name) return '';
+      const photo = ath.headshot?.href || getEspnHeadshot(ath.id);
+
+      // Build stat line: use statistics if available, else fix up summary
+      let statLine = '';
+      const statsArr = sitPlayer.statistics || [];
+      if (statsArr.length) {
+        statLine = statsArr
+          .map(s => {
+            const val  = s.displayValue ?? '';
+            const abbr = (s.abbreviation || s.name || '').trim();
+            if (!abbr || val === '-') return '';
+            return val ? `${val} ${abbr}` : `1 ${abbr}`;
+          })
+          .filter(Boolean)
+          .join(', ');
+      }
+      if (!statLine) {
+        // Fix ESPN summary: insert '1' before standalone abbreviations
+        // e.g. "0-4, K" → "0-4, 1 K", "2-4, 2B, K" → "2-4, 2B, 1 K"
+        statLine = (sitPlayer.summary || '')
+          .replace(/(,\s*)([A-Z]+)(?=[,\s]|$)/g, '$11 $2');
+      }
+
+      const photoHtml = photo
+        ? `<img class="due-up-photo" src="${escapeAttr(photo)}" alt="${escapeAttr(name)}" loading="lazy" onerror="this.style.display='none'">`
+        : `<span class="due-up-photo placeholder"></span>`;
+      return `<div class="due-up-card">
+        ${photoHtml}
+        <div class="due-up-info">
+          <span class="due-up-order">${escapeHtml(label)}</span>
+          <span class="due-up-name">${escapeHtml(name)}</span>
+          ${statLine ? `<span class="due-up-stats">${escapeHtml(statLine)}</span>` : ''}
+        </div>
+      </div>`;
+    };
+
+    // Prefer batter/pitcher (most stable), fall back to dueUp
+    const playerCards = [];
+    const pitCard = makeCard('P',  sit.pitcher);
+    const batCard = makeCard('AB', sit.batter);
+    if (pitCard) playerCards.push(pitCard);
+    if (batCard) playerCards.push(batCard);
+
+    if (!playerCards.length) {
+      (sit.dueUp || []).slice(0, 3).forEach(d => {
+        const c = makeCard(
+          d.battingOrder ? `DUE UP (${d.battingOrder})` : 'DUE UP',
+          d
+        );
+        if (c) playerCards.push(c);
+      });
+    }
+
+    const dueUpHtml = playerCards.length
+      ? `<div class="ls-due-up-row">${playerCards.join('')}</div>` : '';
+
+    return `<div class="ls-situation-bar">
+      <div class="ls-sit-summary">
+        ${diamondSvg}
+        <div class="ls-sit-meta">
+          <span class="ls-sit-outs-big">${outs} <span class="ls-sit-outs-label">OUT${outs !== 1 ? 'S' : ''}</span></span>
+          ${countHtml}
+        </div>
+      </div>
+      ${dueUpHtml}
+    </div>`;
   }
 
   /* Pitcher decision cards from ESPN — pre-game shows probables.
@@ -444,12 +617,14 @@
           <svg class="icon icon-sm"><use href="#i-external"/></svg>
         </a>`
       : '';
-    const statusClass = stateType === 'in' ? 'game-status live' : 'game-status';
-    const statusHtml = `
-      <div class="game-status-row">
-        <div class="${statusClass}">${statusInner}</div>
-        ${linkBtnHtml}
-      </div>`;
+    // Featured card: status shown in linescore header, only need link button.
+    // Non-featured small cards: show full status row.
+    const statusHtml = featured
+      ? (linkBtnHtml ? `<div class="game-status-row game-status-row--link">${linkBtnHtml}</div>` : '')
+      : `<div class="game-status-row">
+           <div class="${stateType === 'in' ? 'game-status live' : 'game-status'}">${statusInner}</div>
+           ${linkBtnHtml}
+         </div>`;
 
     // ---- Team rows ----
     card.innerHTML = `
