@@ -24,7 +24,7 @@
     --lcars-violet:    #9977bb;   /* dusty violet */
     --lcars-gold:      #d4a23a;   /* deep gold */
     --lcars-cream:     #e8d5a8;
-    --lcars-dim:       #6b7a8a;   /* muted label text — readable on dark bg */
+    --lcars-dim:       #4a3a1f;
     --lcars-muted:     #2a3548;
 
     --radius-elbow:    36px;
@@ -43,10 +43,6 @@
     overflow-x: hidden;
     min-height: 100vh;
   }
-  /* 中文字不需要字距 */
-  :lang(zh), [lang="zh"], .zh,
-  select, .wx-day-desc, .wx-hr-card, .info-sub,
-  .wx-day-wd, .wx-day-md, .wx-cur-desc { letter-spacing: 0 !important; }
   html.scroll-locked,
   html.scroll-locked body {
     overflow: hidden !important;
@@ -254,7 +250,6 @@
     flex-shrink: 0;
     fill: currentColor;
   }
-  .icon-xs { width: 10px; height: 10px; }
   .icon-sm { width: 14px; height: 14px; }
   .icon-md { width: 18px; height: 18px; }
   .icon-lg { width: 28px; height: 28px; }
@@ -4350,132 +4345,812 @@
     .rightbar-elbow { display: none; }
     .station-id { font-size: 22px; }
   }
-
-
-    /* ============================================================
-     WEATHER PAGE
-     ============================================================ */
-
-  .nav-btn.teal        { background: #2ecfb0; color: var(--lcars-bg); }
-  .nav-btn.teal:hover  { background: var(--lcars-cream); }
-  .tab-btn.teal.active { background: #2ecfb0; }
-  .panel.teal .panel-title::before { background: #2ecfb0; box-shadow: 0 0 8px #2ecfb0; }
-
-  /* 天氣 emoji 在 info-value 裡放大 */
-  .wx-big-emoji { font-size: 28px !important; line-height: 1.2 !important; }
-
-  /* UV 顏色 */
-  .uv-low     { color: #66cc66;             }
-  .uv-mid     { color: var(--lcars-gold);   }
-  .uv-high    { color: var(--lcars-orange); }
-  .uv-vhigh   { color: var(--lcars-rust);   }
-  .uv-extreme { color: #cc44cc;             }
-
-  /* 工具列 */
-  .wx-toolbar {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 6px 0; gap: 8px; flex-wrap: wrap;
-  }
-  .wx-toolbar-left, .wx-toolbar-right { display: flex; align-items: center; gap: 8px; }
-  .wx-sel {
-    background: var(--lcars-panel); color: var(--lcars-cream);
-    border: 1px solid var(--lcars-muted); border-radius: var(--radius-pill);
-    padding: 4px 12px; font-size: 13px; font-weight: 700;
-    cursor: pointer; outline: none; letter-spacing: 0;
-    font-family: "Noto Sans TC", "PingFang TC", inherit;
-  }
-  .wx-sel:disabled { opacity: 0.35; cursor: default; }
-  .wx-sel:focus    { border-color: var(--lcars-orange); }
-  .wx-ts-val   { color: var(--lcars-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
-  .wx-refresh-btn {
-    background: transparent; color: var(--lcars-dim);
-    border: 1px solid var(--lcars-muted); width: 26px; height: 26px; border-radius: 50%;
-    font-size: 14px; cursor: pointer; line-height: 1; transition: all 0.15s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .wx-refresh-btn:hover { background: var(--lcars-blue); border-color: var(--lcars-blue); color: var(--lcars-bg); }
-  .wx-loading { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--lcars-blue); }
-  .wx-loading-dot {
-    width: 7px; height: 7px; border-radius: 50%; background: var(--lcars-blue);
-    animation: wx-dot 0.8s ease-in-out infinite alternate;
-  }
-  @keyframes wx-dot { from { opacity: 0.1; } to { opacity: 1; } }
-  .wx-error { color: var(--lcars-rust); font-size: 11px; }
-
-  /* 中段：canvas + 逐小時 */
-  .wx-mid-panel .panel-title { margin-bottom: 0; }
-  .wx-mid-body {
-    display: flex; align-items: stretch; gap: 0;
-  }
-  .wx-sun-canvas {
-    flex-shrink: 0; display: block;
-    border-right: 1px solid var(--lcars-frame);
-    padding: 10px 6px 6px 10px; box-sizing: content-box;
-  }
-  .wx-hourly-strip {
-    flex: 1; display: flex; align-items: center; overflow-x: auto;
-    gap: 4px; padding: 8px 14px;
-    scrollbar-width: thin; scrollbar-color: var(--lcars-muted) transparent;
-  }
-  .wx-hourly-strip::-webkit-scrollbar { height: 3px; }
-  .wx-hourly-strip::-webkit-scrollbar-thumb { background: var(--lcars-muted); border-radius: 2px; }
-  .wx-hr-card {
-    flex-shrink: 0; width: 54px;
-    background: var(--lcars-frame); border-radius: 3px;
-    padding: 9px 4px; display: flex; flex-direction: column;
-    align-items: center; gap: 4px; text-align: center;
-  }
-  .wx-hr-card.now { background: rgba(255,153,102,0.12); outline: 1px solid rgba(255,153,102,0.4); }
-  .wx-hr-time { font-size: 11px; color: var(--lcars-dim); font-weight: 700; letter-spacing: 0; }
-  .wx-hr-card.now .wx-hr-time { color: var(--lcars-orange); }
-  .wx-hr-icon { font-size: 20px; line-height: 1; }
-  .wx-hr-temp { font-size: 14px; font-weight: 700; color: var(--lcars-text); }
-  .wx-hr-pop  { font-size: 10px; color: var(--lcars-blue); letter-spacing: 0; }
-
-  /* 七天預報：卡片磚塊 */
-  .wx-daily-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    padding: 4px 0 10px;
-  }
-  .wx-day-card {
-    background: var(--lcars-frame); border-radius: 4px;
-    padding: 12px 8px; display: flex; flex-direction: column;
-    align-items: center; gap: 5px; text-align: center;
-    border-top: 2px solid transparent; transition: background 0.1s;
-  }
-  .wx-day-card:hover { background: rgba(255,255,255,0.04); }
-  .wx-day-card.today { border-top-color: var(--lcars-orange); background: rgba(255,153,102,0.07); }
-  .wx-dc-top   { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-  .wx-dc-day   { font-size: 14px; font-weight: 700; color: var(--lcars-cream); letter-spacing: 0; }
-  .wx-dc-day.today-wd { color: var(--lcars-orange); }
-  .wx-dc-date  { font-size: 10px; color: var(--lcars-dim); letter-spacing: 0; }
-  .wx-dc-icon  { font-size: 26px; line-height: 1; }
-  .wx-dc-desc  { font-size: 11px; color: var(--lcars-cream); letter-spacing: 0; line-height: 1.3; min-height: 2.6em; display: flex; align-items: center; justify-content: center; }
-  .wx-dc-bar-track {
-    width: 80%; height: 4px; background: var(--lcars-muted);
-    border-radius: 999px; position: relative; overflow: hidden;
-  }
-  .wx-dc-bar-fill {
-    position: absolute; top: 0; height: 100%; border-radius: 999px;
-    background: linear-gradient(90deg, var(--lcars-blue), var(--lcars-orange));
-  }
-  .wx-dc-temps { display: flex; justify-content: space-between; width: 100%; font-size: 12px; }
-  .wx-dc-temps .lo { color: var(--lcars-blue); }
-  .wx-dc-temps .hi { color: var(--lcars-orange); font-weight: 700; }
-  .wx-dc-pop   { font-size: 11px; color: var(--lcars-blue); letter-spacing: 0; }
-  .wx-dc-uv    { font-size: 10px; font-weight: 700; letter-spacing: 0; }
-
-  .wx-credit {
-    font-size: 10px; color: var(--lcars-dim); padding: 2px 0 6px;
-  }
-  .wx-credit a { color: var(--lcars-dim); text-decoration: none; }
-  .wx-credit a:hover { color: var(--lcars-cream); }
-
-  @media (max-width: 900px) {
-    .wx-daily-grid { grid-template-columns: repeat(4, 1fr); }
-    .wx-mid-body { flex-direction: column; }
-    .wx-sun-canvas { border-right: none; border-bottom: 1px solid var(--lcars-frame); width: 100% !important; }
-  }
 </style>
+</head>
+<body>
+
+<!-- ============================================================
+     SVG ICON SPRITE — referenced via <use href="#icon-name">
+     Star Trek + LCARS-themed iconography
+     ============================================================ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Starfleet delta (combadge style) -->
+    <symbol id="i-delta" viewBox="0 0 24 24">
+      <path d="M12 2 L4 20 Q12 16 20 20 Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.2"/>
+    </symbol>
+
+    <!-- Starship (Enterprise saucer profile) -->
+    <symbol id="i-ship" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="10" rx="9" ry="2.5" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="8" y="13" width="8" height="2" rx="1" fill="currentColor"/>
+      <line x1="6" y1="17" x2="18" y2="17" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="9" y1="17" x2="9" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="15" y1="17" x2="15" y2="20" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Planet with ring -->
+    <symbol id="i-planet" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="5" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.4"/>
+      <ellipse cx="12" cy="12" rx="10" ry="3" fill="none" stroke="currentColor" stroke-width="1.2" transform="rotate(-20 12 12)"/>
+    </symbol>
+
+    <!-- Communicator / hail -->
+    <symbol id="i-comm" viewBox="0 0 24 24">
+      <path d="M3 12 Q12 3 21 12" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M6 14 Q12 8 18 14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="12" cy="17" r="2" fill="currentColor"/>
+    </symbol>
+
+    <!-- Calendar / date -->
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="4" y="6" width="16" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="11" y="13" width="3" height="3" fill="currentColor"/>
+    </symbol>
+
+    <!-- Clock -->
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="12" x2="12" y2="7" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="12" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Stopwatch / countdown — used in note reminder countdown -->
+    <symbol id="i-timer" viewBox="0 0 24 24">
+      <!-- Top button + side stems -->
+      <line x1="10" y1="3" x2="14" y2="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="12" y1="3" x2="12" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- Watch body -->
+      <circle cx="12" cy="14" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <!-- Hand pointing to 1 o'clock to suggest active countdown -->
+      <line x1="12" y1="14" x2="15.5" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Atmospheric / weather -->
+    <symbol id="i-weather" viewBox="0 0 24 24">
+      <circle cx="8" cy="10" r="3.5" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M10 16 Q14 14 18 16 Q20 17 19 19 L10 19 Q8 17 10 16 Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2"/>
+    </symbol>
+
+    <!-- Pulse / uptime -->
+    <symbol id="i-pulse" viewBox="0 0 24 24">
+      <path d="M2 12 H7 L9 6 L12 18 L15 9 L17 12 H22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Docking ring -->
+    <symbol id="i-dock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="3" x2="12" y2="8" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="16" x2="12" y2="21" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="3" y1="12" x2="8" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="16" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Telemetry bars -->
+    <symbol id="i-telemetry" viewBox="0 0 24 24">
+      <rect x="3"  y="14" width="3" height="7" fill="currentColor"/>
+      <rect x="8"  y="9"  width="3" height="12" fill="currentColor"/>
+      <rect x="13" y="11" width="3" height="10" fill="currentColor"/>
+      <rect x="18" y="5"  width="3" height="16" fill="currentColor"/>
+    </symbol>
+
+    <!-- Log / book -->
+    <symbol id="i-log" viewBox="0 0 24 24">
+      <path d="M5 4 H17 Q19 4 19 6 V20 H7 Q5 20 5 18 Z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="9"  x2="16" y2="9"  stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="17" x2="13" y2="17" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Computer / compute -->
+    <symbol id="i-compute" viewBox="0 0 24 24">
+      <rect x="4" y="3" width="16" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="7" y="6" width="10" height="3" fill="currentColor" fill-opacity="0.4"/>
+      <rect x="7" y="11" width="2" height="2" fill="currentColor"/>
+      <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+      <rect x="15" y="11" width="2" height="2" fill="currentColor"/>
+      <line x1="9" y1="20" x2="15" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="17" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Alert triangle -->
+    <symbol id="i-alert" viewBox="0 0 24 24">
+      <path d="M12 3 L22 20 H2 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <line x1="12" y1="10" x2="12" y2="15" stroke="currentColor" stroke-width="2"/>
+      <circle cx="12" cy="18" r="1" fill="currentColor"/>
+    </symbol>
+
+    <!-- Tools (for auxiliary panel) -->
+    <symbol id="i-tools" viewBox="0 0 24 24">
+      <path d="M14 4 L20 10 L14 16 M10 8 L4 14 L10 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Generic external link -->
+    <symbol id="i-link" viewBox="0 0 24 24">
+      <path d="M14 4 H20 V10 M20 4 L11 13 M18 14 V19 Q18 20 17 20 H5 Q4 20 4 19 V7 Q4 6 5 6 H10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Plus / add -->
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- PENCIL — used for "rename" / "edit" tab controls -->
+    <symbol id="i-pencil" viewBox="0 0 24 24">
+      <!-- Body of the pencil running diagonally; tip at bottom-left. -->
+      <path d="M14.5 4 L20 9.5 L9 20.5 L3.5 20.5 L3.5 15 Z"
+            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <!-- Ferrule line where the eraser meets the wood -->
+      <line x1="12.5" y1="6" x2="18" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- X / CLOSE — used for "delete" tab control -->
+    <symbol id="i-x" viewBox="0 0 24 24">
+      <line x1="6"  y1="6"  x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="18" y1="6"  x2="6"  y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Mail / subspace -->
+    <symbol id="i-mail" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="13" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M3 7 L12 14 L21 7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Code -->
+    <symbol id="i-code" viewBox="0 0 24 24">
+      <path d="M9 7 L3 12 L9 17 M15 7 L21 12 L15 17 M14 4 L10 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Holodeck / video -->
+    <symbol id="i-holo" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M10 9 L16 12 L10 15 Z" fill="currentColor"/>
+    </symbol>
+
+    <!-- Audio waves -->
+    <symbol id="i-audio" viewBox="0 0 24 24">
+      <line x1="3"  y1="12" x2="3"  y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="7"  y1="9"  x2="7"  y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="11" y1="5"  x2="11" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="15" y1="8"  x2="15" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="19" y1="10" x2="19" y2="14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Database / archive -->
+    <symbol id="i-database" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="6" rx="8" ry="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M4 6 V12 Q4 14.5 12 14.5 Q20 14.5 20 12 V6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M4 12 V18 Q4 20.5 12 20.5 Q20 20.5 20 18 V12" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- OPS / Operations (concentric command crosshairs) -->
+    <symbol id="i-ops" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+      <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- MISSIONS / Briefing (folded paper) -->
+    <symbol id="i-missions" viewBox="0 0 24 24">
+      <path d="M5 3 H15 L19 7 V21 H5 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M15 3 V7 H19" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="16" x2="14" y2="16" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- QUARTERMASTER / supplies (crate with strap) -->
+    <symbol id="i-quarter" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="3" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="9" y1="6" x2="9" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="15" y1="6" x2="15" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="10" y="3" width="4" height="3" fill="currentColor"/>
+    </symbol>
+
+    <!-- ENGINEERING / warp gear -->
+    <symbol id="i-engineering" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M12 3 V6 M12 18 V21 M3 12 H6 M18 12 H21 M5.6 5.6 L7.7 7.7 M16.3 16.3 L18.4 18.4 M5.6 18.4 L7.7 16.3 M16.3 7.7 L18.4 5.6"
+            stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- ARCHIVES / stacked records -->
+    <symbol id="i-archives" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="4" y="9" width="16" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="9" y1="13" x2="15" y2="13" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- SCORES / baseball with stitches -->
+    <symbol id="i-scores" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M5 6 Q9 9 9 12 Q9 15 5 18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/>
+      <path d="M19 6 Q15 9 15 12 Q15 15 19 18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/>
+    </symbol>
+
+    <!-- PIN to top / promote up arrow -->
+    <symbol id="i-pin" viewBox="0 0 24 24">
+      <path d="M12 4 L18 11 H14 V20 H10 V11 H6 Z" fill="currentColor" fill-opacity="0.85" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- EXTERNAL LINK / opens in new tab — box with arrow pointing out top-right -->
+    <symbol id="i-external" viewBox="0 0 24 24">
+      <!-- Box (open at top-right corner) -->
+      <path d="M14 5 H5 V20 H20 V11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Arrow shaft -->
+      <line x1="11" y1="13" x2="20" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <!-- Arrow head — short L into the corner -->
+      <polyline points="13,4 20,4 20,11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- BELL / reminder -->
+    <symbol id="i-bell" viewBox="0 0 24 24">
+      <path d="M12 3 C9 3 7 5 7 8 V12 L5 16 H19 L17 12 V8 C17 5 15 3 12 3 Z"
+            fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M10 18 C10 19.5 11 20.5 12 20.5 C13 20.5 14 19.5 14 18"
+            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- MORE / horizontal 3-dot menu -->
+    <symbol id="i-more" viewBox="0 0 24 24">
+      <circle cx="5"  cy="12" r="2" fill="currentColor"/>
+      <circle cx="12" cy="12" r="2" fill="currentColor"/>
+      <circle cx="19" cy="12" r="2" fill="currentColor"/>
+    </symbol>
+
+    <!-- LIBRARY / open book -->
+    <symbol id="i-library" viewBox="0 0 24 24">
+      <path d="M12 4 C10 2 6 2 3 4 V20 C6 18 10 18 12 20 C14 18 18 18 21 20 V4 C18 2 14 2 12 4 Z"
+            fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- LOG / list with lines -->
+    <symbol id="i-log" viewBox="0 0 24 24">
+      <rect x="4" y="3" width="16" height="18" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="8"  x2="16" y2="8"  stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="8" y1="16" x2="13" y2="16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- STOCKS / candlestick chart -->
+    <symbol id="i-stocks" viewBox="0 0 24 24">
+      <line x1="6"  y1="3"  x2="6"  y2="21" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="4"  y="8"  width="4" height="8" fill="currentColor" fill-opacity="0.5"/>
+      <line x1="12" y1="6"  x2="12" y2="20" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="10" y="10" width="4" height="6" fill="currentColor"/>
+      <line x1="18" y1="4"  x2="18" y2="18" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="16" y="6"  width="4" height="9" fill="currentColor" fill-opacity="0.5"/>
+    </symbol>
+
+    <!-- Theme palette / color wheel -->
+    <symbol id="i-theme" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M12 3 A9 9 0 0 1 12 21" fill="currentColor" fill-opacity="0.4"/>
+      <circle cx="12" cy="7"  r="1.5" fill="currentColor"/>
+      <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
+      <circle cx="12" cy="17" r="1.5" fill="currentColor"/>
+      <circle cx="8"  cy="12" r="1.5" fill="currentColor"/>
+    </symbol>
+
+    <!-- News -->
+    <symbol id="i-news" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="15" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="6" y1="9"  x2="13" y2="9"  stroke="currentColor" stroke-width="1.5"/>
+      <line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="6" y1="15" x2="18" y2="15" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="14" y="7" width="5" height="3" fill="currentColor" fill-opacity="0.4"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 4v6h-6"/>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="console">
+
+  <!-- ============================================================ -->
+  <!-- HEADER                                                       -->
+  <!-- ============================================================ -->
+  <div class="header">
+    <!-- LCARS elbow — now hosts the OPS CENTER subtitle (was SYS 47) -->
+    <div class="header-elbow" data-i18n="opsCenter">:: OPERATIONS CENTER</div>
+    <div class="header-bar">
+      <!-- Center title is now driven by the active page (was STARBASE 074).
+           page-icon + page-title + page-subtitle update on every switchPage(). -->
+      <div style="display:flex; align-items:center; gap:14px;">
+        <svg class="icon icon-lg" id="pageIcon" style="color:var(--lcars-orange)"><use href="#i-ops"/></svg>
+        <div>
+          <span class="station-id" id="pageTitle" data-i18n="tabMain">MAIN</span>
+          <span class="sub" id="pageSubtitle" data-i18n="mainSub">OPERATIONS</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <span class="status-pill gold" id="shift-pill" data-shift>—</span>
+        <button class="lang-toggle refresh-btn" id="refreshBtn" onclick="refreshCurrentPage()" hidden><span data-i18n="btnRefresh">REFRESH</span></button>
+        <button class="lang-toggle" id="pageActionBtn" onclick="pageActionBtnClick()" hidden></button>
+<button class="lang-toggle" id="langToggle" onclick="toggleLang()">CH</button>
+      </div>
+    </div>
+    <div class="header-cap"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SIDEBAR                                                      -->
+  <!-- ============================================================ -->
+  <div class="sidebar">
+    <!-- TAB GROUP — page navigation -->
+    <div class="sidebar-group-label" data-i18n="grpStations">STATIONS</div>
+
+    <button class="nav-btn tab-btn"        onclick="switchPage('main')"    data-tab="main"><svg class="icon icon-md"><use href="#i-ops"/></svg><span data-i18n="tabMain">MAIN</span></button>
+    <button class="nav-btn tab-btn violet" onclick="switchPage('project')" data-tab="project"><svg class="icon icon-md"><use href="#i-missions"/></svg><span data-i18n="tabWorkspace">WORKSPACE</span></button>
+    <button class="nav-btn tab-btn blue"   onclick="switchPage('finance')" data-tab="finance"><svg class="icon icon-md"><use href="#i-stocks"/></svg><span data-i18n="tabFinance">FINANCE</span></button>
+    <button class="nav-btn tab-btn gold"   onclick="switchPage('scores')"  data-tab="scores"><svg class="icon icon-md"><use href="#i-scores"/></svg><span data-i18n="tabScores">SCORES</span></button>
+    <button class="nav-btn tab-btn cream"  onclick="switchPage('library')" data-tab="library"><svg class="icon icon-md"><use href="#i-library"/></svg><span data-i18n="tabLibrary">LIBRARY</span></button>
+
+    <!-- TOOL GROUP — utilities -->
+    <div class="sidebar-group-label" data-i18n="grpTools">TOOLS</div>
+
+    <button class="nav-btn"        onclick="showTool('calc')"><svg class="icon icon-md"><use href="#i-compute"/></svg><span data-i18n="navCompute">COMPUTE</span></button>
+    <button class="nav-btn rust"   onclick="cycleTheme()" data-theme-btn><svg class="icon icon-md"><use href="#i-theme"/></svg><span data-i18n="navTheme">THEME</span></button>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-elbow-bottom"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MAIN                                                         -->
+  <!-- ============================================================ -->
+  <div class="main">
+
+    <!-- ===== PAGE: MAIN ===== -->
+    <section class="page" data-page="main">
+
+    <!-- Info strip -->
+    <div class="info-strip">
+      <div class="info-card amber">
+        <svg class="icon icon-md icon-corner"><use href="#i-calendar"/></svg>
+        <div class="info-label" data-i18n="stardateLabel">STARDATE</div>
+        <div class="info-value" id="stardate">—</div>
+        <div class="info-sub" id="earthdate">—</div>
+      </div>
+      <div class="info-card">
+        <svg class="icon icon-md icon-corner"><use href="#i-clock"/></svg>
+        <div class="info-label" data-i18n="localTimeLabel">LOCAL TIME</div>
+        <div class="info-value" id="localtime">—:—:—</div>
+        <div class="info-sub" data-i18n="sectorTaipei">SECTOR 001 · TAIPEI</div>
+      </div>
+      <div class="info-card violet">
+        <svg class="icon icon-md icon-corner"><use href="#i-weather"/></svg>
+        <div class="info-label" data-i18n="atmosphericLabel">ATMOSPHERIC</div>
+        <div class="info-value" id="weather-temp">—°</div>
+        <div class="info-sub" id="weather-desc" data-i18n="scanning">SCANNING…</div>
+      </div>
+      <div class="info-card gold">
+        <svg class="icon icon-md icon-corner"><use href="#i-pulse"/></svg>
+        <div class="info-label" data-i18n="uptimeLabel">UPTIME</div>
+        <div class="info-value" id="uptime">00:00:00</div>
+        <div class="info-sub" data-i18n="sessionActive">SESSION ACTIVE</div>
+      </div>
+    </div>
+
+    <!-- Docking bays (bookmarks) -->
+    <div class="panel" id="docking">
+      <div class="panel-title"><span data-i18n="dockingTitle">DOCKING BAY ASSIGNMENTS · ACCESS PORTAL</span></div>
+      <div class="docking-bays">
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-code"/></svg><span data-i18n="bayAlpha">BAY ALPHA</span></span>
+            <span class="bay-code" data-i18n="bayAlphaCode">DK-A · WORK</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://github.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-code"/></svg><span data-i18n="linkGithub">GITHUB · CODE REPOSITORY</span></span>
+              <span class="dock-id">A-01</span>
+            </a>
+            <a class="bay-link" href="https://claude.ai" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-compute"/></svg><span data-i18n="linkClaude">CLAUDE · LCARS COMPUTER</span></span>
+              <span class="dock-id">A-02</span>
+            </a>
+            <a class="bay-link" href="#" onclick="return prompt(window.t ? t('promptUrl') : 'Enter URL', 'https://')">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">A-??</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-comm"/></svg><span data-i18n="bayBeta">BAY BETA</span></span>
+            <span class="bay-code" data-i18n="bayBetaCode">DK-B · COMMS</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://gmail.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-mail"/></svg><span data-i18n="linkGmail">SUBSPACE MAIL · GMAIL</span></span>
+              <span class="dock-id">B-01</span>
+            </a>
+            <a class="bay-link" href="https://calendar.google.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-calendar"/></svg><span data-i18n="linkCalendar">STELLAR CARTOGRAPHY · CALENDAR</span></span>
+              <span class="dock-id">B-02</span>
+            </a>
+            <a class="bay-link" href="#">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">B-??</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-holo"/></svg><span data-i18n="bayGamma">BAY GAMMA</span></span>
+            <span class="bay-code" data-i18n="bayGammaCode">DK-G · MEDIA</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://youtube.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-holo"/></svg><span data-i18n="linkYoutube">HOLODECK FEED · YOUTUBE</span></span>
+              <span class="dock-id">G-01</span>
+            </a>
+            <a class="bay-link" href="https://open.spotify.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-audio"/></svg><span data-i18n="linkSpotify">AUDIO ARCHIVE · SPOTIFY</span></span>
+              <span class="dock-id">G-02</span>
+            </a>
+            <a class="bay-link" href="#">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">G-??</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-database"/></svg><span data-i18n="bayDelta">BAY DELTA</span></span>
+            <span class="bay-code" data-i18n="bayDeltaCode">DK-D · RESEARCH</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://en.wikipedia.org" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-database"/></svg><span data-i18n="linkWiki">MEMORY ALPHA · WIKIPEDIA</span></span>
+              <span class="dock-id">D-01</span>
+            </a>
+            <a class="bay-link" href="https://news.ycombinator.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-news"/></svg><span data-i18n="linkHN">FEDERATION NEWS · HN</span></span>
+              <span class="dock-id">D-02</span>
+            </a>
+            <a class="bay-link" href="#">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">D-??</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom row: notes + tools -->
+    <div class="bottom-row">
+
+      <!-- Personal log / notes -->
+      <div class="panel violet" id="logs">
+        <div class="panel-title"><span data-i18n="logTitle">PERSONAL LOG · DAILY ENTRY</span></div>
+        <textarea class="notes-area" id="notes"
+          data-i18n-placeholder="logPlaceholder"
+          placeholder="Captain's log, supplemental..."></textarea>
+        <div class="notes-controls">
+          <button class="mini-btn" onclick="saveNote()" data-i18n="btnCommit">COMMIT</button>
+          <button class="mini-btn gold" onclick="exportNote()" data-i18n="btnExport">EXPORT</button>
+          <button class="mini-btn blue" onclick="clearNote()" data-i18n="btnClear">CLEAR</button>
+        </div>
+      </div>
+
+      <!-- Tools -->
+      <div class="panel blue">
+        <div class="panel-title"><span data-i18n="auxTitle">AUXILIARY SYSTEMS</span></div>
+
+        <!-- Calculator -->
+        <div class="tool-display hidden" id="calc-tool">
+          <div style="width:100%">
+            <input class="calc-display" id="calc-screen" value="0" readonly>
+            <div class="calc-pad">
+              <button class="calc-key clr" onclick="calcClr()">AC</button>
+              <button class="calc-key op" onclick="calcIn('(')">(</button>
+              <button class="calc-key op" onclick="calcIn(')')">)</button>
+              <button class="calc-key op" onclick="calcIn('/')">÷</button>
+              <button class="calc-key" onclick="calcIn('7')">7</button>
+              <button class="calc-key" onclick="calcIn('8')">8</button>
+              <button class="calc-key" onclick="calcIn('9')">9</button>
+              <button class="calc-key op" onclick="calcIn('*')">×</button>
+              <button class="calc-key" onclick="calcIn('4')">4</button>
+              <button class="calc-key" onclick="calcIn('5')">5</button>
+              <button class="calc-key" onclick="calcIn('6')">6</button>
+              <button class="calc-key op" onclick="calcIn('-')">−</button>
+              <button class="calc-key" onclick="calcIn('1')">1</button>
+              <button class="calc-key" onclick="calcIn('2')">2</button>
+              <button class="calc-key" onclick="calcIn('3')">3</button>
+              <button class="calc-key op" onclick="calcIn('+')">+</button>
+              <button class="calc-key" onclick="calcIn('0')">0</button>
+              <button class="calc-key" onclick="calcIn('.')">.</button>
+              <button class="calc-key" onclick="calcDel()">⌫</button>
+              <button class="calc-key eq" onclick="calcEq()">=</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="tool-display hidden" id="timer-tool">
+          <div style="width:100%">
+            <div class="timer-display" id="timer-screen">00:00:00</div>
+            <div class="timer-controls">
+              <button class="mini-btn" onclick="timerStart()" data-i18n="btnStart">START</button>
+              <button class="mini-btn gold" onclick="timerPause()" data-i18n="btnPause">PAUSE</button>
+              <button class="mini-btn blue" onclick="timerReset()" data-i18n="btnReset">RESET</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tools-grid" id="tools-default">
+          <button class="tool-btn" onclick="showTool('calc')" data-i18n="btnCompute">COMPUTE</button>
+          <button class="tool-btn" onclick="showTool('timer')" data-i18n="btnChrono">CHRONOMETER</button>
+          <button class="tool-btn" onclick="speakStatus()" data-i18n="btnHail">VOCAL HAIL</button>
+          <button class="tool-btn" onclick="randomQuote()" data-i18n="btnCounsel">SHIP'S COUNSEL</button>
+        </div>
+
+        <div id="quote-out" style="margin-top:10px; font-family:'JetBrains Mono',monospace;
+             font-size:11px; color:var(--lcars-cream); line-height:1.5; min-height:40px;
+             font-style:italic;"></div>
+      </div>
+
+    </div>
+
+    </section>
+    <!-- ===== END PAGE: MAIN ===== -->
+
+
+    <!-- ===== PAGE: WORKSPACE (PROJECT + ATTENDANCE) ===== -->
+    <section class="page" data-page="project" hidden>
+      <!-- Sub-tab bar -->
+      <div class="ws-subtab-bar">
+        <button class="ws-subtab-btn active" data-subtab="project"
+                onclick="setWsSubtab('project')" data-i18n="wsTabProject">PROJECT</button>
+        <button class="ws-subtab-btn" data-subtab="attendance"
+                onclick="setWsSubtab('attendance')" data-i18n="wsTabAttendance">ATTENDANCE</button>
+      </div>
+
+      <!-- PROJECT sub-tab -->
+      <div class="ws-subtab-panel" data-subtab-panel="project">
+        <div id="proj-root">
+          <div class="proj-loading" data-i18n="loadingMsg">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- ATTENDANCE sub-tab -->
+      <div class="ws-subtab-panel" data-subtab-panel="attendance" hidden>
+        <div id="att-root">
+          <div class="proj-loading" data-i18n="loadingMsg">LOADING…</div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== PAGE: FINANCE ===== -->
+    <section class="page" data-page="finance" hidden>
+      <div class="fin-subtab-row">
+        <div class="fin-subtab-bar" id="finance-subtab-bar" aria-label="Finance tabs"></div>
+        <div class="fin-tab-controls" aria-label="Finance tab controls">
+          <button class="fin-tab-control" id="finance-tab-add" type="button" data-i18n-title="finTabAdd" title="Add tab" aria-label="Add tab">
+            <svg class="icon icon-sm"><use href="#i-plus"/></svg>
+          </button>
+          <button class="fin-tab-control" id="finance-tab-rename" type="button" data-i18n-title="finTabRename" title="Rename tab" aria-label="Rename tab">
+            <svg class="icon icon-sm"><use href="#i-pencil"/></svg>
+          </button>
+          <button class="fin-tab-control danger" id="finance-tab-delete" type="button" data-i18n-title="finTabDelete" title="Delete tab" aria-label="Delete tab">
+            <svg class="icon icon-sm"><use href="#i-x"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="finance-tab-panels">
+        <div class="fin-subtab-panel" data-finance-tab-panel="watchlist">
+          <!-- Taiwan Stocks -->
+          <div class="panel">
+            <div class="panel-title">
+              <span data-i18n="finTW">TW MARKET</span>
+            </div>
+            <div class="ticker-list" id="stocks-tw">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">0050.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">2330.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">2891.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+            </div>
+          </div>
+
+          <!-- US Stocks -->
+          <div class="panel violet">
+            <div class="panel-title">
+              <span data-i18n="finUS">US MARKET</span>
+            </div>
+            <div class="ticker-list" id="stocks-us">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VT</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VTI</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VOO</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">BRK-B</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+            </div>
+          </div>
+
+          <!-- Funds -->
+          <div class="panel teal">
+            <div class="panel-title">
+              <span data-i18n="finFund">FUND</span>
+            </div>
+            <div class="ticker-list" id="stocks-fund">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">—</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+            </div>
+          </div>
+
+          <!-- FX Rates -->
+          <div class="panel gold">
+            <div class="panel-title">
+              <span data-i18n="finFx">FX RATES</span>
+            </div>
+            <div class="ticker-list" id="fx-rates">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">—</span></div><span class="ticker-price" data-i18n="loadingMsg">LOADING…</span></div>
+            </div>
+          </div>
+
+          <div class="data-source-note">
+            <span><span data-i18n="finFootnote">Data via Google Sheets.</span><span id="stocks-updated"></span></span>
+          </div>
+        </div>
+        <div id="finance-dynamic-panels"></div>
+      </div>
+    </section>
+
+
+    <!-- ===== PAGE: SCORES ===== -->
+    <section class="page" data-page="scores" hidden>
+      <!-- Orioles featured panel -->
+      <div class="panel gold">
+        <div class="panel-title" style="display:flex; align-items:center; justify-content:space-between;">
+          <span id="featured-game-title" data-i18n="orioles">BALTIMORE ORIOLES</span>
+          <div class="scores-reload-bar" id="scoresReloadBar" hidden>
+            <span id="scores-countdown" class="scores-countdown">30s</span>
+            <button class="scores-reload-btn" onclick="manualReloadScores()" title="Reload scores">
+              <svg class="icon icon-sm"><use href="#i-refresh"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="orioles-feature">
+          <div class="empty-state">
+            <p data-i18n="loadingMsg">LOADING…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- All games today -->
+      <div class="panel">
+        <div class="panel-title">
+          <span data-i18n="scoresAll">ALL GAMES · TODAY</span>
+        </div>
+        <div id="scores-all">
+          <div class="empty-state">
+            <p data-i18n="loadingMsg">LOADING…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Standings -->
+      <div class="panel">
+        <div class="panel-title">
+          <span data-i18n="standingsTitle">STANDINGS</span>
+        </div>
+        <div id="standings-container">
+          <div class="empty-state">
+            <p data-i18n="loadingMsg">LOADING…</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-source-note">
+        <span><span data-i18n="scoresFootnote">Data via ESPN.</span><span id="scores-updated"></span><span id="standings-updated"></span></span>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: LIBRARY ===== -->
+    <section class="page" data-page="library" hidden>
+      <!-- Sub-tab bar — switches between series/films/reading/collection -->
+      <div class="lib-subtab-bar">
+        <button class="lib-subtab-btn active" data-subtab="series"
+                onclick="setLibSubtab('series')" data-i18n="libSubtabSeries">SERIES</button>
+        <button class="lib-subtab-btn" data-subtab="films"
+                onclick="setLibSubtab('films')" data-i18n="libSubtabFilms">FILMS</button>
+        <button class="lib-subtab-btn" data-subtab="reading"
+                onclick="setLibSubtab('reading')" data-i18n="libSubtabReading">READING</button>
+        <button class="lib-subtab-btn" data-subtab="collection"
+                onclick="setLibSubtab('collection')" data-i18n="libSubtabCollection">COLLECTION</button>
+      </div>
+
+      <!-- Sub-tab content: SERIES (the existing tracker) -->
+      <div class="lib-subtab-panel" data-subtab-panel="series">
+        <!-- Filter bar — buttons + counts are rendered by renderLibFilters() -->
+        <div class="lib-filter-bar" id="lib-filter-bar"></div>
+
+        <!-- Card grid -->
+        <div class="lib-grid" id="lib-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab content: FILMS -->
+      <div class="lib-subtab-panel" data-subtab-panel="films" hidden>
+        <div class="lib-filter-bar" id="film-filter-bar"></div>
+        <div class="lib-grid" id="film-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab content: READING -->
+      <div class="lib-subtab-panel" data-subtab-panel="reading" hidden>
+        <div class="lib-filter-bar" id="book-filter-bar"></div>
+        <div class="lib-grid" id="book-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab content: COLLECTION (placeholder) -->
+      <div class="lib-subtab-panel" data-subtab-panel="collection" hidden>
+        <div class="lib-coming-soon">
+          <svg class="icon icon-lg"><use href="#i-library"/></svg>
+          <div class="lib-cs-title" data-i18n="libComingSoon">COMING SOON</div>
+          <div class="lib-cs-msg" data-i18n="libCsCollection">Personal collection subsystem reserved for future deployment.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- ============================================================ -->
+  <!-- RIGHT BAR — personal notes                                   -->
+  <!-- ============================================================ -->
+  <div class="rightbar" id="notes-panel">
+    <div class="notes-head">
+      <div>
+        <span class="notes-head-title" data-i18n="notesTitle">NOTES</span>
+        <span class="notes-head-count" id="notes-count">0</span>
+      </div>
+      <button class="notes-add-btn" id="notes-add" data-i18n="notesAdd">+ ADD</button>
+    </div>
+
+    <div class="notes-list" id="notes-list">
+      <!-- notes rendered here by JS -->
+    </div>
+
+    <div class="rightbar-elbow"></div>
+  </div>
+
+</div>
+
+<script src="js/finance.js"></script>
+<script src="js/scores.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/library.js"></script>
+<script src="js/films.js"></script>
+<script src="js/reading.js"></script>
+<script src="js/attendance.js"></script>
+<script src="js/project.js"></script>
+<script src="js/core.js"></script>
+
+<div id="treemap-tooltip" class="treemap-tooltip">
+  <span id="treemap-tooltip-code"></span>
+  <span id="treemap-tooltip-pct" class="treemap-tooltip-pct"></span>
+  <span id="treemap-tooltip-alloc" class="treemap-tooltip-alloc"></span>
+</div>
+</body>
+</html>
