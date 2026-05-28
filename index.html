@@ -24,7 +24,7 @@
     --lcars-violet:    #9977bb;   /* dusty violet */
     --lcars-gold:      #d4a23a;   /* deep gold */
     --lcars-cream:     #e8d5a8;
-    --lcars-dim:       #4a3a1f;
+    --lcars-dim:       #6b7a8a;   /* readable on dark bg */
     --lcars-muted:     #2a3548;
 
     --radius-elbow:    36px;
@@ -43,6 +43,11 @@
     overflow-x: hidden;
     min-height: 100vh;
   }
+  /* Chinese text doesn't need letter-spacing */
+  select, .panel-title, .info-sub, .info-label,
+  .wx-day-desc, .wx-dc-desc, .wx-dc-day, .wx-dc-date,
+  .wx-hr-time, .wx-hr-pop, .wx-day-wd, .wx-day-md { letter-spacing: 0; }
+
   html.scroll-locked,
   html.scroll-locked body {
     overflow: hidden !important;
@@ -250,6 +255,7 @@
     flex-shrink: 0;
     fill: currentColor;
   }
+  .icon-xs { width: 10px; height: 10px; }
   .icon-sm { width: 14px; height: 14px; }
   .icon-md { width: 18px; height: 18px; }
   .icon-lg { width: 28px; height: 28px; }
@@ -1334,9 +1340,9 @@
   }
 
   .panel-title {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.2em;
     color: var(--lcars-cream);
     margin-bottom: 14px;
     text-transform: uppercase;
@@ -1386,36 +1392,59 @@
     grid-template-columns: repeat(4, 1fr);
     gap: var(--gap);
   }
+  .info-strip.five {
+    grid-template-columns: repeat(5, 1fr);
+  }
 
   .info-card {
     background: var(--lcars-panel);
     border-top: 4px solid var(--lcars-blue);
-    padding: 14px 18px;
+    padding: 14px 18px 12px;
+    overflow: hidden;
   }
-  .info-card.amber { border-color: var(--lcars-orange); }
+  .info-card.amber  { border-color: var(--lcars-orange); }
   .info-card.violet { border-color: var(--lcars-violet); }
-  .info-card.gold { border-color: var(--lcars-gold); }
+  .info-card.gold   { border-color: var(--lcars-gold); }
+  .info-card.blue   { border-color: var(--lcars-blue); }
+
+  /* Weather emoji card — centred large display */
+  .wx-card-weather {
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .wx-weather-main {
+    display: flex; align-items: center; gap: 12px;
+    margin: 6px 0 4px;
+  }
+  .wx-weather-emoji {
+    font-size: 44px; line-height: 1;
+    filter: drop-shadow(0 0 8px rgba(255,200,80,0.35));
+  }
+  .wx-weather-desc {
+    font-size: 18px; font-weight: 700;
+    color: var(--lcars-cream);
+    letter-spacing: 0.05em;
+  }
 
   .info-label {
-    font-size: 9px;
+    font-size: 12px;
     color: var(--lcars-cream);
-    letter-spacing: 0.25em;
+    letter-spacing: 0.18em;
     margin-bottom: 6px;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 
   .info-value {
-    font-size: 22px;
-    font-weight: 600;
+    font-size: 26px;
+    font-weight: 700;
     color: var(--lcars-text);
     font-variant-numeric: tabular-nums;
   }
 
   .info-sub {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--lcars-cream);
-    margin-top: 2px;
-    opacity: 0.6;
+    margin-top: 3px;
+    opacity: 0.75;
   }
 
   /* ----- DOCKING BAY (bookmarks) ----- */
@@ -4335,7 +4364,8 @@
     }
     .header { grid-template-columns: 1fr; }
     .header-cap, .header-elbow { display: none; }
-    .info-strip { grid-template-columns: 1fr 1fr; }
+    .info-strip { grid-template-columns: repeat(3, 1fr); }
+    .info-strip.five { grid-template-columns: repeat(3, 1fr); }
     .docking-bays { grid-template-columns: 1fr; }
     .bottom-row { grid-template-columns: 1fr; }
     .sidebar { flex-direction: row; flex-wrap: wrap; }
@@ -4345,7 +4375,132 @@
     .rightbar-elbow { display: none; }
     .station-id { font-size: 22px; }
   }
+
+
+    /* ============================================================
+     WEATHER PAGE
+     ============================================================ */
+
+  .nav-btn.teal        { background: #2ecfb0; color: var(--lcars-bg); }
+  .nav-btn.teal:hover  { background: var(--lcars-cream); }
+  .tab-btn.teal.active { background: #2ecfb0; }
+  .panel.teal .panel-title::before { background: #2ecfb0; box-shadow: 0 0 8px #2ecfb0; }
+
+  .wx-big-emoji { font-size: 28px !important; line-height: 1.2 !important; }
+  .uv-low     { color: #66cc66;             }
+  .uv-mid     { color: var(--lcars-gold);   }
+  .uv-high    { color: var(--lcars-orange); }
+  .uv-vhigh   { color: var(--lcars-rust);   }
+  .uv-extreme { color: #cc44cc;             }
+
+  /* 工具列 */
+  .wx-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; gap: 8px; flex-wrap: wrap;
+  }
+  .wx-toolbar-left, .wx-toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .wx-sel {
+    background: var(--lcars-panel); color: var(--lcars-cream);
+    border: 1px solid var(--lcars-muted); border-radius: var(--radius-pill);
+    padding: 4px 12px; font-size: 13px; font-weight: 700;
+    cursor: pointer; outline: none; letter-spacing: 0;
+    font-family: "Noto Sans TC", "PingFang TC", inherit;
+  }
+  .wx-sel:disabled { opacity: 0.35; cursor: default; }
+  .wx-sel:focus    { border-color: var(--lcars-orange); }
+  .wx-ts-val   { color: var(--lcars-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .wx-refresh-btn {
+    background: transparent; color: var(--lcars-dim);
+    border: 1px solid var(--lcars-muted); width: 26px; height: 26px; border-radius: 50%;
+    font-size: 14px; cursor: pointer; line-height: 1; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wx-refresh-btn:hover { background: var(--lcars-blue); border-color: var(--lcars-blue); color: var(--lcars-bg); }
+  .wx-loading { display: flex; align-items: center; }
+  .wx-loading-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--lcars-blue);
+    animation: wx-dot 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes wx-dot { from { opacity: 0.1; } to { opacity: 1; } }
+  .wx-error { color: var(--lcars-rust); font-size: 11px; }
+
+  /* 日照 + 逐小時 */
+  .wx-mid-panel .panel-title { margin-bottom: 0; }
+  .wx-mid-body { display: flex; align-items: stretch; }
+  .wx-sun-canvas {
+    flex-shrink: 0; display: block;
+    border-right: 1px solid var(--lcars-frame);
+    padding: 0; box-sizing: border-box;
+    width: 200px; height: 140px;   /* CSS 尺寸；JS 會乘 DPR 設實際像素 */
+  }
+  .wx-hourly-strip {
+    flex: 1; display: flex; align-items: center; overflow-x: auto;
+    gap: 4px; padding: 8px 12px;
+    scrollbar-width: thin; scrollbar-color: var(--lcars-muted) transparent;
+  }
+  .wx-hourly-strip::-webkit-scrollbar { height: 3px; }
+  .wx-hourly-strip::-webkit-scrollbar-thumb { background: var(--lcars-muted); border-radius: 2px; }
+  .wx-hr-card {
+    flex-shrink: 0; width: 54px; background: var(--lcars-frame); border-radius: 3px;
+    padding: 9px 4px; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; text-align: center;
+  }
+  .wx-hr-card.now { background: rgba(255,153,102,0.12); outline: 1px solid rgba(255,153,102,0.4); }
+  .wx-hr-time { font-size: 12px; color: var(--lcars-dim); font-weight: 700; }
+  .wx-hr-card.now .wx-hr-time { color: var(--lcars-orange); }
+  .wx-hr-icon { font-size: 22px; line-height: 1; }
+  .wx-hr-temp { font-size: 15px; font-weight: 700; color: var(--lcars-text); }
+  .wx-hr-pop  { font-size: 11px; color: var(--lcars-blue); }
+
+  /* 七天預報磚塊 */
+  .wx-daily-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 5px; padding: 4px 0 10px;
+  }
+  .wx-day-card {
+    background: var(--lcars-frame); border-radius: 4px;
+    padding: 12px 8px; display: flex; flex-direction: column;
+    align-items: center; gap: 6px; text-align: center;
+    border-top: 2px solid transparent; transition: background 0.1s;
+  }
+  .wx-day-card:hover { background: rgba(255,255,255,0.04); }
+  .wx-day-card.today { border-top-color: var(--lcars-orange); background: rgba(255,153,102,0.07); }
+  .wx-dc-top  { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .wx-dc-day  { font-size: 15px; font-weight: 700; color: var(--lcars-cream); }
+  .wx-dc-day.today-wd { color: var(--lcars-orange); }
+  .wx-dc-date { font-size: 11px; color: var(--lcars-dim); }
+  .wx-dc-icon { font-size: 28px; line-height: 1; }
+  .wx-dc-desc { font-size: 12px; color: var(--lcars-cream); line-height: 1.3;
+    min-height: 2.6em; display: flex; align-items: center; justify-content: center; }
+  /* 主溫度顯示（大字） */
+  .wx-dc-temps { display: flex; justify-content: space-between; width: 100%; font-size: 13px; font-weight: 700; }
+  .wx-dc-temps .lo { color: var(--lcars-blue); }
+  .wx-dc-temps .hi { color: var(--lcars-orange); }
+  /* 溫度長條（附低/高標示） */
+  .wx-dc-bar-wrap { display: flex; align-items: center; gap: 3px; width: 100%; }
+  .wx-dc-bar-lo { font-size: 11px; font-weight: 700; color: var(--lcars-blue); flex-shrink: 0; }
+  .wx-dc-bar-hi { font-size: 11px; font-weight: 700; color: var(--lcars-orange); flex-shrink: 0; }
+  .wx-dc-bar-track {
+    flex: 1; height: 4px; background: var(--lcars-muted);
+    border-radius: 999px; position: relative; overflow: hidden;
+  }
+  .wx-dc-bar-fill {
+    position: absolute; top: 0; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--lcars-blue), var(--lcars-orange));
+  }
+  .wx-dc-pop  { font-size: 12px; color: var(--lcars-blue); }
+  .wx-dc-uv   { font-size: 11px; font-weight: 700; }
+  .wx-credit  { font-size: 10px; color: var(--lcars-dim); padding: 2px 0 6px; }
+  .wx-credit a { color: var(--lcars-dim); text-decoration: none; }
+  .wx-credit a:hover { color: var(--lcars-cream); }
+
+  @media (max-width: 900px) {
+    .wx-daily-grid { grid-template-columns: repeat(4, 1fr); }
+    .wx-mid-body { flex-direction: column; }
+    .wx-sun-canvas { border-right: none; border-bottom: 1px solid var(--lcars-frame); }
+  }
 </style>
+
 </head>
 <body>
 
@@ -4696,6 +4851,7 @@
     <button class="nav-btn tab-btn blue"   onclick="switchPage('finance')" data-tab="finance"><svg class="icon icon-md"><use href="#i-stocks"/></svg><span data-i18n="tabFinance">FINANCE</span></button>
     <button class="nav-btn tab-btn gold"   onclick="switchPage('scores')"  data-tab="scores"><svg class="icon icon-md"><use href="#i-scores"/></svg><span data-i18n="tabScores">SCORES</span></button>
     <button class="nav-btn tab-btn cream"  onclick="switchPage('library')" data-tab="library"><svg class="icon icon-md"><use href="#i-library"/></svg><span data-i18n="tabLibrary">LIBRARY</span></button>
+    <button class="nav-btn tab-btn teal"   onclick="switchPage('weather')" data-tab="weather"><svg class="icon icon-md"><use href="#i-weather"/></svg><span data-i18n="tabWeather">WEATHER</span></button>
 
     <!-- TOOL GROUP — utilities -->
     <div class="sidebar-group-label" data-i18n="grpTools">TOOLS</div>
@@ -5113,6 +5269,81 @@
       </div>
     </section>
 
+    <!-- ===== PAGE: WEATHER ===== -->
+    <section class="page" data-page="weather" hidden>
+
+      <!-- 頂部五格：即時天氣 -->
+      <div class="info-strip five">
+
+        <!-- 氣溫 -->
+        <div class="info-card amber" id="wx-card-temp">
+          <div class="info-label">即時氣溫</div>
+          <div class="info-value" id="wx-val-temp">—°C</div>
+          <div class="info-sub" id="wx-val-feel">體感 —°C</div>
+        </div>
+
+        <!-- 天氣現象 -->
+        <div class="info-card violet wx-card-weather">
+          <div class="info-label">天氣現象</div>
+          <div class="wx-weather-main">
+            <span class="wx-weather-emoji" id="wx-val-icon">—</span>
+            <span class="wx-weather-desc" id="wx-val-desc">—</span>
+          </div>
+        </div>
+
+        <!-- 風速 -->
+        <div class="info-card">
+          <div class="info-label">風速</div>
+          <div class="info-value" id="wx-val-wind">—</div>
+          <div class="info-sub" id="wx-val-wd">—</div>
+        </div>
+
+        <!-- 濕度 -->
+        <div class="info-card blue" id="wx-card-humid">
+          <div class="info-label">相對濕度</div>
+          <div class="info-value" id="wx-val-humid">—</div>
+          <div class="info-sub" id="wx-val-pres">— hPa</div>
+        </div>
+
+        <!-- 紫外線 -->
+        <div class="info-card gold" id="wx-card-uv">
+          <div class="info-label">紫外線指數</div>
+          <div class="info-value" id="wx-val-uv">—</div>
+          <div class="info-sub" id="wx-val-uvlabel">—</div>
+        </div>
+
+      </div>
+
+      <!-- 工具列 -->
+      <div class="wx-toolbar">
+        <div class="wx-toolbar-left">
+          <select class="wx-sel" id="wx-city-select" onchange="wxChangeCity(this.value)"></select>
+          <select class="wx-sel" id="wx-district-select" onchange="wxChangeDistrict(this.value)" disabled><option value="">—</option></select>
+          <span class="wx-loading" id="wx-loading" hidden><span class="wx-loading-dot"></span></span>
+          <span class="wx-error" id="wx-error" hidden></span>
+        </div>
+
+      </div>
+
+      <!-- 日照軌跡 + 逐小時 -->
+      <div class="panel teal wx-mid-panel">
+        <div class="panel-title">日照軌跡・逐時預報</div>
+        <div class="wx-mid-body">
+          <canvas id="wx-sun-arc" class="wx-sun-canvas"></canvas>
+          <div id="wx-hourly" class="wx-hourly-strip"></div>
+        </div>
+      </div>
+
+      <!-- 七天預報：磚塊卡片 -->
+      <div class="panel">
+        <div class="panel-title">七天預報</div>
+        <div id="wx-daily" class="wx-daily-grid"></div>
+        <div class="wx-credit">資料來源：<a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）</div>
+      </div>
+
+    </section>
+    <!-- ===== END PAGE: WEATHER ===== -->
+
   </div>
 
   <!-- ============================================================ -->
@@ -5145,6 +5376,7 @@
 <script src="js/reading.js"></script>
 <script src="js/attendance.js"></script>
 <script src="js/project.js"></script>
+<script src="js/weather.js"></script>
 <script src="js/core.js"></script>
 
 <div id="treemap-tooltip" class="treemap-tooltip">
