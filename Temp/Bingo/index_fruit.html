@@ -54,7 +54,7 @@ body{margin:0;background:#eee;font-family:"Microsoft JhengHei",sans-serif;color:
 <div class="note">25 種蔬果每張全部使用，但位置各自隨機排列；A4 每頁六張。</div>
 <div id="root"></div>
 <script>
-const items=["蘋果", "香蕉", "葡萄", "西瓜", "鳳梨", "草莓", "橘子", "火龍果", "水蜜桃", "奇異果", "芒果", "櫻桃", "番茄", "胡蘿蔔", "玉米", "茄子", "小黃瓜", "南瓜", "青椒", "花椰菜", "高麗菜", "洋蔥", "馬鈴薯", "菠菜", "香菇"];
+const items=["蘋果", "香蕉", "葡萄", "西瓜", "鳳梨", "木瓜", "橘子", "火龍果", "水蜜桃", "香瓜", "芒果", "櫻桃", "番茄", "紅蘿蔔", "玉米", "茄子", "冬瓜", "南瓜", "青椒", "空心菜", "高麗菜", "青江菜", "馬鈴薯", "菠菜", "香菇"];
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function card(n){const c=document.createElement("section");c.className="card";c.innerHTML=`<div class="head"><div class="rank">名次<i></i></div><div class="title-group"><div class="title">BINGO</div><span class="title-image-box"><img src="image.png" alt="" onerror="this.parentElement.style.display='none'"></span></div><div class="no">No. ${String(n).padStart(3,"0")}</div></div><div class="grid"></div>`;const g=c.querySelector(".grid");shuffle(items).forEach(x=>{const b=document.createElement("div");b.className="ball";b.textContent=x;g.appendChild(b)});return c}
 function generate(){const root=document.getElementById("root");root.innerHTML="";const pages=Math.max(1,Math.min(30,parseInt(document.getElementById("pages").value)||1));let n=1;for(let p=0;p<pages;p++){const pg=document.createElement("div");pg.className="page";for(let i=0;i<6;i++)pg.appendChild(card(n++));root.appendChild(pg)}}
