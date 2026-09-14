@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>蔬果賓果－文字測試版</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eee;font-family:"Microsoft JhengHei",sans-serif;color:#222}
+.toolbar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #ccc;padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toolbar strong{margin-right:auto}.toolbar input{width:60px;padding:7px}.toolbar button{padding:8px 14px;border:1px solid #333;background:#fff;border-radius:7px;cursor:pointer}.toolbar .primary{background:#222;color:#fff}
+.note{text-align:center;font-size:13px;color:#666;padding:10px}
+.page{width:210mm;height:297mm;margin:0 auto 18px;background:#fff;display:grid;grid-template-columns:repeat(2,105mm);grid-template-rows:repeat(3,99mm);gap:0;page-break-after:always}
+.card{padding:5mm;display:flex;flex-direction:column;min-width:0;min-height:0}
+.card:nth-child(odd){border-right:.35mm dashed #777}.card:nth-child(-n+4){border-bottom:.35mm dashed #777}
+.head{height:8mm;flex:0 0 8mm;position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:.8mm}
+.title{font-family:"Arial Rounded MT Bold","Comic Sans MS","Microsoft JhengHei",sans-serif;font-size:4.4mm;font-weight:900;letter-spacing:.15mm}
+.rank{position:absolute;left:0;font-size:3.1mm;font-weight:700}.rank i{display:inline-block;width:13mm;border-bottom:.35mm solid #555;margin-left:1mm}
+.no{position:absolute;right:0;border:.3mm solid #555;border-radius:4mm;padding:1mm 2.5mm;font-size:3mm;font-weight:700}
+.grid{flex:1;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);gap:1.2mm;align-items:center;justify-items:center;min-height:0}
+.ball{width:min(100%,13.2mm);aspect-ratio:1;border:1.2px solid #222;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;padding:.7mm;font-size:3.35mm;font-weight:900;line-height:1.02;word-break:keep-all}
+@page{size:A4 portrait;margin:0}
+@media print{body{background:#fff}.toolbar,.note{display:none}.page{margin:0;box-shadow:none}}
+
+.title-group{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:1.1mm;
+  height:8mm;
+  max-width:42mm;
+}
+.title-image-box{
+  width:12mm;
+  height:8mm;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:visible;
+}
+.title-image-box img{
+  display:block;
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+}
+
+</style>
+</head>
+<body>
+<div class="toolbar"><strong>蔬果賓果・文字測試版</strong><label>頁數 <input id="pages" type="number" min="1" max="30" value="1"></label><button id="regen" class="primary">重新生成</button><button id="print">列印 A4</button></div>
+<div class="note">25 種蔬果每張全部使用，但位置各自隨機排列；A4 每頁六張。</div>
+<div id="root"></div>
+<script>
+const items=["蘋果", "香蕉", "葡萄", "西瓜", "鳳梨", "草莓", "橘子", "火龍果", "水蜜桃", "奇異果", "芒果", "櫻桃", "番茄", "胡蘿蔔", "玉米", "茄子", "小黃瓜", "南瓜", "青椒", "花椰菜", "高麗菜", "洋蔥", "馬鈴薯", "菠菜", "香菇"];
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function card(n){const c=document.createElement("section");c.className="card";c.innerHTML=`<div class="head"><div class="rank">名次<i></i></div><div class="title-group"><div class="title">BINGO</div><span class="title-image-box"><img src="image.png" alt="" onerror="this.parentElement.style.display='none'"></span></div><div class="no">No. ${String(n).padStart(3,"0")}</div></div><div class="grid"></div>`;const g=c.querySelector(".grid");shuffle(items).forEach(x=>{const b=document.createElement("div");b.className="ball";b.textContent=x;g.appendChild(b)});return c}
+function generate(){const root=document.getElementById("root");root.innerHTML="";const pages=Math.max(1,Math.min(30,parseInt(document.getElementById("pages").value)||1));let n=1;for(let p=0;p<pages;p++){const pg=document.createElement("div");pg.className="page";for(let i=0;i<6;i++)pg.appendChild(card(n++));root.appendChild(pg)}}
+document.getElementById("regen").addEventListener("click",generate);document.getElementById("print").addEventListener("click",()=>print());generate();
+</script>
+</body></html>
