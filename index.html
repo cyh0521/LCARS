@@ -1,0 +1,5619 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="favicon.ico" sizes="any">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STARBASE 074 :: OPERATIONS</title>
+<style>
+  /* ============================================================
+     LCARS — Starbase Operations Console
+     Picard-era palette (deep navy base, refined accents)
+     ============================================================ */
+
+  @import url('https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oxanium:wght@400;500;600&display=swap');
+
+  :root {
+    /* Picard-era LCARS palette — deep, refined */
+    --lcars-bg:        #02050a;
+    --lcars-panel:    #06101c;
+    --lcars-frame:    #0a1828;
+    --lcars-text:      #f5cf7a;   /* primary amber */
+    --lcars-orange:    #ff9966;   /* warm coral */
+    --lcars-rust:      #cc6666;   /* muted red */
+    --lcars-blue:      #7a9bd6;   /* soft blue */
+    --lcars-violet:    #9977bb;   /* dusty violet */
+    --lcars-gold:      #d4a23a;   /* deep gold */
+    --lcars-cream:     #e8d5a8;
+    --lcars-dim:       #6b7a8a;   /* readable on dark bg */
+    --lcars-muted:     #2a3548;
+
+    --radius-elbow:    36px;
+    --radius-pill:     999px;
+    --gap:             6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--lcars-bg);
+    color: var(--lcars-text);
+    font-family: 'Antonio', 'Helvetica Neue', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+  /* Chinese text doesn't need letter-spacing */
+  select, .panel-title, .info-sub, .info-label,
+  .wx-day-desc, .wx-dc-desc, .wx-dc-day, .wx-dc-date,
+  .wx-hr-time, .wx-hr-pop, .wx-day-wd, .wx-day-md { letter-spacing: 0; }
+
+  html.scroll-locked,
+  html.scroll-locked body {
+    overflow: hidden !important;
+    touch-action: none;
+  }
+
+  /* Subtle CRT scanline atmosphere */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(245, 207, 122, 0.015) 3px,
+      transparent 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Vignette glow */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* ============================================================
+     LAYOUT GRID
+     ============================================================ */
+  .console {
+    display: grid;
+    grid-template-columns: 220px 1fr 200px;
+    grid-template-rows: 90px 1fr;
+    grid-template-areas:
+      "header header header"
+      "sidebar main rightbar";
+    gap: var(--gap);
+    padding: var(--gap);
+    min-height: 100vh;
+  }
+
+  /* ============================================================
+     HEADER — title bar with elbow
+     ============================================================ */
+  .header {
+    grid-area: header;
+    display: grid;
+    grid-template-columns: 220px 1fr auto;
+    gap: var(--gap);
+    align-items: stretch;
+  }
+
+  .header-elbow {
+    background: var(--lcars-orange);
+    border-radius: var(--radius-elbow) 0 0 0;
+    border-top-left-radius: var(--radius-elbow);
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 12px 18px;
+    color: var(--lcars-bg);
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  .header-bar {
+    background: var(--lcars-frame);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    color: var(--lcars-orange);
+  }
+
+  .station-id {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--lcars-orange);
+    text-shadow: 0 0 20px rgba(255, 153, 102, 0.4);
+  }
+
+  .station-id .sub {
+    font-size: 13px;
+    color: var(--lcars-cream);
+    letter-spacing: 0.2em;
+    margin-left: 16px;
+    font-weight: 400;
+  }
+
+  .header-status {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    align-items: center;
+  }
+
+  .status-pill {
+    background: var(--lcars-blue);
+    color: var(--lcars-bg);
+    padding: 4px 14px;
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .status-pill.alert { background: var(--lcars-rust); }
+  .status-pill.gold  { background: var(--lcars-gold); }
+
+  .pill-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #66cc66;
+    margin-right: 8px;
+    vertical-align: middle;
+    box-shadow: 0 0 6px #66cc66;
+  }
+  .status-pill.offline { background: var(--lcars-rust); }
+  .status-pill.offline .pill-dot {
+    background: #ff3333;
+    box-shadow: 0 0 8px #ff3333;
+  }
+  .status-pill.warning { background: var(--lcars-rust); }
+
+  .lang-toggle {
+    background: var(--lcars-violet);
+    color: var(--lcars-bg);
+    border: none;
+    padding: 4px 14px;
+    border-radius: var(--radius-pill);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .lang-toggle:hover { background: var(--lcars-cream); }
+
+  /* Refresh button in header — same shape as lang-toggle but blue */
+  .refresh-btn {
+    background: var(--lcars-blue) !important;
+  }
+  .refresh-btn:hover {
+    background: var(--lcars-cream) !important;
+  }
+  .refresh-btn.spinning {
+    animation: refresh-spin 0.8s ease-in-out;
+  }
+  @keyframes refresh-spin {
+    0%   { background: var(--lcars-blue); }
+    50%  { background: var(--lcars-orange); }
+    100% { background: var(--lcars-blue); }
+  }
+
+  /* Scores page: auto-reload countdown bar */
+  .scores-reload-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .scores-countdown {
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--lcars-cream);
+    min-width: 28px;
+    text-align: right;
+  }
+  .scores-reload-btn {
+    background: transparent;
+    border: none;
+    color: var(--lcars-cream);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.15s;
+  }
+  .scores-reload-btn .icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+  }
+  .scores-reload-btn:hover {
+    opacity: 0.7;
+  }
+
+  /* ============================================================
+     ICONS
+     ============================================================ */
+  .icon {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+    fill: currentColor;
+  }
+  .icon-xs { width: 10px; height: 10px; }
+  .icon-sm { width: 14px; height: 14px; }
+  .icon-md { width: 18px; height: 18px; }
+  .icon-lg { width: 28px; height: 28px; }
+
+  /* In bay-link, give the icon some breathing room */
+  .bay-link .icon {
+    margin-right: 10px;
+    opacity: 0.85;
+  }
+  .bay-link:hover .icon { opacity: 1; }
+
+  /* Sidebar nav buttons get an icon to the LEFT, text stays right-aligned */
+  .nav-btn { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .nav-btn .icon { opacity: 0.7; }
+
+  /* Info-card icons sit at the top-right corner */
+  .info-card { position: relative; }
+  .info-card .icon-corner {
+    position: absolute;
+    top: 12px; right: 14px;
+    opacity: 0.35;
+  }
+
+  /* Panel title icons */
+  .panel-title .icon { margin-left: auto; opacity: 0.6; }
+  .panel-title { display: flex; align-items: center; gap: 10px; }
+
+  /* Bay header icon */
+  .bay-name .icon { margin-right: 8px; opacity: 0.8; }
+
+  .header-cap {
+    background: var(--lcars-gold);
+    width: 80px;
+    border-radius: 0 0 0 0;
+  }
+
+  /* ============================================================
+     SIDEBAR — navigation buttons
+     ============================================================ */
+  .sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+
+  .nav-btn {
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    border: none;
+    padding: 14px 20px;
+    text-align: right;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-radius: 0;
+    text-transform: uppercase;
+  }
+
+  .nav-btn:hover {
+    background: var(--lcars-cream);
+    padding-right: 28px;
+  }
+
+  .nav-btn .num {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-right: 8px;
+  }
+
+  /* color variants */
+  .nav-btn.violet { background: var(--lcars-violet); }
+  .nav-btn.blue   { background: var(--lcars-blue); }
+  .nav-btn.gold   { background: var(--lcars-gold); }
+  .nav-btn.rust   { background: var(--lcars-rust); }
+  .nav-btn.cream  { background: var(--lcars-cream); }
+
+  .sidebar-elbow-bottom {
+    background: var(--lcars-orange);
+    border-radius: 0 0 0 var(--radius-elbow);
+    height: 60px;
+    margin-top: auto;
+  }
+
+  .sidebar-spacer {
+    background: var(--lcars-frame);
+    flex: 1;
+  }
+
+  /* Sidebar group labels (STATIONS / TOOLS) */
+  .sidebar-group-label {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    padding: 8px 18px;
+    text-align: right;
+    opacity: 0.65;
+    text-transform: uppercase;
+  }
+  /* When a group label follows a nav button (i.e. it's not the first
+     group), add breathing room so the divider isn't visually needed. */
+  .nav-btn + .sidebar-group-label {
+    margin-top: 12px;
+  }
+
+  .sidebar-divider {
+    height: 4px;
+    background: var(--lcars-frame);
+    margin: 4px 0;
+  }
+
+  /* Active tab indicator */
+  .tab-btn.active {
+    box-shadow: inset 6px 0 0 0 var(--lcars-cream);
+    color: var(--lcars-bg);
+  }
+  .tab-btn:not(.active) {
+    opacity: 0.7;
+  }
+  .tab-btn:not(.active):hover {
+    opacity: 1;
+  }
+
+  /* Page sections */
+  .page {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: var(--gap);
+    min-height: 100%;
+  }
+  .page[hidden] { display: none; }
+
+  /* Page header (shown on non-OPS pages) */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 24px;
+    background: var(--lcars-panel);
+    border-left: 8px solid var(--lcars-orange);
+    color: var(--lcars-orange);
+  }
+  .page-header.violet { border-color: var(--lcars-violet); color: var(--lcars-violet); }
+  .page-header.blue   { border-color: var(--lcars-blue);   color: var(--lcars-blue); }
+  .page-header.gold   { border-color: var(--lcars-gold);   color: var(--lcars-gold); }
+  .page-header.cream  { border-color: var(--lcars-cream);  color: var(--lcars-cream); }
+
+  .page-header .icon {
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  /* Optional action button inside the page header (e.g. LIBRARY "+ ADD") */
+  .page-header-btn {
+    margin-left: auto;
+    background: var(--lcars-bg);
+    color: var(--lcars-cream);
+    border: 1px solid var(--lcars-frame);
+    padding: 6px 16px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: filter 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+  }
+  .page-header-btn:hover {
+    filter: brightness(1.2);
+    border-color: var(--lcars-cream);
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1;
+  }
+
+  .page-subtitle {
+    font-size: 11px;
+    color: var(--lcars-cream);
+    letter-spacing: 0.2em;
+    margin-top: 6px;
+    opacity: 0.7;
+  }
+
+  /* Task list (Missions page) */
+  .task-list {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex; flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--lcars-frame);
+    padding: 10px 14px;
+    border-left: 3px solid var(--lcars-orange);
+    color: var(--lcars-text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .task-item:hover {
+    background: var(--lcars-muted);
+    padding-left: 18px;
+  }
+  .task-item.done {
+    opacity: 0.5;
+    text-decoration: line-through;
+    border-left-color: var(--lcars-gold);
+  }
+
+  .task-tag {
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+  .task-tag.blue   { background: var(--lcars-blue); }
+  .task-tag.violet { background: var(--lcars-violet); }
+  .task-tag.gold   { background: var(--lcars-gold); }
+
+  .task-text { flex: 1; }
+
+  .task-input-row {
+    display: flex;
+    gap: 4px;
+    margin-top: 10px;
+  }
+  .task-input {
+    flex: 1;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-muted);
+    color: var(--lcars-text);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    border-radius: 0;
+  }
+  .task-input:focus { outline: none; border-color: var(--lcars-orange); }
+
+  /* Empty state in placeholder pages */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 50px 20px;
+    text-align: center;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+  }
+  .empty-state p {
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.05em;
+    max-width: 360px;
+    margin: 0;
+  }
+
+  /* ============================================================
+     STOCK TICKER ROWS (Finance page)
+     ============================================================ */
+  .ticker-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .ticker-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--lcars-frame);
+    padding: 12px 14px 14px;
+    border-left: 3px solid var(--lcars-orange);
+    transition: all 0.12s;
+    text-decoration: none;
+    position: relative;
+  }
+  .ticker-row:hover {
+    background: var(--lcars-muted);
+    transform: translateX(2px);
+  }
+  .ticker-row.loading { opacity: 0.5; }
+  .ticker-row.error   { border-left-color: var(--lcars-rust); opacity: 0.7; }
+
+  /* Date displayed small in the bottom-right corner */
+  .ticker-date {
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.45;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* FX cards have a distinct accent color */
+  .fx-row {
+    border-left-color: var(--lcars-gold);
+  }
+
+  /* Top row of card: symbol + change pill */
+  .ticker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .ticker-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  /* Finance external-link button — parked tight to the card's top-right
+     corner, matching the Scores game-card treatment. */
+  .ticker-link-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+  }
+  .ticker-head { padding-right: 24px; }
+  .ticker-sym {
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 600;
+    color: var(--lcars-orange);
+    letter-spacing: 0.08em;
+    font-size: 15px;
+  }
+  /* Name on its own line, dim, smaller */
+  .ticker-name {
+    color: var(--lcars-cream);
+    font-family: 'Oxanium', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Price big at the bottom-left */
+  .ticker-price {
+    font-family: 'Oxanium', sans-serif;
+    color: var(--lcars-text);
+    font-variant-numeric: tabular-nums;
+    font-size: 22px;
+    font-weight: 600;
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+  }
+  .ticker-price-currency {
+    font-size: 10px;
+    opacity: 0.5;
+    margin-left: 4px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+  /* Change as a small pill in top-right */
+  .ticker-change {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+  }
+  .ticker-change.up   { background: #1a4a1a; color: #88e088; }
+  .ticker-change.down { background: #4a1a1a; color: #ff8888; }
+  .ticker-change.flat { background: var(--lcars-muted); color: var(--lcars-cream); opacity: 0.7; }
+
+  /* ============================================================
+     GAME SCORE CARDS (Scores page)
+     ============================================================ */
+  .game-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .game-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--lcars-frame);
+    padding: 10px 34px 12px 14px;
+    border-left: 3px solid var(--lcars-blue);
+    transition: all 0.12s;
+    text-decoration: none;
+    color: var(--lcars-text);
+    cursor: pointer;
+    position: relative;
+  }
+  .game-card:hover {
+    background: var(--lcars-muted);
+    transform: translateX(2px);
+  }
+  .game-card.live   { border-left-color: var(--lcars-orange); }
+  .game-card.final  { border-left-color: var(--lcars-cream); }
+  .game-card.suspended {
+    border-left-color: var(--lcars-orange);
+    opacity: 0.78;
+  }
+  .game-card.postponed {
+    border-left-color: var(--lcars-frame);
+    opacity: 0.7;
+  }
+  .game-card.featured { border-left-width: 6px; border-left-color: var(--lcars-gold); }
+  .game-card.featured:hover { transform: none; background: var(--lcars-muted); }
+
+  /* Status row holds the status line + optional pin button on the right */
+  .game-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  /* Top status row (FINAL / LIVE / time) */
+  .game-status {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+    text-transform: uppercase;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  .game-status.live {
+    color: var(--lcars-orange);
+    opacity: 1;
+  }
+  .game-status .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--lcars-orange);
+    box-shadow: 0 0 6px var(--lcars-orange);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  /* Pin-to-top button on each game card */
+  .pin-btn {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--lcars-cream);
+    opacity: 0.35;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: opacity 0.12s, background 0.12s, color 0.12s;
+  }
+  .pin-btn:hover {
+    opacity: 1;
+    color: var(--lcars-orange);
+    background: var(--lcars-bg);
+  }
+  .pin-btn.active {
+    opacity: 1;
+    color: var(--lcars-gold);
+  }
+  /* Scores external-link button — same top-right corner placement as Finance. */
+  .score-link-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+  /* Currently-pinned card gets a visual marker on the left border */
+  .game-card.is-pinned {
+    border-left-color: var(--lcars-gold) !important;
+  }
+
+  /* Team rows */
+  .game-teams {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .game-team {
+    display: grid;
+    grid-template-columns: 28px auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--lcars-text);
+  }
+
+  .game-team-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    /* White square chip — gives the PNG its native white-background context
+       so the anti-aliasing halo disappears. LCARS uses sharp corners for
+       general containers (no border-radius). */
+    background: #ffffff;
+    padding: 3px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+  .game-team-logo.placeholder {
+    background: var(--lcars-muted);
+  }
+  .game-team-abbr {
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-size: 13px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .game-team-record {
+    font-size: 9px;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    font-family: 'Oxanium', sans-serif;
+    letter-spacing: 0.04em;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .game-score {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    min-width: 24px;
+    text-align: right;
+  }
+
+  /* Featured Orioles game — completely custom layout (linescore + pitchers).
+     Replaces the standard scoreboard card structure. */
+  #orioles-feature .game-card {
+    border-left-width: 6px;
+    padding: 14px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  /* Status badge (FINAL / LIVE) sits at the top */
+  #orioles-feature .game-status {
+    font-size: 11px;
+  }
+  /* Hide the original team rows when we have a custom layout — the linescore
+     table inside .game-details replaces them */
+  #orioles-feature .game-card.has-detail .game-teams { display: none; }
+  /* When still loading, the standard team rows show. Make them prominent. */
+  #orioles-feature .game-team { font-size: 15px; grid-template-columns: 40px auto 1fr auto; gap: 14px; }
+  #orioles-feature .game-team-logo { width: 40px; height: 40px; padding: 4px; }
+  #orioles-feature .game-team-abbr { font-size: 18px; }
+  #orioles-feature .game-score { font-size: 28px; }
+
+  /* The details container becomes the main content holder */
+  #orioles-feature .game-details {
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ---------- LINESCORE TABLE ---------- */
+  .linescore {
+    /* 100% width + table-layout:fixed + colgroup = every column at a
+       consistent position regardless of team name or situation text length. */
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: var(--lcars-text);
+    table-layout: fixed;
+  }
+  /* Column-width specs (consumed by <colgroup>) */
+  .linescore col.team-col-spec    { width: 72px; }
+  .linescore col.inning-col-spec  { width: 28px; }
+  .linescore col.rhe-col-spec     { width: 36px; }
+  .linescore th, .linescore td {
+    padding: 6px 4px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Oxanium', sans-serif;
+    overflow: hidden;
+  }
+  .linescore thead th {
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--lcars-muted);
+  }
+  .linescore tbody td {
+    border-bottom: 1px solid var(--lcars-muted);
+  }
+  .linescore tbody tr:last-child td {
+    border-bottom: none;
+  }
+  /* Team-name column is left-aligned. Width controlled by <colgroup>. */
+  .linescore th.team-col, .linescore td.team-col {
+    text-align: left;
+    padding-left: 0;
+    vertical-align: middle;
+  }
+  .linescore .team-col-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+  }
+  .linescore .ls-logo {
+    width: 22px; height: 22px;
+    background: #ffffff;
+    padding: 2px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+  .linescore .ls-abbr {
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* R/H/E columns are emphasized */
+  .linescore .rhe-col {
+    font-weight: 700;
+    color: var(--lcars-orange);
+    font-size: 14px;
+  }
+  .linescore thead .rhe-col {
+    color: var(--lcars-orange);
+    opacity: 1;
+  }
+  .linescore .inning-divider {
+    border-left: 1px solid var(--lcars-muted);
+  }
+
+  /* Linescore wrapper — positions the ESPN link button */
+
+  /* ---------- LIVE SITUATION BAR (below linescore) ---------- */
+  .ls-situation-bar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 14px 4px 10px;
+    border-top: 1px dashed var(--lcars-muted);
+    flex-wrap: wrap;
+  }
+  .ls-sit-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .ls-sit-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ls-sit-outs-big {
+    font-family: 'Antonio', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--lcars-text);
+    letter-spacing: 0.06em;
+  }
+  .ls-sit-outs-label {
+    font-size: 12px;
+    opacity: 0.6;
+    font-weight: 400;
+  }
+  .ls-sit-count {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--lcars-gold);
+    letter-spacing: 0.06em;
+  }
+  .ls-due-up-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .due-up-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .due-up-photo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--lcars-frame);
+    flex-shrink: 0;
+  }
+  .due-up-photo.placeholder {
+    background: var(--lcars-frame);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+  }
+  .due-up-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .due-up-order {
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--lcars-orange);
+    line-height: 1;
+  }
+  .due-up-name {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--lcars-text);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .due-up-stats {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 11px;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    line-height: 1;
+  }
+
+  /* Live inning indicator inside the header's team-col th */
+  .linescore thead th.team-col {
+    text-align: left;
+    padding-left: 0;
+  }
+  .ls-live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--lcars-orange);
+    box-shadow: 0 0 5px var(--lcars-orange);
+    animation: pulse 1.4s ease-in-out infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+    flex-shrink: 0;
+  }
+  .ls-live-detail {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--lcars-orange);
+    vertical-align: middle;
+  }
+  .ls-status-detail {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+    vertical-align: middle;
+  }
+
+  /* Live game: status row only holds link button */
+  .game-status-row--link {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* ---------- PITCHER CARDS ---------- */
+  .pitcher-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--lcars-muted);
+  }
+  .pitcher-card {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .pitcher-card.full-width {
+    grid-column: 1 / -1;
+  }
+  .pitcher-photo {
+    width: 56px;
+    height: 56px;
+    background: var(--lcars-muted);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .pitcher-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+  .pitcher-photo.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lcars-cream);
+    font-size: 18px;
+    opacity: 0.4;
+  }
+  .pitcher-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pitcher-decision {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+  .pitcher-decision.win  { color: var(--lcars-orange); opacity: 1; }
+  .pitcher-decision.loss { color: var(--lcars-rust);   opacity: 1; }
+  .pitcher-decision.save { color: var(--lcars-blue);   opacity: 1; }
+  .pitcher-name {
+    color: var(--lcars-text);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pitcher-record {
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 6px;
+  }
+  .pitcher-stats {
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  /* Loading skeleton sized for the new layout */
+  .details-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0.6;
+    padding: 8px 0;
+  }
+  .skeleton-row {
+    height: 14px;
+    background: var(--lcars-muted);
+    border-radius: 2px;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+  }
+  .skeleton-row.short { width: 50%; }
+  .skeleton-row.medium { width: 75%; }
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
+
+  /* Narrow screens: pitcher cards stack vertically */
+  @media (max-width: 700px) {
+    .pitcher-row {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .linescore { font-size: 11px; }
+    .linescore th, .linescore td { padding: 5px 3px; }
+  }
+
+  /* Detail rows in the featured card */
+  .game-details {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--lcars-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .detail-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 12px;
+    align-items: baseline;
+    font-size: 12px;
+  }
+  .detail-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .detail-primary {
+    color: var(--lcars-text);
+    letter-spacing: 0.04em;
+  }
+  .detail-secondary {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* Footnote / refresh row */
+  .data-source-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 8px 14px;
+    font-size: 10px;
+    color: var(--lcars-cream);
+    letter-spacing: 0.1em;
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+
+  /* ============================================================
+     MLB STANDINGS
+     ============================================================ */
+  .standings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .standings-division {
+    background: var(--lcars-bg2, rgba(255,255,255,0.04));
+    border: 1px solid var(--lcars-muted);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .standings-div-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: var(--lcars-gold);
+    background: rgba(255,255,255,0.04);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--lcars-muted);
+  }
+  .standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: auto;
+  }
+  .standings-table th,
+  .standings-table td {
+    padding: 5px 3px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .standings-table th {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    border-bottom: 1px solid var(--lcars-muted);
+  }
+  .standings-table th.st-team-col,
+  .standings-table td.st-team-col {
+    text-align: left;
+    padding-left: 6px;
+    padding-right: 6px;
+    width: 1%;
+    white-space: nowrap;
+  }
+  .st-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 4px;
+    background: #fff;
+    padding: 1px;
+    box-sizing: border-box;
+  }
+  .st-abbr-fallback {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--lcars-cream);
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+  .standings-table td {
+    color: var(--lcars-text);
+    font-family: 'Oxanium', sans-serif;
+  }
+  .standings-table td.st-pct { color: var(--lcars-text); }
+  .standings-table td.st-strk { color: var(--lcars-blue); font-size: 11px; }
+  .standings-table tr.st-leader .st-pct { color: var(--lcars-orange); }
+  .standings-table tr.st-leader .st-name { color: var(--lcars-orange); }
+  .st-team-col {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  /* fix: td content not flex by default — use inner flex wrapper */
+  .standings-table td.st-team-col {
+    display: table-cell;
+  }
+  @media (max-width: 600px) {
+    .standings-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================================
+     MAIN CONTENT AREA
+     ============================================================ */
+  .main {
+    grid-area: main;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: var(--gap);
+  }
+
+  .panel {
+    background: var(--lcars-panel);
+    padding: 18px 22px;
+    position: relative;
+  }
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--lcars-cream);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-title::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--lcars-orange);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--lcars-orange);
+  }
+
+  .panel.violet .panel-title::before { background: var(--lcars-violet); box-shadow: 0 0 8px var(--lcars-violet); }
+  .panel.blue .panel-title::before { background: var(--lcars-blue); box-shadow: 0 0 8px var(--lcars-blue); }
+  .panel.gold .panel-title::before { background: var(--lcars-gold); box-shadow: 0 0 8px var(--lcars-gold); }
+  .panel.teal .panel-title::before { background: #2ecfb0; box-shadow: 0 0 8px #2ecfb0; }
+
+  /* ============================================================
+     Finance / Scores panel-title — Library month-header look:
+     bigger title, larger glowing dot, divider line below.
+     Other pages (MAIN, etc.) keep the compact 11px style.
+     ============================================================ */
+  .page[data-page="finance"] .panel-title,
+  .page[data-page="scores"] .panel-title,
+  .page[data-page="weather"] .panel-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--lcars-frame);
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+  .page[data-page="finance"] .panel-title::before,
+  .page[data-page="scores"] .panel-title::before,
+  .page[data-page="weather"] .panel-title::before {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* ----- INFO STRIP (top of main) ----- */
+  .info-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--gap);
+  }
+  .info-strip.five {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .info-card {
+    background: var(--lcars-panel);
+    border-top: 4px solid var(--lcars-blue);
+    padding: 14px 18px 12px;
+    overflow: hidden;
+  }
+  .info-card.amber  { border-color: var(--lcars-orange); }
+  .info-card.violet { border-color: var(--lcars-violet); }
+  .info-card.gold   { border-color: var(--lcars-gold); }
+  .info-card.blue   { border-color: var(--lcars-blue); }
+
+  /* Weather emoji card — centred large display */
+  .wx-card-weather {
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .wx-weather-main {
+    display: flex; align-items: center; gap: 12px;
+    margin: 6px 0 4px;
+  }
+  .wx-weather-emoji {
+    font-size: 44px; line-height: 1;
+    filter: drop-shadow(0 0 8px rgba(255,200,80,0.35));
+  }
+  .wx-weather-desc {
+    font-size: 18px; font-weight: 700;
+    color: var(--lcars-cream);
+    letter-spacing: 0.05em;
+  }
+
+  .info-label {
+    font-size: 12px;
+    color: var(--lcars-cream);
+    letter-spacing: 0.18em;
+    margin-bottom: 6px;
+    opacity: 0.8;
+  }
+
+  .info-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--lcars-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .info-sub {
+    font-size: 12px;
+    color: var(--lcars-cream);
+    margin-top: 3px;
+    opacity: 0.75;
+  }
+
+  /* ----- DOCKING BAY (bookmarks) ----- */
+  .docking-bays {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap);
+  }
+
+  .bay {
+    background: var(--lcars-panel);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--lcars-muted);
+    padding-bottom: 8px;
+  }
+
+  .bay-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--lcars-orange);
+  }
+
+  .bay-code {
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .bay-links {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .bay-link {
+    background: var(--lcars-frame);
+    border: none;
+    color: var(--lcars-text);
+    padding: 8px 12px;
+    text-align: left;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.12s;
+    border-left: 3px solid var(--lcars-blue);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .bay-link:hover {
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    border-left-color: var(--lcars-cream);
+    padding-left: 18px;
+  }
+
+  .bay-link .dock-id {
+    font-size: 9px;
+    opacity: 0.5;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ----- BOTTOM ROW: notes + tools ----- */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: var(--gap);
+  }
+
+  /* Notes */
+  .notes-area {
+    width: 100%;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-muted);
+    color: var(--lcars-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 10px;
+    resize: none;
+    height: 130px;
+    border-radius: 0;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+  .notes-area:focus { outline: none; border-color: var(--lcars-orange); }
+
+  .notes-controls {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .mini-btn {
+    background: var(--lcars-violet);
+    border: none;
+    color: var(--lcars-bg);
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    border-radius: var(--radius-pill);
+  }
+  .mini-btn:hover { background: var(--lcars-cream); }
+  .mini-btn.gold { background: var(--lcars-gold); }
+  .mini-btn.blue { background: var(--lcars-blue); }
+
+  /* Tools */
+  .tools-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .tool-btn {
+    background: var(--lcars-frame);
+    border: 1px solid var(--lcars-muted);
+    color: var(--lcars-orange);
+    padding: 14px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .tool-btn:hover {
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    border-color: var(--lcars-orange);
+  }
+
+  /* Tool display window (calculator/timer) */
+  .tool-display {
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-muted);
+    padding: 12px;
+    margin-top: 8px;
+    min-height: 60px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--lcars-cream);
+    font-size: 13px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tool-display.hidden { display: none; }
+
+  .calc-display {
+    font-size: 22px;
+    color: var(--lcars-orange);
+    text-align: right;
+    width: 100%;
+    font-weight: 600;
+  }
+
+  .calc-pad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+    margin-top: 6px;
+  }
+  .calc-key {
+    background: var(--lcars-frame);
+    border: none;
+    color: var(--lcars-text);
+    padding: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .calc-key:hover { background: var(--lcars-orange); color: var(--lcars-bg); }
+  .calc-key.op { background: var(--lcars-violet); color: var(--lcars-bg); }
+  .calc-key.eq { background: var(--lcars-orange); color: var(--lcars-bg); }
+  .calc-key.clr { background: var(--lcars-rust); color: var(--lcars-bg); }
+
+  /* Timer */
+  .timer-display {
+    font-size: 36px;
+    color: var(--lcars-orange);
+    text-align: center;
+    width: 100%;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 20px rgba(255, 153, 102, 0.3);
+  }
+  .timer-controls {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    justify-content: center;
+  }
+
+  /* ============================================================
+     FINANCE — user-managed sub-tabs
+     Mirrors the Library sub-tab language but stays separately scoped so
+     Library's own sub-tab controller does not accidentally toggle Finance.
+     ============================================================ */
+  .fin-subtab-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 22px 2px 22px;
+    border-bottom: 2px solid var(--lcars-frame);
+  }
+  .fin-subtab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+  .fin-subtab-btn {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    border: none;
+    padding: 8px 18px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    opacity: 0.55;
+    text-transform: uppercase;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fin-subtab-btn:hover { opacity: 1; }
+  .fin-subtab-btn.active {
+    background: var(--lcars-cream);
+    color: var(--lcars-bg);
+    opacity: 1;
+  }
+  .fin-subtab-btn[draggable="true"] {
+    cursor: grab;
+  }
+  .fin-subtab-btn[draggable="true"]:active {
+    cursor: grabbing;
+  }
+  .fin-subtab-btn.dragging {
+    opacity: 0.35;
+  }
+  .fin-subtab-btn.drop-before { box-shadow: -3px 0 0 0 var(--lcars-orange); }
+  .fin-subtab-btn.drop-after  { box-shadow:  3px 0 0 0 var(--lcars-orange); }
+  .fin-tab-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .fin-tab-control {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--lcars-cream);
+    cursor: pointer;
+    border-radius: 0;
+    opacity: 0.72;
+    transition: opacity 0.15s, color 0.15s, transform 0.15s, filter 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .fin-tab-control:hover:not(:disabled) {
+    opacity: 1;
+    color: var(--lcars-orange);
+    transform: translateY(-1px);
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  .fin-tab-control.danger:hover:not(:disabled) {
+    color: var(--lcars-rust);
+  }
+  .fin-tab-control:disabled {
+    cursor: default;
+    opacity: 0.22;
+  }
+  .fin-subtab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .fin-subtab-panel[hidden] { display: none; }
+  .fin-tab-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 80px 24px;
+    text-align: center;
+    background: var(--lcars-panel);
+    margin-top: 8px;
+  }
+  .fin-tab-empty .icon {
+    width: 48px; height: 48px;
+    color: var(--lcars-blue);
+    opacity: 0.35;
+  }
+  .fin-tab-empty-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: var(--lcars-cream);
+    opacity: 0.85;
+    text-transform: uppercase;
+  }
+  .fin-tab-empty-msg {
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.06em;
+    color: var(--lcars-cream);
+    opacity: 0.55;
+    max-width: 380px;
+  }
+
+  /* ============================================================
+     LIBRARY — Series tracker
+     ============================================================ */
+
+  /* Filter bar */
+  /* ============================================================
+     LIBRARY SUB-TAB BAR — SERIES / FILMS / READING / COLLECTION
+     LCARS pill row, sits between page header and content.
+     Visually distinct from filter bar: bigger, bolder, with
+     active-tab indicator (◀) matching sidebar tab style.
+     ============================================================ */
+  .lib-subtab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 20px 2px 20px;
+    border-bottom: 2px solid var(--lcars-frame);
+  }
+  .lib-subtab-btn {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    border: none;
+    padding: 8px 18px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    opacity: 0.55;
+    text-transform: uppercase;
+  }
+  .lib-subtab-btn:hover { opacity: 1; }
+  .lib-subtab-btn.active {
+    background: var(--lcars-cream);
+    color: var(--lcars-bg);
+    opacity: 1;
+  }
+
+  /* Sub-tab content panels */
+  .lib-subtab-panel { display: flex; flex-direction: column; gap: var(--gap); }
+  .lib-subtab-panel[hidden] { display: none; }
+
+  /* "Coming soon" placeholder for unimplemented sub-tabs */
+  .lib-coming-soon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 80px 24px;
+    text-align: center;
+    background: var(--lcars-panel);
+    margin-top: 8px;
+  }
+  .lib-coming-soon .icon {
+    width: 48px; height: 48px;
+    color: var(--lcars-cream);
+    opacity: 0.35;
+  }
+  .lib-cs-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: var(--lcars-cream);
+    opacity: 0.85;
+  }
+  .lib-cs-msg {
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.06em;
+    color: var(--lcars-cream);
+    opacity: 0.55;
+    max-width: 360px;
+  }
+
+  .lib-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    /* Horizontal insets match the month-group's content area:
+         left  = 6px (border) + 20px (padding-left) = 26px
+         right = 20px (padding-right)
+       so the first filter button aligns with the month-tag dot, and the
+       search box's right edge aligns with the right end of the month
+       header's underline. */
+    padding: 12px 20px 4px 26px;
+    align-items: center;
+  }
+
+  /* ============================================================
+     LIBRARY SEARCH BOX — sits on the far right of the filter bar.
+     Filters cards by series title (original or Chinese) in real time.
+     ============================================================ */
+  .lib-search {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    background: var(--lcars-panel);
+    border: 2px solid var(--lcars-muted);
+    border-radius: 999px;
+    padding: 0 4px 0 12px;
+    transition: border-color 0.15s;
+    width: 200px;
+  }
+  .lib-search:focus-within {
+    border-color: var(--lcars-orange);
+  }
+  .lib-search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--lcars-cream);
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    padding: 5px 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .lib-search-input::placeholder {
+    color: var(--lcars-cream);
+    opacity: 0.4;
+    letter-spacing: 0.18em;
+  }
+  /* Clear (✕) button — only visible when there's text in the input */
+  .lib-search-clear {
+    background: transparent;
+    border: none;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .lib-search-clear:hover { opacity: 1; color: var(--lcars-orange); }
+  .lib-filter-btn {
+    background: var(--lcars-panel);
+    color: var(--lcars-cream);
+    border: none;
+    padding: 4px 12px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: background 0.15s, color 0.15s;
+    opacity: 0.65;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  /* Count badge embedded in the filter button — orange digits next to label */
+  .lib-filter-btn .count {
+    color: var(--lcars-orange);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-align: right;
+  }
+  .lib-filter-btn:hover { opacity: 1; }
+  .lib-filter-btn.active {
+    background: var(--lcars-cream);
+    color: var(--lcars-bg);
+    opacity: 1;
+  }
+  .lib-filter-btn.active .count { color: var(--lcars-bg); }
+
+  /* Card grid */
+  /* Outer container — holds either a single .lib-grid-inner (search mode)
+     or one or more .lib-month-group blocks (grouped mode). */
+  .lib-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 20px;
+  }
+  /* Card grid — actual auto-fill layout for the cards themselves. */
+  .lib-grid-inner {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--gap);
+  }
+
+  /* Films / Books grids: use a wider minmax so the side-poster cards have room to breathe.
+     Selector covers both direct lib-grid-inner and ones nested inside year groups. */
+  #film-grid .lib-grid-inner {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+  #book-grid .lib-grid-inner {
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  }
+
+  /* Month group — wrapped in a Finance-style panel:
+       - 6px coloured border on the left as the vertical marker
+       - Generous left padding so cards sit clearly inside the "panel"
+       - --month-color is set inline by JS so each consecutive month uses a
+         different LCARS hue (orange → cream → blue → violet → gold → rust)
+       The header tag dot reads the same var so the whole group reads as
+       one colour family. */
+  .lib-month-group {
+    background: var(--lcars-panel);
+    padding: 16px 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  /* Month header — unchanged from before: orange tag + uppercase month title */
+  .lib-month-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--lcars-frame);
+  }
+  .lib-month-tag {
+    /* Glowing dot — matches Finance .panel-title::before. Sized to suit
+       the 18px LCARS-cap title above it. Reads the same CSS var as the
+       group's border so the colour-coded month feels cohesive. */
+    width: 12px;
+    height: 12px;
+    background: var(--month-color, var(--lcars-orange));
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--month-color, var(--lcars-orange));
+    flex-shrink: 0;
+  }
+  .lib-month-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    color: var(--lcars-cream);
+    font-weight: 700;
+  }
+  .lib-month-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--lcars-cream);
+    opacity: 0.55;
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Series card — poster on top */
+  .series-card {
+    background: var(--lcars-panel);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 3px solid var(--lcars-frame);
+    overflow: hidden;
+  }
+  .series-card.status-watching { border-top-color: var(--lcars-orange); }
+  .series-card.status-complete { border-top-color: var(--lcars-cream); }
+  .series-card.status-planned  { border-top-color: var(--lcars-blue); }
+  .series-card.status-paused   { border-top-color: var(--lcars-violet); }
+  .series-card.status-dropped  { border-top-color: var(--lcars-frame); }
+
+  /* Films / Books: side-poster card.
+     Poster is fixed width AND fixed height (2:3).
+     All cards in a row are same height via CSS grid's row equalisation. */
+  .series-card.card-side-poster {
+    display: flex;
+    flex-direction: row;
+    border-top: none;
+    border-left: 3px solid var(--lcars-frame);
+    height: 200px;
+  }
+  .card-side-poster .series-poster {
+    flex: 0 0 133px;
+    width: 133px;
+    height: 200px;
+    background: var(--lcars-frame);
+    overflow: hidden;
+    line-height: 0;
+  }
+  .card-side-poster .series-poster img {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .card-side-poster .series-poster-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.18;
+    font-size: 22px;
+  }
+  .card-side-poster .series-card-body {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+  }
+  .card-side-poster .series-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-side-poster .series-title-zh { margin-top: 0; }
+  .card-side-poster .series-actions  { margin-top: auto; }
+
+  /* Poster — series: full width on top, 16:9 ratio */
+  .series-poster {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--lcars-frame);
+    overflow: hidden;
+    line-height: 0;
+    flex-shrink: 0;
+  }
+  .series-poster img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center top;
+  }
+  .series-poster-placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.18;
+    font-size: 22px;
+    user-select: none;
+  }
+
+  /* Content below poster */
+  .series-card-body {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Card top row: title + status pill */
+  .series-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .series-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    color: var(--lcars-text);
+    line-height: 1.3;
+    flex: 1;
+  }
+  /* Chinese sub-title under the original title */
+  .series-title-zh {
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  /* Episode-progress label line, e.g. "S2 · EP 3/10" */
+  .series-ep-line {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-cream);
+    opacity: 0.85;
+  }
+  .series-status-pill {
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .series-status-pill.watching { background: var(--lcars-orange); color: var(--lcars-bg); }
+  .series-status-pill.complete { background: var(--lcars-cream);  color: var(--lcars-bg); }
+  .series-status-pill.planned  { background: var(--lcars-blue);   color: var(--lcars-bg); }
+  .series-status-pill.paused   { background: var(--lcars-violet); color: var(--lcars-bg); }
+  .series-status-pill.dropped  { background: var(--lcars-frame);  color: var(--lcars-cream); }
+
+  /* Sub info: platform + ep count */
+  .series-meta {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--lcars-cream);
+    opacity: 0.75;
+  }
+
+  /* Progress bar */
+  .series-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .series-progress-bar {
+    flex: 1;
+    height: 5px;
+    background: var(--lcars-frame);
+    overflow: hidden;
+  }
+  .series-progress-fill {
+    height: 100%;
+    background: var(--lcars-orange);
+    transition: width 0.4s ease;
+  }
+  .series-card.status-complete .series-progress-fill { background: var(--lcars-cream); }
+  .series-card.status-paused   .series-progress-fill { background: var(--lcars-violet); }
+  .series-card.status-dropped  .series-progress-fill { background: var(--lcars-frame); filter: brightness(1.4); }
+  .series-progress-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    min-width: 34px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Last-seen line */
+  .series-last-seen {
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--lcars-cream);
+    opacity: 0.55;
+  }
+
+  /* Card action buttons */
+  .series-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 2px;
+  }
+  .series-btn {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    border: none;
+    padding: 5px 12px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: filter 0.15s ease, background 0.15s ease;
+  }
+  .series-btn:hover { filter: brightness(1.2); }
+  .series-btn.primary { background: var(--lcars-orange); color: var(--lcars-bg); }
+  .series-btn.primary:hover { filter: brightness(1.1); }
+  .series-btn.icon-btn {
+    padding: 5px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .series-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    filter: none;
+  }
+  .series-btn-spacer { flex: 1; }
+
+  /* Inline "SET EP" row that expands when user clicks the button */
+  .series-setep-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .series-setep-input {
+    background: var(--lcars-bg);
+    color: var(--lcars-text);
+    border: 1px solid var(--lcars-frame);
+    padding: 5px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    width: 64px;
+    border-radius: 2px;
+    color-scheme: dark;
+  }
+
+  /* Loading / empty / error states */
+  .lib-state {
+    text-align: center;
+    padding: 40px 20px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+  }
+
+  .lib-state-add-btn {
+    display: inline-block;
+    margin-top: 14px;
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    border: 1px solid var(--lcars-muted);
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .lib-state-add-btn:hover { background: var(--lcars-muted); opacity: 1; }
+
+  /* ── Film card status colours ──────────────────────────────────────────── */
+  .series-card.status-film-watched     { border-left-color: var(--lcars-cream); }
+  .series-card.status-film-want        { border-left-color: var(--lcars-blue); }
+  .series-card.status-film-rewatching  { border-left-color: var(--lcars-orange); }
+
+  .series-status-pill.watched     { background: var(--lcars-cream);   color: var(--lcars-bg); }
+  .series-status-pill.want        { background: var(--lcars-blue);    color: var(--lcars-bg); }
+  .series-status-pill.rewatching  { background: var(--lcars-orange);  color: var(--lcars-bg); }
+
+  /* ── Book format segment selector ─────────────────────────────────────── */
+  .lib-format-seg {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .lib-format-opt {
+    display: flex;
+    cursor: pointer;
+  }
+  .lib-format-opt input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .lib-format-opt span {
+    display: inline-block;
+    padding: 5px 14px;
+    border: 1px solid var(--lcars-muted);
+    border-radius: 999px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--lcars-cream);
+    background: var(--lcars-frame);
+    transition: background 0.12s, border-color 0.12s;
+    user-select: none;
+  }
+  .lib-format-opt input[type="radio"]:checked + span {
+    background: var(--lcars-violet);
+    border-color: var(--lcars-violet);
+    color: var(--lcars-bg);
+  }
+  .lib-format-opt:hover span {
+    border-color: var(--lcars-violet);
+  }
+  .series-card.status-book-reading    { border-left-color: var(--lcars-violet); }
+  .series-card.status-book-want       { border-left-color: var(--lcars-blue); }
+  .series-card.status-book-completed  { border-left-color: var(--lcars-cream); }
+  .series-card.status-book-paused     { border-left-color: var(--lcars-gold); }
+  .series-card.status-book-dropped    { border-left-color: var(--lcars-frame); }
+
+  .series-status-pill.reading    { background: var(--lcars-violet); color: var(--lcars-bg); }
+  .series-status-pill.completed  { background: var(--lcars-cream);  color: var(--lcars-bg); }
+  .series-status-pill.paused     { background: var(--lcars-gold);   color: var(--lcars-bg); }
+
+  /* ── Star rating display (on cards) ───────────────────────────────────── */
+  .film-rating-display {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 18px;
+  }
+  .film-star {
+    font-size: 18px;
+    color: var(--lcars-muted);
+    transition: color 0.1s, transform 0.1s;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+  }
+  .film-star.lit { color: var(--lcars-gold); }
+  .film-star:hover { transform: scale(1.25); }
+  /* Hover preview: when hovering a star, all stars up to it light up */
+  .film-rating-display:hover .film-star { color: var(--lcars-muted); }
+  .film-rating-display .film-star.preview { color: var(--lcars-gold); }
+  /* Click pulse */
+  @keyframes star-pulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+  .film-star.pulse { animation: star-pulse 0.3s ease-out; }
+  .film-note-badge {
+    font-size: 11px;
+    margin-left: 6px;
+    opacity: 0.7;
+    cursor: default;
+  }
+
+  /* ── Star picker (in forms) ────────────────────────────────────────────── */
+  .lib-star-picker {
+    display: flex;
+    gap: 3px;
+    padding: 4px 2px;
+  }
+  .lib-star-picker .lib-star {
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--lcars-muted);
+    transition: color 0.1s, transform 0.1s;
+    line-height: 1;
+    user-select: none;
+  }
+  .lib-star-picker .lib-star:hover,
+  .lib-star-picker .lib-star.lit { color: var(--lcars-gold); }
+  .lib-star-picker .lib-star:hover { transform: scale(1.2); }
+
+  /* ── Context menu (⋯ menu) ─────────────────────────────────────────────── */
+  .lib-ctx-menu {
+    background: var(--lcars-frame);
+    border: 1px solid var(--lcars-muted);
+    border-radius: 6px;
+    min-width: 160px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  }
+  .lib-ctx-item {
+    display: block;
+    width: 100%;
+    padding: 9px 14px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--lcars-cream);
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .lib-ctx-item:hover { background: var(--lcars-muted); }
+  .lib-ctx-item.danger { color: var(--lcars-rust); }
+  .lib-ctx-item.danger:hover { background: rgba(204,102,102,0.15); }
+
+  /* ---- Series Add/Edit modal ---- */
+  .lib-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .lib-form-grid .full { grid-column: 1 / -1; }
+  .lib-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .lib-form-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    text-transform: uppercase;
+  }
+  .lib-form-input,
+  .lib-form-select,
+  .lib-form-textarea {
+    background: var(--lcars-panel);
+    color: var(--lcars-text);
+    border: 1px solid var(--lcars-frame);
+    padding: 7px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    border-radius: 2px;
+    color-scheme: dark;
+  }
+  .lib-form-textarea { resize: vertical; min-height: 60px; }
+  .lib-form-select option { background: var(--lcars-bg); }
+  .lib-form-id-row { margin-top: 4px; }
+  .lib-form-id-box {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--lcars-bg); border: 1px solid var(--lcars-frame);
+    padding: 6px 10px; cursor: pointer; border-radius: 2px;
+    transition: border-color 0.14s;
+  }
+  .lib-form-id-box:hover { border-color: var(--lcars-violet); }
+  .lib-form-id-box.copied { border-color: var(--lcars-cream); }
+  .lib-form-id-box.copied .lib-form-id-copy::after { content: ' ✓'; }
+  .lib-form-id-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--lcars-cream); flex: 1; }
+  .lib-form-id-copy { font-size: 14px; color: var(--lcars-muted); opacity: 0.6; flex-shrink: 0; }
+  /* Section divider inside the form (e.g. "— SEASON 1 —") */
+  .lib-form-divider {
+    grid-column: 1 / -1;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    text-align: center;
+    padding: 6px 0 0;
+    border-top: 1px solid var(--lcars-frame);
+    margin-top: 4px;
+  }
+
+  /* ---- Log modal ---- */
+  .log-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+  .log-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--lcars-panel);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--lcars-text);
+    border-left: 3px solid var(--lcars-frame);
+  }
+  .log-entry-date {
+    font-variant-numeric: tabular-nums;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+    min-width: 80px;
+    font-size: 11px;
+  }
+  .log-entry-ep {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-orange);
+    min-width: 50px;
+  }
+  .log-entry-note { flex: 1; opacity: 0.8; font-size: 11px; }
+  .log-entry-del {
+    background: transparent;
+    border: none;
+    color: var(--lcars-cream);
+    opacity: 0.35;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 4px;
+    transition: opacity 0.15s;
+  }
+  .log-entry-del:hover { opacity: 1; color: var(--lcars-orange); }
+
+  /* ============================================================
+     LOG CARDS — clickable episode entries inside the LOG modal.
+     Each card opens the episode editor when clicked.
+     ============================================================ */
+  .log-card {
+    display: block;
+    width: 100%;
+    background: var(--lcars-panel);
+    border: none;
+    border-left: 3px solid var(--lcars-frame);
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    text-align: left;
+    color: var(--lcars-text);
+    font-family: inherit;
+    line-height: 1.35;
+    cursor: pointer;
+    transition: border-left-color 0.15s, background 0.15s;
+  }
+  .log-card:hover {
+    border-left-color: var(--lcars-orange);
+    background: rgba(255,255,255,0.03);
+  }
+  .log-card-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0;
+    line-height: 1.2;
+  }
+  .log-card-ep {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-orange);
+  }
+  .log-card-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    font-variant-numeric: tabular-nums;
+  }
+  .log-card-stars {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--lcars-orange);
+    letter-spacing: 1px;
+  }
+  .log-card-stars-empty {
+    color: var(--lcars-frame);
+  }
+  .log-card-title {
+    font-size: 14px;
+    /* Drop the wide letter-spacing — fine on Antonio English caps,
+       way too rough on CJK and on regular sentence-case titles. */
+    letter-spacing: 0;
+    color: var(--lcars-cream);
+    margin: 3px 0 0;
+    line-height: 1.3;
+  }
+  .log-card-note {
+    font-size: 13px;
+    line-height: 1.45;
+    letter-spacing: 0;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+    word-break: break-word;
+    margin: 3px 0 0;
+  }
+
+  /* ============================================================
+     STAR PICKER — five clickable stars for episode rating
+     ============================================================ */
+  .star-picker {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .star-btn {
+    background: transparent;
+    border: none;
+    color: var(--lcars-frame);
+    font-size: 22px;
+    line-height: 1;
+    padding: 2px 4px;
+    cursor: pointer;
+    transition: color 0.1s, transform 0.1s;
+  }
+  .star-btn:hover { transform: scale(1.15); }
+  .star-btn.filled { color: var(--lcars-orange); }
+  .star-picker-label {
+    margin-left: 12px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    text-transform: uppercase;
+  }
+
+  .log-add-form {
+    display: grid;
+    grid-template-columns: 120px 70px 1fr auto;
+    gap: 6px;
+    align-items: end;
+  }
+  .log-add-form .lib-form-input { padding: 6px 8px; font-size: 11px; }
+
+  /* ── Workspace sub-tabs (same style as lib-subtab) ── */
+  .ws-subtab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 20px 2px 20px;
+    border-bottom: 2px solid var(--lcars-frame);
+    margin-bottom: var(--gap);
+  }
+  .ws-subtab-btn {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    border: none;
+    padding: 8px 18px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    opacity: 0.55;
+    text-transform: uppercase;
+  }
+  .ws-subtab-btn:hover { opacity: 1; }
+  .ws-subtab-btn.active {
+    background: var(--lcars-cream);
+    color: var(--lcars-bg);
+    opacity: 1;
+  }
+  .ws-subtab-panel { display: flex; flex-direction: column; gap: var(--gap); }
+  .ws-subtab-panel[hidden] { display: none; }
+
+  /* Attendance sub-tab 內縮，對齊 ws-subtab-bar 的左右邊距 */
+  #att-root { padding: 0 20px 20px; }
+
+  /* ============================================================
+     PROJECT PAGE — Mission Operations (三層: 專案→章節→任務)
+     ============================================================ */
+
+  /* ── Layout: sidebar + kanban ── */
+  .proj-layout {
+    display: grid;
+    grid-template-columns: var(--proj-sidebar-w, 280px) 4px 1fr;
+    gap: 0;
+    align-items: start;
+    min-height: 60vh;
+  }
+
+  /* ── Left sidebar: project tree ── */
+  .proj-sidebar {
+    background: var(--lcars-panel);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* ── Drag resizer ── */
+  .proj-resizer {
+    width: 4px;
+    cursor: col-resize;
+    background: var(--lcars-frame);
+    transition: background 0.15s;
+    align-self: stretch;
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+  }
+  .proj-resizer:hover,
+  .proj-resizer.dragging { background: var(--lcars-orange); }
+
+  .proj-side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 10px 16px;
+    border-bottom: 2px solid var(--lcars-orange);
+    margin-bottom: 4px;
+  }
+  .proj-side-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--lcars-orange);
+  }
+  .proj-side-add-btn {
+    background: var(--lcars-frame);
+    border: 1px solid var(--lcars-muted);
+    color: var(--lcars-orange);
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.14s;
+    flex-shrink: 0;
+  }
+  .proj-side-add-btn:hover { background: var(--lcars-orange); color: var(--lcars-bg); }
+  .proj-side-empty {
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.4;
+    letter-spacing: 0.15em;
+    font-family: 'Antonio', sans-serif;
+    text-align: center;
+    padding: 24px 12px;
+  }
+
+  /* ── Project row ── */
+  .proj-proj-item { border-bottom: 1px solid var(--lcars-frame); }
+  .proj-proj-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 10px 9px 14px;
+    cursor: pointer;
+    transition: background 0.12s;
+    position: relative;
+  }
+  .proj-proj-row:hover { background: var(--lcars-frame); }
+  .proj-proj-item.open .proj-proj-row { background: color-mix(in srgb, var(--proj-color, var(--lcars-orange)) 8%, transparent); }
+  .proj-chevron { font-size: 10px; color: var(--lcars-cream); opacity: 0.5; width: 10px; flex-shrink: 0; }
+  .proj-proj-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: var(--proj-color, var(--lcars-orange));
+    box-shadow: 0 0 5px var(--proj-color, var(--lcars-orange));
+  }
+  .proj-proj-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 15px; font-weight: 600; letter-spacing: 0.06em;
+    color: var(--lcars-text); flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .proj-proj-badge {
+    background: var(--proj-color, var(--lcars-orange));
+    color: var(--lcars-bg);
+    font-size: 11px; font-weight: 700;
+    padding: 1px 6px; border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .proj-proj-edit-btn {
+    background: none; border: none; color: var(--lcars-cream); opacity: 0;
+    font-size: 14px; cursor: pointer; padding: 0 2px; flex-shrink: 0;
+    transition: opacity 0.12s;
+  }
+  .proj-proj-row:hover .proj-proj-edit-btn { opacity: 0.6; }
+  .proj-proj-edit-btn:hover { opacity: 1 !important; }
+
+  /* ── Milestone list ── */
+  .proj-ms-list { padding: 2px 0 4px 0; }
+  .proj-ms-bar-wrap { display: flex; flex-direction: column; }
+  .proj-ms-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 10px 7px 32px;
+    cursor: pointer; transition: background 0.12s;
+    border-left: 3px solid transparent;
+  }
+  .proj-ms-row:hover { background: var(--lcars-frame); }
+  .proj-ms-row.active {
+    border-left-color: var(--proj-color, var(--lcars-orange));
+    background: color-mix(in srgb, var(--proj-color, var(--lcars-orange)) 10%, transparent);
+  }
+  .proj-ms-label {
+    font-family: 'Antonio', sans-serif; font-size: 13px;
+    letter-spacing: 0.05em; color: var(--lcars-cream);
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .proj-ms-row.active .proj-ms-label { color: var(--lcars-text); }
+  .proj-ms-prog {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--lcars-cream); opacity: 0.5; flex-shrink: 0;
+  }
+  .proj-ms-prog.done { color: #2ecfb0; opacity: 1; }
+  .proj-ms-edit-btn {
+    background: none; border: none; color: var(--lcars-cream);
+    opacity: 0; font-size: 13px; cursor: pointer; padding: 0 2px; flex-shrink: 0;
+    transition: opacity 0.12s;
+  }
+  .proj-ms-row:hover .proj-ms-edit-btn { opacity: 0.5; }
+  .proj-ms-edit-btn:hover { opacity: 1 !important; }
+  .proj-ms-bar { height: 2px; background: var(--lcars-frame); margin: 0 0 1px 32px; }
+  .proj-ms-bar-fill { height: 100%; background: var(--proj-color, var(--lcars-orange)); transition: width 0.3s; }
+  .proj-ms-add-row { padding: 6px 10px 8px 32px; }
+  .proj-ms-add-btn {
+    background: none; border: 1px dashed var(--lcars-muted); color: var(--lcars-cream);
+    padding: 4px 12px; border-radius: var(--radius-pill); font-family: 'Antonio', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; cursor: pointer;
+    opacity: 0.5; transition: all 0.14s; width: 100%;
+  }
+  .proj-ms-add-btn:hover { opacity: 1; border-color: var(--lcars-gold); color: var(--lcars-gold); }
+
+  /* ── Right: kanban area ── */
+  .proj-kanban-area { display: flex; flex-direction: column; gap: var(--gap); }
+  .proj-kanban-hint {
+    background: var(--lcars-panel); padding: 50px 20px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--lcars-cream); font-family: 'Antonio', sans-serif;
+    font-size: 12px; letter-spacing: 0.15em;
+  }
+  .proj-overview-empty {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 14px; text-align: center; color: var(--lcars-cream); opacity: 0.45;
+  }
+  .proj-overview-empty p { font-size: 11px; letter-spacing: 0.08em; max-width: 280px; }
+
+  /* ── Overview cards (no project selected) ── */
+  .proj-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--gap);
+  }
+  .proj-overview-card {
+    background: var(--lcars-panel);
+    border-top: 3px solid var(--proj-color, var(--lcars-orange));
+    padding: 14px;
+  }
+  .proj-overview-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .proj-overview-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: var(--proj-color, var(--lcars-orange));
+    box-shadow: 0 0 5px var(--proj-color, var(--lcars-orange));
+  }
+  .proj-overview-title {
+    font-family: 'Antonio', sans-serif; font-size: 15px;
+    font-weight: 700; letter-spacing: 0.1em; color: var(--lcars-text);
+  }
+  .proj-overview-ms {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 0; border-bottom: 1px solid var(--lcars-frame);
+    font-family: 'Antonio', sans-serif; font-size: 13px; letter-spacing: 0.06em;
+    color: var(--lcars-cream); cursor: pointer; transition: color 0.12s;
+    gap: 8px;
+  }
+  .proj-overview-ms:last-child { border-bottom: none; }
+  .proj-overview-ms:hover { color: var(--lcars-text); }
+  .proj-overview-prog { font-family: 'JetBrains Mono', monospace; font-size: 11px; opacity: 0.6; flex-shrink: 0; }
+  .proj-overview-prog.done { color: #2ecfb0; opacity: 1; }
+
+  /* ── Kanban header ── */
+  .proj-kanban-header {
+    background: var(--lcars-panel);
+    border-left: 4px solid var(--proj-color, var(--lcars-orange));
+    padding: 12px 16px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    justify-content: space-between;
+  }
+  .proj-breadcrumb { display: flex; align-items: center; gap: 8px; }
+  .proj-bc-proj { font-family: 'Antonio', sans-serif; font-size: 13px; color: var(--lcars-cream); opacity: 0.6; letter-spacing: 0.1em; }
+  .proj-bc-sep  { color: var(--proj-color, var(--lcars-orange)); opacity: 0.7; }
+  .proj-bc-ms   { font-family: 'Antonio', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.1em; color: var(--lcars-text); }
+  .proj-kanban-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* Sort */
+  .proj-sort-row  { display: flex; align-items: center; gap: 4px; }
+  .proj-sort-label { font-size: 11px; color: var(--lcars-cream); letter-spacing: 0.15em; opacity: 0.5; font-family: 'Antonio', sans-serif; }
+  .proj-sort-btn {
+    background: transparent; border: 1px solid var(--lcars-muted);
+    color: var(--lcars-cream); padding: 3px 10px; border-radius: var(--radius-pill);
+    font-family: 'Antonio', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; cursor: pointer; opacity: 0.6; transition: all 0.14s;
+  }
+  .proj-sort-btn:hover  { opacity: 1; }
+  .proj-sort-btn.active { background: var(--lcars-muted); color: #fff; opacity: 1; border-color: transparent; }
+
+  /* Template + Add task buttons */
+  .proj-tmpl-btn {
+    background: var(--lcars-frame); border: 1px solid var(--lcars-gold);
+    color: var(--lcars-gold); padding: 5px 14px; border-radius: var(--radius-pill);
+    font-family: 'Antonio', sans-serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em; cursor: pointer; transition: all 0.14s;
+  }
+  .proj-tmpl-btn:hover { background: var(--lcars-gold); color: var(--lcars-bg); }
+  .proj-add-task-btn {
+    background: var(--proj-color, var(--lcars-violet)); border: none;
+    color: var(--lcars-bg); padding: 6px 16px; border-radius: var(--radius-pill);
+    font-family: 'Antonio', sans-serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.15em; cursor: pointer; transition: filter 0.14s;
+  }
+  .proj-add-task-btn:hover { filter: brightness(1.15); }
+
+  /* ── Kanban board ── */
+  .proj-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--gap);
+    align-items: start;
+  }
+  .proj-column { background: var(--lcars-panel); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .proj-col-head {
+    display: flex; align-items: center; gap: 8px;
+    padding-bottom: 10px; border-bottom: 2px solid var(--col-color, var(--lcars-blue));
+    margin-bottom: 4px;
+  }
+  .proj-col-icon  { font-size: 13px; color: var(--col-color); line-height: 1; }
+  .proj-col-label { font-family: 'Antonio', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.2em; color: var(--col-color); flex: 1; }
+  .proj-col-count { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--col-color); opacity: 0.7; }
+  .proj-col-empty { font-size: 12px; color: var(--lcars-cream); opacity: 0.3; letter-spacing: 0.12em; font-family: 'Antonio', sans-serif; padding: 12px 0; text-align: center; }
+
+  /* ── Task cards ── */
+  .proj-task-card {
+    background: var(--lcars-frame);
+    border-left: 3px solid var(--proj-color, var(--lcars-muted));
+    padding: 9px 10px 7px; cursor: pointer;
+    transition: background 0.12s, box-shadow 0.12s; position: relative;
+  }
+  .proj-task-card:hover { background: #0d1f35; box-shadow: 0 0 0 1px var(--lcars-muted); }
+  .proj-task-card.overdue  { border-left-color: var(--lcars-rust) !important; }
+  .proj-task-card.due-today { border-left-color: var(--lcars-gold) !important; }
+  .proj-task-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; line-height: 1; }
+  .proj-task-title { font-family: 'Antonio', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--lcars-text); line-height: 1.35; padding-right: 16px; margin-bottom: 5px; }
+  .proj-task-due   { display: block; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--lcars-cream); opacity: 0.6; margin-bottom: 4px; }
+  .proj-task-due.overdue { color: var(--lcars-rust); opacity: 1; font-weight: 600; }
+  .proj-task-due.today   { color: var(--lcars-gold); opacity: 1; font-weight: 600; }
+  .proj-task-tags  { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+  .proj-task-tag   { font-size: 10px; font-family: 'JetBrains Mono', monospace; background: var(--lcars-muted); color: var(--lcars-cream); padding: 2px 5px; border-radius: 2px; opacity: 0.75; }
+  .proj-task-notes { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--lcars-cream); opacity: 0.5; line-height: 1.4; margin-bottom: 4px; font-style: italic; }
+  .proj-task-actions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--lcars-muted); }
+  .proj-task-btn {
+    background: transparent; border: 1px solid var(--lcars-muted); color: var(--lcars-cream);
+    padding: 3px 10px; border-radius: var(--radius-pill); font-family: 'Antonio', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; cursor: pointer;
+    opacity: 0.6; transition: all 0.13s;
+  }
+  .proj-task-btn:hover { opacity: 1; border-color: var(--lcars-cream); }
+  .proj-task-btn.advance { border-color: var(--adv-color); color: var(--adv-color); opacity: 0.85; }
+  .proj-task-btn.advance:hover { background: var(--adv-color); color: var(--lcars-bg); opacity: 1; }
+
+  /* ── Modal shared ── */
+  .proj-modal-body { display: flex; flex-direction: column; gap: 12px; white-space: normal; font-family: 'Antonio', sans-serif; max-height: 70vh; overflow-y: auto; }
+  .proj-modal-field { display: flex; flex-direction: column; gap: 5px; }
+  .proj-modal-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .proj-modal-label { font-size: 9px; letter-spacing: 0.2em; color: var(--lcars-cream); opacity: 0.6; font-weight: 700; text-transform: uppercase; }
+  .proj-modal-input, .proj-modal-select, .proj-modal-textarea {
+    background: var(--lcars-frame); border: 1px solid var(--lcars-muted);
+    color: var(--lcars-text); padding: 7px 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    outline: none; transition: border-color 0.14s; border-radius: 2px; width: 100%;
+  }
+  .proj-modal-input:focus, .proj-modal-select:focus, .proj-modal-textarea:focus { border-color: var(--lcars-violet); }
+  .proj-modal-input.invalid { border-color: var(--lcars-rust) !important; }
+  .proj-modal-textarea { resize: vertical; min-height: 60px; max-height: 120px; }
+  .proj-modal-select option { background: var(--lcars-frame); }
+  .proj-color-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 2px 0; }
+  .proj-color-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.14s, border-color 0.14s; }
+  .proj-color-dot:hover { transform: scale(1.2); }
+  /* date input: force en-US locale formatting via lang trick */
+  input[type="date"].proj-modal-input { color-scheme: dark; }
+  input[type="date"].proj-modal-input::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+  /* Priority select — left border acts as colour indicator */
+  select.proj-priority-select { border-left-width: 4px; transition: border-left-color 0.15s, border-color 0.14s; }
+  .proj-color-dot.selected { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.3); transform: scale(1.15); }
+
+  /* ── Template modal ── */
+  .proj-tmpl-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--lcars-frame); }
+  .proj-tmpl-name  { font-family: 'Antonio', sans-serif; font-size: 14px; letter-spacing: 0.06em; color: var(--lcars-text); flex: 1; }
+  .proj-tmpl-count { font-size: 12px; color: var(--lcars-cream); opacity: 0.5; font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+  .proj-tmpl-apply-btn {
+    background: var(--lcars-gold); border: none; color: var(--lcars-bg);
+    padding: 5px 14px; border-radius: var(--radius-pill); font-family: 'Antonio', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; cursor: pointer;
+    transition: filter 0.14s; flex-shrink: 0;
+  }
+  .proj-tmpl-apply-btn:hover { filter: brightness(1.12); }
+
+  /* ── Toast & states ── */
+  .proj-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
+    background: var(--lcars-violet); color: var(--lcars-bg);
+    padding: 8px 22px; border-radius: var(--radius-pill);
+    font-family: 'Antonio', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.2em;
+    z-index: 20000; opacity: 0; transition: opacity 0.22s, transform 0.22s; pointer-events: none;
+  }
+  .proj-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .proj-toast.error   { background: var(--lcars-rust); }
+  .proj-loading { font-family: 'Antonio', sans-serif; font-size: 14px; letter-spacing: 0.2em; color: var(--lcars-cream); opacity: 0.5; text-align: center; padding: 50px 0; }
+  .proj-error-banner {
+    background: color-mix(in srgb, var(--lcars-rust) 12%, transparent);
+    border: 1px solid var(--lcars-rust); color: var(--lcars-rust);
+    font-family: 'Antonio', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.14em;
+    padding: 7px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+  }
+  .proj-error-banner button { background: var(--lcars-rust); color: var(--lcars-bg); border: none; padding: 3px 10px; border-radius: var(--radius-pill); font-family: inherit; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; cursor: pointer; }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .proj-layout { grid-template-columns: 1fr; }
+    .proj-resizer { display: none; }
+    .proj-board  { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================================
+     ATTENDANCE PAGE
+     ============================================================ */
+
+  .att-year-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .att-year-btn {
+    background: var(--lcars-frame);
+    border: 1px solid var(--lcars-muted);
+    color: var(--lcars-cream);
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.13s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .att-year-btn:hover { background: var(--lcars-orange); color: var(--lcars-bg); border-color: transparent; }
+  .att-year-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--lcars-text);
+    min-width: 60px;
+    text-align: center;
+  }
+  .att-settings-btn {
+    background: transparent;
+    border: 1px solid var(--lcars-gold);
+    color: var(--lcars-gold);
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    cursor: pointer;
+    margin-left: auto;
+    transition: all 0.13s;
+  }
+  .att-settings-btn:hover { background: var(--lcars-gold); color: var(--lcars-bg); }
+  .att-add-btn {
+    background: var(--lcars-orange);
+    border: none;
+    color: var(--lcars-bg);
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: filter 0.13s;
+  }
+  .att-add-btn:hover { filter: brightness(1.15); }
+
+  /* ── Summary cards ── */
+  .att-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--gap);
+    margin-bottom: 16px;
+  }
+  .att-summary-card {
+    background: var(--lcars-panel);
+    border-top: 3px solid var(--att-color, var(--lcars-orange));
+    padding: 14px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .att-summary-type {
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--att-color, var(--lcars-orange));
+    opacity: 0.85;
+  }
+  .att-summary-used {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .att-summary-num {
+    font-family: 'Antonio', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--lcars-text);
+    line-height: 1;
+  }
+  .att-summary-unit {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+  }
+  .att-summary-sublabel {
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    letter-spacing: 0.12em;
+    font-family: 'Antonio', sans-serif;
+    margin-left: 4px;
+  }
+  .att-summary-bar-wrap { margin-top: 2px; }
+  .att-summary-bar {
+    height: 4px;
+    background: var(--lcars-frame);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .att-summary-bar-fill {
+    height: 100%;
+    background: var(--att-color, var(--lcars-orange));
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+  .att-summary-detail {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    margin-top: 2px;
+  }
+  .att-summary-detail strong {
+    color: var(--att-color, var(--lcars-orange));
+    opacity: 1;
+    font-weight: 600;
+  }
+
+  /* ── Monthly sections ── */
+  .att-months {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .att-month-section {
+    background: var(--lcars-panel);
+  }
+  .att-month-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--lcars-frame);
+  }
+  .att-month-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--lcars-text);
+    min-width: 56px;
+  }
+  .att-month-summary {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+  }
+  .att-month-empty {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--lcars-cream);
+    opacity: 0.35;
+    font-family: 'Antonio', sans-serif;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Record rows ── */
+  .att-record-list { display: flex; flex-direction: column; }
+  .att-record-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--lcars-frame);
+    transition: background 0.12s;
+  }
+  .att-record-row:last-child { border-bottom: none; }
+  .att-record-row:hover { background: var(--lcars-frame); }
+  .att-record-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--lcars-cream);
+    opacity: 0.8;
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+  .att-record-type {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--att-color, var(--lcars-orange));
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .att-record-hours {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--lcars-text);
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+  .att-record-notes {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .att-record-edit-btn {
+    background: transparent;
+    border: 1px solid var(--lcars-muted);
+    color: var(--lcars-cream);
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s;
+    flex-shrink: 0;
+  }
+  .att-record-row:hover .att-record-edit-btn { opacity: 0.7; }
+  .att-record-edit-btn:hover { opacity: 1 !important; border-color: var(--lcars-cream); }
+
+  .att-summary-dh {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    margin-left: 6px;
+  }
+  .att-dh-small {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    font-weight: 400;
+  }
+  .alloc-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+  }
+
+  .att-empty {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    color: var(--lcars-cream);
+    opacity: 0.35;
+    text-align: center;
+    padding: 40px 0;
+  }
+
+  /* ── Radial Gauges ── */
+  .att-gauges {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--gap);
+    margin-bottom: 16px;
+  }
+  .att-gauge-card {
+    background: var(--lcars-panel);
+    padding: 16px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    border-top: 3px solid var(--att-color, var(--lcars-orange));
+  }
+  .att-gauge-svg {
+    width: 120px;
+    height: 120px;
+  }
+  .att-gauge-track {
+    fill: none;
+    stroke: var(--lcars-frame);
+    stroke-width: 8;
+    stroke-linecap: round;
+  }
+  .att-gauge-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1);
+    filter: drop-shadow(0 0 4px var(--att-color, var(--lcars-orange)));
+  }
+  .att-gauge-value {
+    font-family: 'Antonio', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    fill: var(--lcars-text);
+    text-anchor: middle;
+    dominant-baseline: auto;
+  }
+  .att-gauge-sublabel {
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    fill: var(--lcars-cream);
+    opacity: 0.55;
+    text-anchor: middle;
+    dominant-baseline: hanging;
+  }
+  .att-gauge-type {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--att-color, var(--lcars-orange));
+    opacity: 0.85;
+  }
+  .att-gauge-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* No-quota counter (personal / sick / overtime / holiday) */
+  .att-counter-value {
+    font-family: 'Antonio', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--lcars-text);
+    line-height: 1;
+    text-align: center;
+    margin-top: 12px;
+  }
+  .att-counter-sublabel {
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  /* ── Timeline ── */
+  .att-timeline {
+    background: var(--lcars-panel);
+    padding: 16px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  .att-timeline-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--lcars-text);
+    opacity: 0.7;
+    margin-bottom: 12px;
+  }
+  .att-timeline-svg {
+    display: block;
+    width: 100%;
+    min-width: 600px;
+  }
+  .att-tl-month-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    fill: var(--lcars-cream);
+    opacity: 0.55;
+  }
+  .att-tl-day-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    fill: var(--lcars-cream);
+    opacity: 0.35;
+  }
+  .att-tl-gridline {
+    stroke: var(--lcars-frame);
+    stroke-width: 1;
+  }
+  .att-tl-block {
+    rx: 2;
+    ry: 2;
+    opacity: 0.85;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .att-tl-block:hover {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+  .att-tl-today {
+    stroke: var(--lcars-text);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    opacity: 0.45;
+  }
+  .att-tl-today-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    fill: var(--lcars-text);
+    opacity: 0.45;
+  }
+  .att-tl-tooltip {
+    position: fixed;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-muted);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--lcars-cream);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 1000;
+    white-space: nowrap;
+  }
+  .att-tl-tooltip.visible { opacity: 1; }
+  .att-tl-legend {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .att-tl-legend-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-cream);
+    background: transparent;
+    border: 1px solid var(--lcars-muted);
+    border-radius: var(--radius-pill);
+    padding: 3px 10px;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+  .att-tl-legend-btn.active {
+    opacity: 1;
+    border-color: var(--lcars-cream);
+  }
+  .att-tl-legend-btn:hover {
+    opacity: 0.85;
+  }
+  .att-tl-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     RIGHT BAR — personal notes panel
+     ============================================================ */
+  .rightbar {
+    grid-area: rightbar;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    min-height: 0; /* allow inner scroll */
+  }
+
+  /* Header strip — sidebar-group style: muted dark bar with bright label */
+  .notes-head {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: 'Antonio', sans-serif;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+  .notes-head-title {
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+  .notes-head-count {
+    font-size: 9px;
+    opacity: 0.55;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2em;
+    margin-left: 6px;
+  }
+  .notes-add-btn {
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    border: none;
+    padding: 3px 10px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: filter 0.15s ease;
+  }
+  .notes-add-btn:hover { filter: brightness(1.15); }
+
+  /* Scrollable list area */
+  .notes-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    padding-right: 2px; /* leave room for scrollbar */
+  }
+  .notes-list::-webkit-scrollbar { width: 6px; }
+  .notes-list::-webkit-scrollbar-track { background: transparent; }
+  .notes-list::-webkit-scrollbar-thumb {
+    background: var(--lcars-frame);
+    border-radius: 3px;
+  }
+
+  /* Individual note card — full color fill, no right border */
+  .note-card {
+    /* Defaults; each .color-* below overrides --card-bg/--card-fg */
+    --card-bg: var(--lcars-gold);
+    --card-fg: var(--lcars-bg);
+    background: var(--card-bg);
+    color: var(--card-fg);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    cursor: grab;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .note-card:active { cursor: grabbing; }
+  .note-card.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+  }
+  /* Drop indicator — a thin line that appears above/below the target card */
+  .note-card.drop-before { box-shadow: 0 -3px 0 0 var(--lcars-orange); }
+  .note-card.drop-after  { box-shadow:  0 3px 0 0 var(--lcars-orange); }
+
+  /* Color variants — all use dark text on the colored fill, matching the
+     sidebar nav-btn convention (consistent LCARS look across the app). */
+  .note-card.color-gold   { --card-bg: var(--lcars-gold);   }
+  .note-card.color-orange { --card-bg: var(--lcars-orange); }
+  .note-card.color-cream  { --card-bg: var(--lcars-cream);  }
+  .note-card.color-violet { --card-bg: var(--lcars-violet); }
+  .note-card.color-blue   { --card-bg: var(--lcars-blue);   }
+
+  .note-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--card-fg);
+    opacity: 0.7;
+    text-transform: uppercase;
+    font-family: 'Antonio', sans-serif;
+  }
+  .note-stamp { font-variant-numeric: tabular-nums; }
+
+  /* Right cluster: bell + more (color + delete) */
+  .note-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+
+  /* The "more actions" 3-dot button — same visual weight as the bell */
+  .note-more {
+    width: 16px; height: 16px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--card-fg);
+    opacity: 0.55;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s ease;
+  }
+  .note-more:hover { opacity: 1; }
+
+  /* Combined popover: row of color dots + a DELETE button.
+     Uses position: fixed so it floats above any sibling/ancestor that
+     could otherwise stack over it (e.g. newly-added notes, the main
+     content column). JS sets top/left at open time. */
+  .note-menu {
+    position: fixed;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-frame);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9000;
+    border-radius: 2px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    width: 168px;
+  }
+  .note-menu-section-label {
+    color: var(--lcars-cream);
+    font-family: 'Antonio', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    padding: 0 2px;
+  }
+  .note-menu-colors {
+    display: flex;
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .note-menu-dot {
+    width: 22px;
+    height: 22px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 2px;
+    transition: transform 0.1s ease;
+  }
+  .note-menu-dot:hover { transform: scale(1.15); }
+  .note-menu-dot.active { border-color: var(--lcars-text); }
+  .note-menu-dot.dot-gold    { background: var(--lcars-gold); }
+  .note-menu-dot.dot-orange  { background: var(--lcars-orange); }
+  .note-menu-dot.dot-violet  { background: var(--lcars-violet); }
+  .note-menu-dot.dot-blue    { background: var(--lcars-blue); }
+  .note-menu-dot.dot-cream   { background: var(--lcars-cream); }
+
+  .note-menu-divider {
+    height: 1px;
+    background: var(--lcars-frame);
+    margin: 0 -2px;
+  }
+
+  .note-menu-delete {
+    background: var(--lcars-rust);
+    color: var(--lcars-bg);
+    border: none;
+    padding: 6px 0;
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: filter 0.15s ease;
+  }
+  .note-menu-delete:hover { filter: brightness(1.15); }
+
+  .note-text {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--card-fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    padding: 0;
+    overflow: hidden; /* auto-grow handles height */
+    min-height: 1.5em;
+    cursor: text;
+  }
+  .note-text::placeholder {
+    color: var(--card-fg);
+    opacity: 0.4;
+  }
+  .note-text::selection {
+    background: var(--card-fg);
+    color: var(--card-bg);
+  }
+
+  /* Reminder pieces (bell button, panel, status text) ----------- */
+
+  .note-bell {
+    width: 16px; height: 16px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--card-fg);
+    opacity: 0.55;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s ease;
+  }
+  .note-bell:hover { opacity: 1; }
+  .note-bell.active { opacity: 1; }
+  .note-bell.fired  { opacity: 0.55; }
+
+  /* The reminder string in the meta row (replaces stamp when active) */
+  .note-reminder-status {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.12em;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  /* Inline bell icon next to the countdown — sized to sit on the meta line
+     (~11px) without dominating it. Uses currentColor so it matches the
+     surrounding text exactly. */
+  .note-reminder-icon {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+  }
+  .note-reminder-status.fired { opacity: 0.55; }
+
+  /* Reminder set panel — fixed positioning so it can escape the right
+     sidebar's stacking context (otherwise the main content column or
+     newer note cards would overlap it). */
+  .note-reminder-panel {
+    position: fixed;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-frame);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9000;
+    border-radius: 2px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    width: 200px;
+  }
+  .note-reminder-head {
+    color: var(--lcars-cream);
+    font-family: 'Antonio', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+  .note-reminder-input {
+    background: var(--lcars-panel);
+    color: var(--lcars-text);
+    border: 1px solid var(--lcars-frame);
+    padding: 6px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    border-radius: 2px;
+    color-scheme: dark;
+  }
+  .note-reminder-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .note-reminder-btn {
+    flex: 1;
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    border: none;
+    padding: 5px 0;
+    font-family: 'Antonio', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: filter 0.15s ease;
+  }
+  .note-reminder-btn:hover { filter: brightness(1.15); }
+  .note-reminder-btn.secondary {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+  }
+
+  /* ============================================================
+     PORTFOLIO — holdings table + allocation chart
+     ============================================================ */
+  .portfolio-wrap { display: flex; flex-direction: column; gap: 0; }
+
+  /* Panel block matching WATCHLIST style */
+  .portfolio-panel {
+    background: var(--lcars-panel);
+    padding: 18px 22px;
+  }
+
+  /* Table */
+  .portfolio-table-wrap { overflow-x: auto; }
+  .portfolio-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
+    color: var(--lcars-text);
+  }
+  .portfolio-table th {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--lcars-cream);
+    opacity: 0.65;
+    text-align: right;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--lcars-frame);
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .portfolio-table th:first-child { text-align: left; padding-left: 0; }
+  .portfolio-table th:last-child  { padding-right: 0; }
+  .portfolio-table td {
+    padding: 8px 8px;
+    text-align: right;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+  .portfolio-table td:first-child {
+    text-align: left;
+    padding-left: 0;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--lcars-cream);
+  }
+  .portfolio-table td:last-child { padding-right: 0; }
+  .portfolio-table .ccy-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+  .ccy-dot.twd { background: var(--lcars-orange); }
+  .ccy-dot.usd { background: var(--lcars-blue); }
+  .portfolio-table .up   { color: #5dde8a; }
+  .portfolio-table .down { color: var(--lcars-rust); }
+  .portfolio-table tfoot td {
+    border-top: 1px solid var(--lcars-frame);
+    border-bottom: none;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--lcars-cream);
+    padding-top: 10px;
+  }
+  .portfolio-table tfoot td:first-child { padding-left: 0; }
+  .portfolio-table tfoot td:last-child  { padding-right: 0; }
+
+  /* Stacked bar chart */
+  /* ── Treemap ── */
+  .treemap-wrap {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .treemap-tile {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--lcars-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    overflow: hidden;
+    cursor: default;
+    transition: filter 0.15s;
+    border-radius: 2px;
+    min-height: 4px;
+  }
+  .treemap-tile:hover { filter: brightness(1.2); z-index: 1; }
+  .treemap-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999;
+    background: var(--lcars-bg);
+    border: 1px solid var(--lcars-orange);
+    padding: 6px 12px;
+    border-radius: 2px;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
+    color: var(--lcars-cream);
+    white-space: nowrap;
+    display: none;
+    gap: 8px;
+    align-items: center;
+  }
+  .treemap-tooltip.visible { display: flex; }
+  .treemap-tooltip-pct   { font-size: 12px; opacity: 0.75; }
+  .treemap-tooltip-alloc { font-size: 11px; opacity: 0.55; border-left: 1px solid var(--lcars-muted); padding-left: 8px; }
+  .treemap-tooltip-alloc:empty { display: none; }
+  .treemap-code {
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: center;
+    line-height: 1.1;
+    padding: 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  .treemap-pct {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
+    opacity: 0.9;
+    letter-spacing: 0.04em;
+  }
+  .treemap-alloc {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
+    opacity: 0.75;
+    letter-spacing: 0.04em;
+    margin-top: 1px;
+  }
+  /* Legend in panel-title area */
+  .panel-title { align-items: center; flex-wrap: wrap; gap: 8px; }
+  .treemap-legend {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+  }
+  .treemap-legend-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 9px;
+    color: var(--lcars-cream);
+    opacity: 0.7;
+  }
+  .treemap-legend-swatch {
+    width: 18px;
+    height: 10px;
+    border-radius: 1px;
+  }
+
+  /* Edit modal — compact */
+  .portfolio-modal-body {
+    display: flex;
+    flex-direction: column;
+    max-height: 65vh;
+    overflow-y: auto;
+  }
+  .portfolio-modal-section {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--lcars-frame);
+  }
+  .portfolio-modal-section:last-child { border-bottom: none; }
+  .portfolio-section-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  /* Holdings rows: sym | shares-input | cost-input */
+  .portfolio-stock-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 1fr;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .portfolio-stock-row:last-child { margin-bottom: 0; }
+  .portfolio-stock-sym {
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--lcars-cream);
+    line-height: 1.2;
+  }
+  .portfolio-stock-sym .ccy-text {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--lcars-cream);
+    opacity: 0.4;
+    margin-top: 1px;
+  }
+  .portfolio-input-label {
+    font-family: 'Antonio', sans-serif;
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    color: var(--lcars-cream);
+    opacity: 0.45;
+    text-align: right;
+    text-transform: uppercase;
+  }
+  /* Compact number inputs — used directly in financeEditTab */
+  .portfolio-num-input {
+    width: 100%;
+    background: var(--lcars-frame);
+    color: var(--lcars-text);
+    border: 1px solid transparent;
+    padding: 4px 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    border-radius: 2px;
+    text-align: right;
+    box-sizing: border-box;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    color-scheme: dark;
+  }
+  .portfolio-num-input::-webkit-outer-spin-button,
+  .portfolio-num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .portfolio-num-input:focus {
+    outline: none;
+    border-color: var(--lcars-orange);
+    background: var(--lcars-panel);
+  }
+  /* Legacy — keep for any remaining references */
+  .portfolio-input-col input {
+    width: 100%;
+    background: var(--lcars-frame);
+    color: var(--lcars-text);
+    border: 1px solid transparent;
+    padding: 4px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    border-radius: 2px;
+    text-align: right;
+    box-sizing: border-box;
+  }
+  .alert-card.portfolio-modal { border-color: var(--lcars-blue); }
+  .alert-card.portfolio-modal .alert-head { background: var(--lcars-blue); }
+  .alert-stack:has(.portfolio-modal) { max-width: 460px; }
+
+  /* Summary cards */
+  .portfolio-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2px;
+    margin-bottom: 0;
+  }
+  .portfolio-summary-card {
+    background: var(--lcars-frame);
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .portfolio-summary-card--total {
+    background: var(--lcars-panel);
+    border-left: 3px solid var(--lcars-orange);
+  }
+  .portfolio-summary-label {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--lcars-cream);
+    opacity: 0.55;
+    text-transform: uppercase;
+  }
+  .portfolio-summary-value {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    color: var(--lcars-cream);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .portfolio-summary-sub {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 10px;
+    color: var(--lcars-text);
+    opacity: 0.5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ccy-badge used in holdings table */
+  .ccy-badge {
+    display: inline-block;
+    font-family: 'Antonio', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+  .ccy-badge.twd { background: var(--lcars-orange); color: var(--lcars-bg); }
+  .ccy-badge.usd { background: var(--lcars-blue);   color: var(--lcars-bg); }
+
+  /* ============================================================
+     ALERT MODAL — fires when a note reminder elapses
+     ============================================================ */
+  .alert-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .alert-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    width: 100%;
+    max-width: 420px;
+    overscroll-behavior: contain;
+  }
+  .alert-card {
+    background: var(--lcars-bg);
+    border: 2px solid var(--lcars-orange);
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.4), 0 8px 32px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    border-radius: 2px;
+    animation: alert-in 0.25s ease-out;
+  }
+  @keyframes alert-in {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+  .alert-head {
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    padding: 8px 16px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .alert-head-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alert-head-icon {
+    width: 16px; height: 16px;
+  }
+  .alert-stamp {
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.1em;
+    opacity: 0.85;
+  }
+  .alert-body {
+    padding: 18px 20px;
+    color: var(--lcars-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 50vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Form modals inject HTML — disable pre-wrap so template indentation
+     doesn't render as blank space at the top of the body */
+  .alert-body:has(.lib-form-grid) {
+    white-space: normal;
+  }
+  .alert-body.empty {
+    color: var(--lcars-cream);
+    opacity: 0.6;
+    font-style: italic;
+  }
+  .alert-footer {
+    padding: 10px 16px 14px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .alert-footer.confirm {
+    justify-content: space-between;
+    gap: 8px;
+  }
+  /* When a confirm footer has no destructive (Delete) action and no
+     spacer span, treat it as a regular footer — buttons hug the right. */
+  .alert-footer.confirm:not(:has(.alert-ok.danger)):not(:has(> span)) {
+    justify-content: flex-end;
+  }
+  .alert-ok {
+    background: var(--lcars-orange);
+    color: var(--lcars-bg);
+    border: none;
+    padding: 8px 22px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: filter 0.15s ease;
+  }
+  .alert-ok:hover { filter: brightness(1.15); }
+
+  /* Confirm dialog variant — same shell as alert, but with 2 buttons and
+     a calmer accent color (cream instead of orange) so it doesn't read as
+     an emergency. The destructive button uses rust as the warning accent. */
+  .alert-card.confirm {
+    border-color: var(--lcars-cream);
+  }
+  .alert-card.confirm .alert-head {
+    background: var(--lcars-cream);
+  }
+  .alert-footer.confirm .alert-ok:not([style*="background"]) {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+  }
+  .alert-footer.confirm .alert-ok.danger {
+    background: var(--lcars-rust);
+    color: var(--lcars-bg);
+  }
+
+  /* Empty state */
+  .notes-empty {
+    padding: 24px 14px;
+    text-align: center;
+    color: var(--lcars-cream);
+    opacity: 0.5;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    font-family: 'Antonio', sans-serif;
+    background: var(--lcars-panel);
+  }
+
+  .rightbar-elbow {
+    background: var(--lcars-violet);
+    border-radius: 0 0 var(--radius-elbow) 0;
+    height: 60px;
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  /* ============================================================
+     ANIMATIONS
+     ============================================================ */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.2; }
+  }
+
+  .blink { animation: blink 1.2s steps(2) infinite; }
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+
+  /* ============================================================
+     RESPONSIVE — collapse to single column on narrow screens
+     ============================================================ */
+  @media (max-width: 900px) {
+    .console {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+      grid-template-areas:
+        "header"
+        "sidebar"
+        "main"
+        "rightbar";
+    }
+    .header { grid-template-columns: 1fr; }
+    .header-cap, .header-elbow { display: none; }
+    .info-strip { grid-template-columns: repeat(3, 1fr); }
+    .info-strip.five { grid-template-columns: repeat(3, 1fr); }
+    .docking-bays { grid-template-columns: 1fr; }
+    .bottom-row { grid-template-columns: 1fr; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; }
+    .nav-btn { flex: 1; min-width: 100px; text-align: center; }
+    .sidebar-spacer, .sidebar-elbow-bottom { display: none; }
+    .rightbar { flex-direction: column; }
+    .rightbar-elbow { display: none; }
+    .station-id { font-size: 22px; }
+  }
+
+
+    /* ============================================================
+     WEATHER PAGE
+     ============================================================ */
+
+  .nav-btn.teal        { background: #2ecfb0; color: var(--lcars-bg); }
+  .nav-btn.teal:hover  { background: var(--lcars-cream); }
+  .tab-btn.teal.active { background: #2ecfb0; }
+  .panel.teal .panel-title::before { background: #2ecfb0; box-shadow: 0 0 8px #2ecfb0; }
+
+  .wx-big-emoji { font-size: 28px !important; line-height: 1.2 !important; }
+  .uv-low     { color: #66cc66;             }
+  .uv-mid     { color: var(--lcars-gold);   }
+  .uv-high    { color: var(--lcars-orange); }
+  .uv-vhigh   { color: var(--lcars-rust);   }
+  .uv-extreme { color: #cc44cc;             }
+
+  /* 工具列 */
+  .wx-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; gap: 8px; flex-wrap: wrap;
+  }
+  .wx-toolbar-left, .wx-toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .wx-sel {
+    background: var(--lcars-panel); color: var(--lcars-cream);
+    border: 1px solid var(--lcars-muted); border-radius: var(--radius-pill);
+    padding: 4px 12px; font-size: 13px; font-weight: 700;
+    cursor: pointer; outline: none; letter-spacing: 0;
+    font-family: "Noto Sans TC", "PingFang TC", inherit;
+  }
+  .wx-sel:disabled { opacity: 0.35; cursor: default; }
+  .wx-sel:focus    { border-color: var(--lcars-orange); }
+  .wx-ts-val   { color: var(--lcars-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .wx-refresh-btn {
+    background: transparent; color: var(--lcars-dim);
+    border: 1px solid var(--lcars-muted); width: 26px; height: 26px; border-radius: 50%;
+    font-size: 14px; cursor: pointer; line-height: 1; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wx-refresh-btn:hover { background: var(--lcars-blue); border-color: var(--lcars-blue); color: var(--lcars-bg); }
+  .wx-loading { display: flex; align-items: center; }
+  .wx-loading-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--lcars-blue);
+    animation: wx-dot 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes wx-dot { from { opacity: 0.1; } to { opacity: 1; } }
+  .wx-error { color: var(--lcars-rust); font-size: 11px; }
+
+  /* ── Observatory sub-tab bar (WEATHER / SPACE) ── */
+  .obs-subtab-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 20px 2px 20px;
+    border-bottom: 2px solid var(--lcars-frame);
+    margin-bottom: var(--gap);
+  }
+  .obs-subtab-btn {
+    background: var(--lcars-frame);
+    color: var(--lcars-cream);
+    border: none;
+    padding: 8px 18px;
+    font-family: 'Antonio', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    opacity: 0.55;
+    text-transform: uppercase;
+  }
+  .obs-subtab-btn:hover { opacity: 1; }
+  .obs-subtab-btn.active {
+    background: var(--lcars-cream);
+    color: var(--lcars-bg);
+    opacity: 1;
+  }
+  /* City/district selectors pushed to the far right of the tab bar */
+  .obs-subtab-selectors {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .obs-subtab-panel { display: flex; flex-direction: column; gap: var(--gap); }
+  .obs-subtab-panel[hidden] { display: none; }
+
+  /* 日照 + 逐小時 */
+  /* canvas 緊接標題列，不需要額外底邊距 */
+  .wx-mid-panel .panel-title { margin-bottom: 10px; }
+  /* 即時氣象 panel */
+  .wx-mid-body { display: flex; align-items: stretch; }
+  .wx-sun-canvas {
+    flex-shrink: 0; display: block;
+    border-right: 1px solid var(--lcars-frame);
+    padding: 0; box-sizing: border-box;
+    width: 200px; height: 140px;   /* CSS 尺寸；JS 會乘 DPR 設實際像素 */
+  }
+  .wx-hourly-strip {
+    flex: 1; display: flex; align-items: center; overflow-x: auto;
+    gap: 4px; padding: 8px 12px;
+    scrollbar-width: thin; scrollbar-color: var(--lcars-muted) transparent;
+  }
+  .wx-hourly-strip::-webkit-scrollbar { height: 3px; }
+  .wx-hourly-strip::-webkit-scrollbar-thumb { background: var(--lcars-muted); border-radius: 2px; }
+  .wx-hr-card {
+    flex-shrink: 0; width: 54px; background: var(--lcars-frame); border-radius: 3px;
+    padding: 9px 4px; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; text-align: center;
+  }
+  .wx-hr-card.now { background: rgba(255,153,102,0.12); outline: 1px solid rgba(255,153,102,0.4); }
+  .wx-hr-time { font-size: 12px; color: var(--lcars-dim); font-weight: 700; }
+  .wx-hr-card.now .wx-hr-time { color: var(--lcars-orange); }
+  .wx-hr-icon { font-size: 22px; line-height: 1; }
+  .wx-hr-temp { font-size: 15px; font-weight: 700; color: var(--lcars-text); }
+  .wx-hr-pop  { font-size: 11px; color: var(--lcars-blue); }
+
+  /* 七天預報磚塊 */
+  .wx-daily-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 5px; padding: 4px 0 10px;
+  }
+  .wx-day-card {
+    background: var(--lcars-frame); border-radius: 4px;
+    padding: 12px 8px; display: flex; flex-direction: column;
+    align-items: center; gap: 6px; text-align: center;
+    border-top: 2px solid transparent; transition: background 0.1s;
+  }
+  .wx-day-card:hover { background: rgba(255,255,255,0.04); }
+  .wx-day-card.today { border-top-color: var(--lcars-orange); background: rgba(255,153,102,0.07); }
+  .wx-dc-top  { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .wx-dc-day  { font-size: 15px; font-weight: 700; color: var(--lcars-cream); }
+  .wx-dc-day.today-wd { color: var(--lcars-orange); }
+  .wx-dc-date { font-size: 11px; color: var(--lcars-dim); }
+  .wx-dc-icon { font-size: 28px; line-height: 1; }
+  .wx-dc-desc { font-size: 12px; color: var(--lcars-cream); line-height: 1.3;
+    min-height: 2.6em; display: flex; align-items: center; justify-content: center; }
+  /* 主溫度顯示（大字） */
+  .wx-dc-temps { display: flex; justify-content: space-between; width: 100%; font-size: 13px; font-weight: 700; }
+  .wx-dc-temps .lo { color: var(--lcars-blue); }
+  .wx-dc-temps .hi { color: var(--lcars-orange); }
+  /* 溫度長條（附低/高標示） */
+  .wx-dc-bar-wrap { display: flex; align-items: center; gap: 3px; width: 100%; }
+  .wx-dc-bar-lo { font-size: 11px; font-weight: 700; color: var(--lcars-blue); flex-shrink: 0; }
+  .wx-dc-bar-hi { font-size: 11px; font-weight: 700; color: var(--lcars-orange); flex-shrink: 0; }
+  .wx-dc-bar-track {
+    flex: 1; height: 4px; background: var(--lcars-muted);
+    border-radius: 999px; position: relative; overflow: hidden;
+  }
+  .wx-dc-bar-fill {
+    position: absolute; top: 0; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--lcars-blue), var(--lcars-orange));
+  }
+  .wx-dc-pop  { font-size: 12px; color: var(--lcars-blue); }
+  .wx-dc-uv   { font-size: 11px; font-weight: 700; }
+  .wx-credit  { font-size: 10px; color: var(--lcars-dim); padding: 2px 0 6px; }
+  .wx-credit a { color: var(--lcars-dim); text-decoration: none; }
+  .wx-credit a:hover { color: var(--lcars-cream); }
+
+  /* ============================================================
+     SPACE TAB
+     ============================================================ */
+
+  .sp-credit { font-size: 10px; color: var(--lcars-dim); padding-top: 8px; letter-spacing: 0.08em; }
+  .sp-error  { color: var(--lcars-rust); font-size: 12px; padding: 20px 0; }
+  .sp-loading-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--lcars-blue);
+    animation: wx-dot 0.8s ease-in-out infinite alternate;
+  }
+
+  /* ── APOD ── */
+  .sp-apod-body {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; align-items: start;
+  }
+  .sp-apod-img-wrap {
+    position: relative; background: var(--lcars-frame);
+    overflow: hidden; aspect-ratio: 16 / 10;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sp-apod-img-wrap a { display: block; width: 100%; height: 100%; }
+  .sp-apod-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: opacity 0.2s;
+  }
+  .sp-apod-img-wrap a:hover img { opacity: 0.82; }
+  .sp-apod-placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sp-apod-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 17px; font-weight: 700;
+    letter-spacing: 0.1em; color: var(--lcars-cream); margin-bottom: 4px;
+  }
+  .sp-apod-date  { font-size: 11px; color: var(--lcars-dim); letter-spacing: 0.15em; margin-bottom: 12px; }
+  .sp-apod-desc  {
+    font-size: 14px; line-height: 1.75; color: var(--lcars-text);
+    max-height: 260px; overflow-y: auto; padding-right: 6px;
+    scrollbar-width: thin; scrollbar-color: var(--lcars-muted) transparent;
+  }
+
+
+  /* ── Orbit map ── */
+  .sp-orbit-panel .panel-title { align-items: baseline; flex-wrap: wrap; }
+  .sp-orbit-note {
+    margin-left: 8px; font-size: 11px; letter-spacing: 0.08em;
+    color: var(--lcars-dim); font-family: 'Noto Sans TC', sans-serif; font-weight: 400;
+  }
+  .sp-orbit-wrap {
+    position: relative;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+  .sp-orbit-wrap:active { cursor: grabbing; }
+  .sp-orbit-canvas { display: block; width: 100%; aspect-ratio: 16/9; background: #02050a; }
+
+  /* HUD overlay */
+  .sp-orbit-hud {
+    position: absolute; top: 10px; right: 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sp-orbit-angles {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(2,5,10,0.75);
+    border: 1px solid var(--lcars-muted);
+    padding: 4px 10px; border-radius: 2px;
+  }
+  .sp-orbit-angle-label {
+    font-family: 'Antonio', sans-serif; font-size: 9px;
+    letter-spacing: 0.15em; color: var(--lcars-dim);
+  }
+  .sp-orbit-angle-val {
+    font-family: 'Antonio', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--lcars-text); letter-spacing: 0.06em; min-width: 34px;
+  }
+  .sp-orbit-reset {
+    font-family: 'Antonio', sans-serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.15em; color: var(--lcars-dim);
+    background: rgba(2,5,10,0.75); border: 1px solid var(--lcars-muted);
+    padding: 4px 10px; cursor: pointer; border-radius: 2px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .sp-orbit-reset:hover { color: var(--lcars-orange); border-color: var(--lcars-orange); }
+  .sp-orbit-hint {
+    position: absolute; bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Antonio', sans-serif; font-size: 9px;
+    letter-spacing: 0.15em; color: var(--lcars-muted);
+    pointer-events: none; opacity: 0.6;
+  }
+  .sp-voyager-row {
+    display: flex; align-items: center; gap: 20px;
+    padding-top: 10px; border-top: 1px solid var(--lcars-frame); margin-top: 8px;
+  }
+  .sp-voy-item { display: flex; align-items: center; gap: 8px; }
+  .sp-voy-dot  { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .sp-voy-name { font-family: 'Antonio', sans-serif; font-size: 12px; letter-spacing: 0.14em; color: var(--lcars-cream); }
+  .sp-voy-au   { font-family: 'Antonio', sans-serif; font-size: 13px; font-weight: 700; color: var(--lcars-text); letter-spacing: 0.06em; }
+
+  /* RWD */
+  @media (max-width: 800px) {
+    .sp-apod-body { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 900px) {
+    .wx-daily-grid { grid-template-columns: repeat(4, 1fr); }
+    .wx-mid-body { flex-direction: column; }
+    .wx-sun-canvas { border-right: none; border-bottom: 1px solid var(--lcars-frame); }
+  }
+</style>
+
+</head>
+<body>
+
+<!-- ============================================================
+     SVG ICON SPRITE — referenced via <use href="#icon-name">
+     Star Trek + LCARS-themed iconography
+     ============================================================ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Starfleet delta (combadge style) -->
+    <symbol id="i-delta" viewBox="0 0 24 24">
+      <path d="M12 2 L4 20 Q12 16 20 20 Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.2"/>
+    </symbol>
+
+    <!-- Starship (Enterprise saucer profile) -->
+    <symbol id="i-ship" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="10" rx="9" ry="2.5" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="8" y="13" width="8" height="2" rx="1" fill="currentColor"/>
+      <line x1="6" y1="17" x2="18" y2="17" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="9" y1="17" x2="9" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="15" y1="17" x2="15" y2="20" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Planet with ring -->
+    <symbol id="i-planet" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="5" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.4"/>
+      <ellipse cx="12" cy="12" rx="10" ry="3" fill="none" stroke="currentColor" stroke-width="1.2" transform="rotate(-20 12 12)"/>
+    </symbol>
+
+    <!-- Communicator / hail -->
+    <symbol id="i-comm" viewBox="0 0 24 24">
+      <path d="M3 12 Q12 3 21 12" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M6 14 Q12 8 18 14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="12" cy="17" r="2" fill="currentColor"/>
+    </symbol>
+
+    <!-- Calendar / date -->
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="4" y="6" width="16" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="11" y="13" width="3" height="3" fill="currentColor"/>
+    </symbol>
+
+    <!-- Clock -->
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="12" x2="12" y2="7" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="12" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Stopwatch / countdown — used in note reminder countdown -->
+    <symbol id="i-timer" viewBox="0 0 24 24">
+      <!-- Top button + side stems -->
+      <line x1="10" y1="3" x2="14" y2="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="12" y1="3" x2="12" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- Watch body -->
+      <circle cx="12" cy="14" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <!-- Hand pointing to 1 o'clock to suggest active countdown -->
+      <line x1="12" y1="14" x2="15.5" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Atmospheric / weather -->
+    <symbol id="i-weather" viewBox="0 0 24 24">
+      <circle cx="8" cy="10" r="3.5" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M10 16 Q14 14 18 16 Q20 17 19 19 L10 19 Q8 17 10 16 Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2"/>
+    </symbol>
+
+    <!-- Pulse / uptime -->
+    <symbol id="i-pulse" viewBox="0 0 24 24">
+      <path d="M2 12 H7 L9 6 L12 18 L15 9 L17 12 H22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Docking ring -->
+    <symbol id="i-dock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="3" x2="12" y2="8" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="16" x2="12" y2="21" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="3" y1="12" x2="8" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="16" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Telemetry bars -->
+    <symbol id="i-telemetry" viewBox="0 0 24 24">
+      <rect x="3"  y="14" width="3" height="7" fill="currentColor"/>
+      <rect x="8"  y="9"  width="3" height="12" fill="currentColor"/>
+      <rect x="13" y="11" width="3" height="10" fill="currentColor"/>
+      <rect x="18" y="5"  width="3" height="16" fill="currentColor"/>
+    </symbol>
+
+    <!-- Log / book -->
+    <symbol id="i-log" viewBox="0 0 24 24">
+      <path d="M5 4 H17 Q19 4 19 6 V20 H7 Q5 20 5 18 Z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="9"  x2="16" y2="9"  stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="17" x2="13" y2="17" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Computer / compute -->
+    <symbol id="i-compute" viewBox="0 0 24 24">
+      <rect x="4" y="3" width="16" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="7" y="6" width="10" height="3" fill="currentColor" fill-opacity="0.4"/>
+      <rect x="7" y="11" width="2" height="2" fill="currentColor"/>
+      <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+      <rect x="15" y="11" width="2" height="2" fill="currentColor"/>
+      <line x1="9" y1="20" x2="15" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="17" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Alert triangle -->
+    <symbol id="i-alert" viewBox="0 0 24 24">
+      <path d="M12 3 L22 20 H2 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <line x1="12" y1="10" x2="12" y2="15" stroke="currentColor" stroke-width="2"/>
+      <circle cx="12" cy="18" r="1" fill="currentColor"/>
+    </symbol>
+
+    <!-- Tools (for auxiliary panel) -->
+    <symbol id="i-tools" viewBox="0 0 24 24">
+      <path d="M14 4 L20 10 L14 16 M10 8 L4 14 L10 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Generic external link -->
+    <symbol id="i-link" viewBox="0 0 24 24">
+      <path d="M14 4 H20 V10 M20 4 L11 13 M18 14 V19 Q18 20 17 20 H5 Q4 20 4 19 V7 Q4 6 5 6 H10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Plus / add -->
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- PENCIL — used for "rename" / "edit" tab controls -->
+    <symbol id="i-pencil" viewBox="0 0 24 24">
+      <!-- Body of the pencil running diagonally; tip at bottom-left. -->
+      <path d="M14.5 4 L20 9.5 L9 20.5 L3.5 20.5 L3.5 15 Z"
+            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <!-- Ferrule line where the eraser meets the wood -->
+      <line x1="12.5" y1="6" x2="18" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- X / CLOSE — used for "delete" tab control -->
+    <symbol id="i-x" viewBox="0 0 24 24">
+      <line x1="6"  y1="6"  x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="18" y1="6"  x2="6"  y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Mail / subspace -->
+    <symbol id="i-mail" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="13" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M3 7 L12 14 L21 7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- Code -->
+    <symbol id="i-code" viewBox="0 0 24 24">
+      <path d="M9 7 L3 12 L9 17 M15 7 L21 12 L15 17 M14 4 L10 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Holodeck / video -->
+    <symbol id="i-holo" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M10 9 L16 12 L10 15 Z" fill="currentColor"/>
+    </symbol>
+
+    <!-- Audio waves -->
+    <symbol id="i-audio" viewBox="0 0 24 24">
+      <line x1="3"  y1="12" x2="3"  y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="7"  y1="9"  x2="7"  y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="11" y1="5"  x2="11" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="15" y1="8"  x2="15" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="19" y1="10" x2="19" y2="14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Database / archive -->
+    <symbol id="i-database" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="6" rx="8" ry="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M4 6 V12 Q4 14.5 12 14.5 Q20 14.5 20 12 V6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M4 12 V18 Q4 20.5 12 20.5 Q20 20.5 20 18 V12" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- OPS / Operations (concentric command crosshairs) -->
+    <symbol id="i-ops" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+      <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- MISSIONS / Briefing (folded paper) -->
+    <symbol id="i-missions" viewBox="0 0 24 24">
+      <path d="M5 3 H15 L19 7 V21 H5 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M15 3 V7 H19" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="16" x2="14" y2="16" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- QUARTERMASTER / supplies (crate with strap) -->
+    <symbol id="i-quarter" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="3" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="9" y1="6" x2="9" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="15" y1="6" x2="15" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="10" y="3" width="4" height="3" fill="currentColor"/>
+    </symbol>
+
+    <!-- ENGINEERING / warp gear -->
+    <symbol id="i-engineering" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M12 3 V6 M12 18 V21 M3 12 H6 M18 12 H21 M5.6 5.6 L7.7 7.7 M16.3 16.3 L18.4 18.4 M5.6 18.4 L7.7 16.3 M16.3 7.7 L18.4 5.6"
+            stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- ARCHIVES / stacked records -->
+    <symbol id="i-archives" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="4" y="9" width="16" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="9" y1="13" x2="15" y2="13" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- SCORES / baseball with stitches -->
+    <symbol id="i-scores" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M5 6 Q9 9 9 12 Q9 15 5 18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/>
+      <path d="M19 6 Q15 9 15 12 Q15 15 19 18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/>
+    </symbol>
+
+    <!-- PIN to top / promote up arrow -->
+    <symbol id="i-pin" viewBox="0 0 24 24">
+      <path d="M12 4 L18 11 H14 V20 H10 V11 H6 Z" fill="currentColor" fill-opacity="0.85" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- EXTERNAL LINK / opens in new tab — box with arrow pointing out top-right -->
+    <symbol id="i-external" viewBox="0 0 24 24">
+      <!-- Box (open at top-right corner) -->
+      <path d="M14 5 H5 V20 H20 V11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Arrow shaft -->
+      <line x1="11" y1="13" x2="20" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <!-- Arrow head — short L into the corner -->
+      <polyline points="13,4 20,4 20,11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- BELL / reminder -->
+    <symbol id="i-bell" viewBox="0 0 24 24">
+      <path d="M12 3 C9 3 7 5 7 8 V12 L5 16 H19 L17 12 V8 C17 5 15 3 12 3 Z"
+            fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M10 18 C10 19.5 11 20.5 12 20.5 C13 20.5 14 19.5 14 18"
+            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- MORE / horizontal 3-dot menu -->
+    <symbol id="i-more" viewBox="0 0 24 24">
+      <circle cx="5"  cy="12" r="2" fill="currentColor"/>
+      <circle cx="12" cy="12" r="2" fill="currentColor"/>
+      <circle cx="19" cy="12" r="2" fill="currentColor"/>
+    </symbol>
+
+    <!-- LIBRARY / open book -->
+    <symbol id="i-library" viewBox="0 0 24 24">
+      <path d="M12 4 C10 2 6 2 3 4 V20 C6 18 10 18 12 20 C14 18 18 18 21 20 V4 C18 2 14 2 12 4 Z"
+            fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <!-- LOG / list with lines -->
+    <symbol id="i-log" viewBox="0 0 24 24">
+      <rect x="4" y="3" width="16" height="18" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8" y1="8"  x2="16" y2="8"  stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="8" y1="16" x2="13" y2="16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- STOCKS / candlestick chart -->
+    <symbol id="i-stocks" viewBox="0 0 24 24">
+      <line x1="6"  y1="3"  x2="6"  y2="21" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="4"  y="8"  width="4" height="8" fill="currentColor" fill-opacity="0.5"/>
+      <line x1="12" y1="6"  x2="12" y2="20" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="10" y="10" width="4" height="6" fill="currentColor"/>
+      <line x1="18" y1="4"  x2="18" y2="18" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="16" y="6"  width="4" height="9" fill="currentColor" fill-opacity="0.5"/>
+    </symbol>
+
+    <!-- Theme palette / color wheel -->
+    <symbol id="i-theme" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M12 3 A9 9 0 0 1 12 21" fill="currentColor" fill-opacity="0.4"/>
+      <circle cx="12" cy="7"  r="1.5" fill="currentColor"/>
+      <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
+      <circle cx="12" cy="17" r="1.5" fill="currentColor"/>
+      <circle cx="8"  cy="12" r="1.5" fill="currentColor"/>
+    </symbol>
+
+    <!-- News -->
+    <symbol id="i-news" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="15" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="6" y1="9"  x2="13" y2="9"  stroke="currentColor" stroke-width="1.5"/>
+      <line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="6" y1="15" x2="18" y2="15" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="14" y="7" width="5" height="3" fill="currentColor" fill-opacity="0.4"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 4v6h-6"/>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="console">
+
+  <!-- ============================================================ -->
+  <!-- HEADER                                                       -->
+  <!-- ============================================================ -->
+  <div class="header">
+    <!-- LCARS elbow — now hosts the OPS CENTER subtitle (was SYS 47) -->
+    <div class="header-elbow" data-i18n="opsCenter">:: OPERATIONS CENTER</div>
+    <div class="header-bar">
+      <!-- Center title is now driven by the active page (was STARBASE 074).
+           page-icon + page-title + page-subtitle update on every switchPage(). -->
+      <div style="display:flex; align-items:center; gap:14px;">
+        <svg class="icon icon-lg" id="pageIcon" style="color:var(--lcars-orange)"><use href="#i-ops"/></svg>
+        <div>
+          <span class="station-id" id="pageTitle" data-i18n="tabMain">MAIN</span>
+          <span class="sub" id="pageSubtitle" data-i18n="mainSub">OPERATIONS</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <span class="status-pill gold" id="shift-pill" data-shift>—</span>
+        <button class="lang-toggle refresh-btn" id="refreshBtn" onclick="refreshCurrentPage()" hidden><span data-i18n="btnRefresh">REFRESH</span></button>
+        <button class="lang-toggle" id="pageActionBtn" onclick="pageActionBtnClick()" hidden></button>
+<button class="lang-toggle" id="langToggle" onclick="toggleLang()">CH</button>
+      </div>
+    </div>
+    <div class="header-cap"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SIDEBAR                                                      -->
+  <!-- ============================================================ -->
+  <div class="sidebar">
+    <!-- TAB GROUP — page navigation -->
+    <div class="sidebar-group-label" data-i18n="grpStations">STATIONS</div>
+
+    <button class="nav-btn tab-btn"        onclick="switchPage('main')"    data-tab="main"><svg class="icon icon-md"><use href="#i-ops"/></svg><span data-i18n="tabMain">MAIN</span></button>
+    <button class="nav-btn tab-btn violet" onclick="switchPage('project')" data-tab="project"><svg class="icon icon-md"><use href="#i-missions"/></svg><span data-i18n="tabWorkspace">WORKSPACE</span></button>
+    <button class="nav-btn tab-btn blue"   onclick="switchPage('finance')" data-tab="finance"><svg class="icon icon-md"><use href="#i-stocks"/></svg><span data-i18n="tabFinance">FINANCE</span></button>
+    <button class="nav-btn tab-btn gold"   onclick="switchPage('scores')"  data-tab="scores"><svg class="icon icon-md"><use href="#i-scores"/></svg><span data-i18n="tabScores">SCORES</span></button>
+    <button class="nav-btn tab-btn cream"  onclick="switchPage('library')" data-tab="library"><svg class="icon icon-md"><use href="#i-library"/></svg><span data-i18n="tabLibrary">LIBRARY</span></button>
+    <button class="nav-btn tab-btn teal"   onclick="switchPage('weather')" data-tab="weather"><svg class="icon icon-md"><use href="#i-weather"/></svg><span data-i18n="tabWeather">OBSERVATORY</span></button>
+
+    <!-- TOOL GROUP — utilities -->
+    <div class="sidebar-group-label" data-i18n="grpTools">TOOLS</div>
+
+    <button class="nav-btn"        onclick="showTool('calc')"><svg class="icon icon-md"><use href="#i-compute"/></svg><span data-i18n="navCompute">COMPUTE</span></button>
+    <button class="nav-btn rust"   onclick="cycleTheme()" data-theme-btn><svg class="icon icon-md"><use href="#i-theme"/></svg><span data-i18n="navTheme">THEME</span></button>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-elbow-bottom"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MAIN                                                         -->
+  <!-- ============================================================ -->
+  <div class="main">
+
+    <!-- ===== PAGE: MAIN ===== -->
+    <section class="page" data-page="main">
+
+    <!-- Info strip -->
+    <div class="info-strip">
+      <div class="info-card amber">
+        <svg class="icon icon-md icon-corner"><use href="#i-calendar"/></svg>
+        <div class="info-label" data-i18n="stardateLabel">STARDATE</div>
+        <div class="info-value" id="stardate">—</div>
+        <div class="info-sub" id="earthdate">—</div>
+      </div>
+      <div class="info-card">
+        <svg class="icon icon-md icon-corner"><use href="#i-clock"/></svg>
+        <div class="info-label" data-i18n="localTimeLabel">LOCAL TIME</div>
+        <div class="info-value" id="localtime">—:—:—</div>
+        <div class="info-sub" data-i18n="sectorTaipei">SECTOR 001 · TAIPEI</div>
+      </div>
+      <div class="info-card violet">
+        <svg class="icon icon-md icon-corner"><use href="#i-weather"/></svg>
+        <div class="info-label" data-i18n="atmosphericLabel">ATMOSPHERIC</div>
+        <div class="info-value" id="weather-temp">—°</div>
+        <div class="info-sub" id="weather-desc" data-i18n="scanning">SCANNING…</div>
+      </div>
+      <div class="info-card gold">
+        <svg class="icon icon-md icon-corner"><use href="#i-pulse"/></svg>
+        <div class="info-label" data-i18n="uptimeLabel">UPTIME</div>
+        <div class="info-value" id="uptime">00:00:00</div>
+        <div class="info-sub" data-i18n="sessionActive">SESSION ACTIVE</div>
+      </div>
+    </div>
+
+    <!-- Docking bays (bookmarks) -->
+    <div class="panel" id="docking">
+      <div class="panel-title"><span data-i18n="dockingTitle">DOCKING BAY ASSIGNMENTS · ACCESS PORTAL</span></div>
+      <div class="docking-bays">
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-code"/></svg><span data-i18n="bayAlpha">BAY ALPHA</span></span>
+            <span class="bay-code" data-i18n="bayAlphaCode">DK-A · WORK</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://github.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-code"/></svg><span data-i18n="linkGithub">GITHUB · CODE REPOSITORY</span></span>
+              <span class="dock-id">A-01</span>
+            </a>
+            <a class="bay-link" href="https://claude.ai" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-compute"/></svg><span data-i18n="linkClaude">CLAUDE · LCARS COMPUTER</span></span>
+              <span class="dock-id">A-02</span>
+            </a>
+            <a class="bay-link" href="#" onclick="return prompt(window.t ? t('promptUrl') : 'Enter URL', 'https://')">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">A-??</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-comm"/></svg><span data-i18n="bayBeta">BAY BETA</span></span>
+            <span class="bay-code" data-i18n="bayBetaCode">DK-B · COMMS</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://gmail.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-mail"/></svg><span data-i18n="linkGmail">SUBSPACE MAIL · GMAIL</span></span>
+              <span class="dock-id">B-01</span>
+            </a>
+            <a class="bay-link" href="https://calendar.google.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-calendar"/></svg><span data-i18n="linkCalendar">STELLAR CARTOGRAPHY · CALENDAR</span></span>
+              <span class="dock-id">B-02</span>
+            </a>
+            <a class="bay-link" href="#">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">B-??</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-holo"/></svg><span data-i18n="bayGamma">BAY GAMMA</span></span>
+            <span class="bay-code" data-i18n="bayGammaCode">DK-G · MEDIA</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://youtube.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-holo"/></svg><span data-i18n="linkYoutube">HOLODECK FEED · YOUTUBE</span></span>
+              <span class="dock-id">G-01</span>
+            </a>
+            <a class="bay-link" href="https://open.spotify.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-audio"/></svg><span data-i18n="linkSpotify">AUDIO ARCHIVE · SPOTIFY</span></span>
+              <span class="dock-id">G-02</span>
+            </a>
+            <a class="bay-link" href="#">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">G-??</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="bay">
+          <div class="bay-header">
+            <span class="bay-name"><svg class="icon icon-sm"><use href="#i-database"/></svg><span data-i18n="bayDelta">BAY DELTA</span></span>
+            <span class="bay-code" data-i18n="bayDeltaCode">DK-D · RESEARCH</span>
+          </div>
+          <div class="bay-links">
+            <a class="bay-link" href="https://en.wikipedia.org" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-database"/></svg><span data-i18n="linkWiki">MEMORY ALPHA · WIKIPEDIA</span></span>
+              <span class="dock-id">D-01</span>
+            </a>
+            <a class="bay-link" href="https://news.ycombinator.com" target="_blank">
+              <span><svg class="icon icon-sm"><use href="#i-news"/></svg><span data-i18n="linkHN">FEDERATION NEWS · HN</span></span>
+              <span class="dock-id">D-02</span>
+            </a>
+            <a class="bay-link" href="#">
+              <span><svg class="icon icon-sm"><use href="#i-plus"/></svg><span data-i18n="linkAddNew">+ ASSIGN NEW BERTH</span></span>
+              <span class="dock-id">D-??</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom row: notes + tools -->
+    <div class="bottom-row">
+
+      <!-- Personal log / notes -->
+      <div class="panel violet" id="logs">
+        <div class="panel-title"><span data-i18n="logTitle">PERSONAL LOG · DAILY ENTRY</span></div>
+        <textarea class="notes-area" id="notes"
+          data-i18n-placeholder="logPlaceholder"
+          placeholder="Captain's log, supplemental..."></textarea>
+        <div class="notes-controls">
+          <button class="mini-btn" onclick="saveNote()" data-i18n="btnCommit">COMMIT</button>
+          <button class="mini-btn gold" onclick="exportNote()" data-i18n="btnExport">EXPORT</button>
+          <button class="mini-btn blue" onclick="clearNote()" data-i18n="btnClear">CLEAR</button>
+        </div>
+      </div>
+
+      <!-- Tools -->
+      <div class="panel blue">
+        <div class="panel-title"><span data-i18n="auxTitle">AUXILIARY SYSTEMS</span></div>
+
+        <!-- Calculator -->
+        <div class="tool-display hidden" id="calc-tool">
+          <div style="width:100%">
+            <input class="calc-display" id="calc-screen" value="0" readonly>
+            <div class="calc-pad">
+              <button class="calc-key clr" onclick="calcClr()">AC</button>
+              <button class="calc-key op" onclick="calcIn('(')">(</button>
+              <button class="calc-key op" onclick="calcIn(')')">)</button>
+              <button class="calc-key op" onclick="calcIn('/')">÷</button>
+              <button class="calc-key" onclick="calcIn('7')">7</button>
+              <button class="calc-key" onclick="calcIn('8')">8</button>
+              <button class="calc-key" onclick="calcIn('9')">9</button>
+              <button class="calc-key op" onclick="calcIn('*')">×</button>
+              <button class="calc-key" onclick="calcIn('4')">4</button>
+              <button class="calc-key" onclick="calcIn('5')">5</button>
+              <button class="calc-key" onclick="calcIn('6')">6</button>
+              <button class="calc-key op" onclick="calcIn('-')">−</button>
+              <button class="calc-key" onclick="calcIn('1')">1</button>
+              <button class="calc-key" onclick="calcIn('2')">2</button>
+              <button class="calc-key" onclick="calcIn('3')">3</button>
+              <button class="calc-key op" onclick="calcIn('+')">+</button>
+              <button class="calc-key" onclick="calcIn('0')">0</button>
+              <button class="calc-key" onclick="calcIn('.')">.</button>
+              <button class="calc-key" onclick="calcDel()">⌫</button>
+              <button class="calc-key eq" onclick="calcEq()">=</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="tool-display hidden" id="timer-tool">
+          <div style="width:100%">
+            <div class="timer-display" id="timer-screen">00:00:00</div>
+            <div class="timer-controls">
+              <button class="mini-btn" onclick="timerStart()" data-i18n="btnStart">START</button>
+              <button class="mini-btn gold" onclick="timerPause()" data-i18n="btnPause">PAUSE</button>
+              <button class="mini-btn blue" onclick="timerReset()" data-i18n="btnReset">RESET</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tools-grid" id="tools-default">
+          <button class="tool-btn" onclick="showTool('calc')" data-i18n="btnCompute">COMPUTE</button>
+          <button class="tool-btn" onclick="showTool('timer')" data-i18n="btnChrono">CHRONOMETER</button>
+          <button class="tool-btn" onclick="speakStatus()" data-i18n="btnHail">VOCAL HAIL</button>
+          <button class="tool-btn" onclick="randomQuote()" data-i18n="btnCounsel">SHIP'S COUNSEL</button>
+        </div>
+
+        <div id="quote-out" style="margin-top:10px; font-family:'JetBrains Mono',monospace;
+             font-size:11px; color:var(--lcars-cream); line-height:1.5; min-height:40px;
+             font-style:italic;"></div>
+      </div>
+
+    </div>
+
+    </section>
+    <!-- ===== END PAGE: MAIN ===== -->
+
+
+    <!-- ===== PAGE: WORKSPACE (PROJECT + ATTENDANCE) ===== -->
+    <section class="page" data-page="project" hidden>
+      <!-- Sub-tab bar -->
+      <div class="ws-subtab-bar">
+        <button class="ws-subtab-btn active" data-subtab="project"
+                onclick="setWsSubtab('project')" data-i18n="wsTabProject">PROJECT</button>
+        <button class="ws-subtab-btn" data-subtab="attendance"
+                onclick="setWsSubtab('attendance')" data-i18n="wsTabAttendance">ATTENDANCE</button>
+      </div>
+
+      <!-- PROJECT sub-tab -->
+      <div class="ws-subtab-panel" data-subtab-panel="project">
+        <div id="proj-root">
+          <div class="proj-loading" data-i18n="loadingMsg">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- ATTENDANCE sub-tab -->
+      <div class="ws-subtab-panel" data-subtab-panel="attendance" hidden>
+        <div id="att-root">
+          <div class="proj-loading" data-i18n="loadingMsg">LOADING…</div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== PAGE: FINANCE ===== -->
+    <section class="page" data-page="finance" hidden>
+      <div class="fin-subtab-row">
+        <div class="fin-subtab-bar" id="finance-subtab-bar" aria-label="Finance tabs"></div>
+        <div class="fin-tab-controls" aria-label="Finance tab controls">
+          <button class="fin-tab-control" id="finance-tab-add" type="button" data-i18n-title="finTabAdd" title="Add tab" aria-label="Add tab">
+            <svg class="icon icon-sm"><use href="#i-plus"/></svg>
+          </button>
+          <button class="fin-tab-control" id="finance-tab-rename" type="button" data-i18n-title="finTabRename" title="Rename tab" aria-label="Rename tab">
+            <svg class="icon icon-sm"><use href="#i-pencil"/></svg>
+          </button>
+          <button class="fin-tab-control danger" id="finance-tab-delete" type="button" data-i18n-title="finTabDelete" title="Delete tab" aria-label="Delete tab">
+            <svg class="icon icon-sm"><use href="#i-x"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="finance-tab-panels">
+        <div class="fin-subtab-panel" data-finance-tab-panel="watchlist">
+          <!-- Taiwan Stocks -->
+          <div class="panel">
+            <div class="panel-title">
+              <span data-i18n="finTW">TW MARKET</span>
+            </div>
+            <div class="ticker-list" id="stocks-tw">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">0050.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">2330.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">2891.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+            </div>
+          </div>
+
+          <!-- US Stocks -->
+          <div class="panel violet">
+            <div class="panel-title">
+              <span data-i18n="finUS">US MARKET</span>
+            </div>
+            <div class="ticker-list" id="stocks-us">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VT</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VTI</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VOO</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">BRK-B</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+            </div>
+          </div>
+
+          <!-- Funds -->
+          <div class="panel teal">
+            <div class="panel-title">
+              <span data-i18n="finFund">FUND</span>
+            </div>
+            <div class="ticker-list" id="stocks-fund">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">—</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
+            </div>
+          </div>
+
+          <!-- FX Rates -->
+          <div class="panel gold">
+            <div class="panel-title">
+              <span data-i18n="finFx">FX RATES</span>
+            </div>
+            <div class="ticker-list" id="fx-rates">
+              <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">—</span></div><span class="ticker-price" data-i18n="loadingMsg">LOADING…</span></div>
+            </div>
+          </div>
+
+          <div class="data-source-note">
+            <span><span data-i18n="finFootnote">Data via Google Sheets.</span><span id="stocks-updated"></span></span>
+          </div>
+        </div>
+        <div id="finance-dynamic-panels"></div>
+      </div>
+    </section>
+
+
+    <!-- ===== PAGE: SCORES ===== -->
+    <section class="page" data-page="scores" hidden>
+      <!-- Orioles featured panel -->
+      <div class="panel gold">
+        <div class="panel-title" style="display:flex; align-items:center; justify-content:space-between;">
+          <span id="featured-game-title" data-i18n="orioles">BALTIMORE ORIOLES</span>
+          <div class="scores-reload-bar" id="scoresReloadBar" hidden>
+            <span id="scores-countdown" class="scores-countdown">30s</span>
+            <button class="scores-reload-btn" onclick="manualReloadScores()" title="Reload scores">
+              <svg class="icon icon-sm"><use href="#i-refresh"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="orioles-feature">
+          <div class="empty-state">
+            <p data-i18n="loadingMsg">LOADING…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- All games today -->
+      <div class="panel">
+        <div class="panel-title">
+          <span data-i18n="scoresAll">ALL GAMES · TODAY</span>
+        </div>
+        <div id="scores-all">
+          <div class="empty-state">
+            <p data-i18n="loadingMsg">LOADING…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Standings -->
+      <div class="panel">
+        <div class="panel-title">
+          <span data-i18n="standingsTitle">STANDINGS</span>
+        </div>
+        <div id="standings-container">
+          <div class="empty-state">
+            <p data-i18n="loadingMsg">LOADING…</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-source-note">
+        <span><span data-i18n="scoresFootnote">Data via ESPN.</span><span id="scores-updated"></span><span id="standings-updated"></span></span>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: LIBRARY ===== -->
+    <section class="page" data-page="library" hidden>
+      <!-- Sub-tab bar — switches between series/films/reading/collection -->
+      <div class="lib-subtab-bar">
+        <button class="lib-subtab-btn active" data-subtab="series"
+                onclick="setLibSubtab('series')" data-i18n="libSubtabSeries">SERIES</button>
+        <button class="lib-subtab-btn" data-subtab="films"
+                onclick="setLibSubtab('films')" data-i18n="libSubtabFilms">FILMS</button>
+        <button class="lib-subtab-btn" data-subtab="reading"
+                onclick="setLibSubtab('reading')" data-i18n="libSubtabReading">READING</button>
+        <button class="lib-subtab-btn" data-subtab="collection"
+                onclick="setLibSubtab('collection')" data-i18n="libSubtabCollection">COLLECTION</button>
+      </div>
+
+      <!-- Sub-tab content: SERIES (the existing tracker) -->
+      <div class="lib-subtab-panel" data-subtab-panel="series">
+        <!-- Filter bar — buttons + counts are rendered by renderLibFilters() -->
+        <div class="lib-filter-bar" id="lib-filter-bar"></div>
+
+        <!-- Card grid -->
+        <div class="lib-grid" id="lib-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab content: FILMS -->
+      <div class="lib-subtab-panel" data-subtab-panel="films" hidden>
+        <div class="lib-filter-bar" id="film-filter-bar"></div>
+        <div class="lib-grid" id="film-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab content: READING -->
+      <div class="lib-subtab-panel" data-subtab-panel="reading" hidden>
+        <div class="lib-filter-bar" id="book-filter-bar"></div>
+        <div class="lib-grid" id="book-grid">
+          <div class="lib-state" data-i18n="libLoading">LOADING…</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab content: COLLECTION (placeholder) -->
+      <div class="lib-subtab-panel" data-subtab-panel="collection" hidden>
+        <div class="lib-coming-soon">
+          <svg class="icon icon-lg"><use href="#i-library"/></svg>
+          <div class="lib-cs-title" data-i18n="libComingSoon">COMING SOON</div>
+          <div class="lib-cs-msg" data-i18n="libCsCollection">Personal collection subsystem reserved for future deployment.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: WEATHER / OBSERVATORY ===== -->
+    <section class="page" data-page="weather" hidden>
+
+      <!-- Observatory sub-tab bar -->
+      <div class="obs-subtab-bar">
+        <button class="obs-subtab-btn active" data-subtab="weather"
+                onclick="setObsSubtab('weather')" data-i18n="obsTabWeather">WEATHER</button>
+        <button class="obs-subtab-btn" data-subtab="space"
+                onclick="setObsSubtab('space')" data-i18n="obsTabSpace">SPACE</button>
+
+        <!-- City/district selectors — right side of tab bar, only visible on WEATHER tab -->
+        <div class="obs-subtab-selectors" id="obs-selectors">
+          <select class="wx-sel" id="wx-city-select" onchange="wxChangeCity(this.value)"></select>
+          <select class="wx-sel" id="wx-district-select" onchange="wxChangeDistrict(this.value)" disabled><option value="">—</option></select>
+          <span class="wx-loading" id="wx-loading" hidden><span class="wx-loading-dot"></span></span>
+          <span class="wx-error" id="wx-error" hidden></span>
+        </div>
+      </div>
+
+      <!-- ── WEATHER sub-tab ── -->
+      <div class="obs-subtab-panel" data-subtab-panel="weather">
+
+        <!-- 頂部五格：即時天氣 -->
+        <div class="panel wx-realtime-panel">
+          <div class="panel-title">即時氣象</div>
+          <div class="info-strip five">
+
+          <!-- 氣溫 -->
+          <div class="info-card amber" id="wx-card-temp">
+            <div class="info-label">氣溫</div>
+            <div class="info-value" id="wx-val-temp">—°C</div>
+            <div class="info-sub" id="wx-val-feel">體感 —°C</div>
+          </div>
+
+          <!-- 天氣現象 -->
+          <div class="info-card violet wx-card-weather">
+            <div class="info-label">天氣現象</div>
+            <div class="wx-weather-main">
+              <span class="wx-weather-emoji" id="wx-val-icon">—</span>
+              <span class="wx-weather-desc" id="wx-val-desc">—</span>
+            </div>
+          </div>
+
+          <!-- 風速 -->
+          <div class="info-card">
+            <div class="info-label">風速</div>
+            <div class="info-value" id="wx-val-wind">—</div>
+            <div class="info-sub" id="wx-val-wd">—</div>
+          </div>
+
+          <!-- 濕度 -->
+          <div class="info-card blue" id="wx-card-humid">
+            <div class="info-label">相對濕度</div>
+            <div class="info-value" id="wx-val-humid">—</div>
+            <div class="info-sub" id="wx-val-pres">— hPa</div>
+          </div>
+
+          <!-- 紫外線 -->
+          <div class="info-card gold" id="wx-card-uv">
+            <div class="info-label">紫外線指數</div>
+            <div class="info-value" id="wx-val-uv">—</div>
+            <div class="info-sub" id="wx-val-uvlabel">—</div>
+          </div>
+
+          </div><!-- /info-strip five -->
+        </div><!-- /wx-realtime-panel -->
+
+        <!-- 日照軌跡 + 逐小時 -->
+        <div class="panel teal wx-mid-panel">
+          <div class="panel-title">日照軌跡・逐時預報</div>
+          <div class="wx-mid-body">
+            <canvas id="wx-sun-arc" class="wx-sun-canvas"></canvas>
+            <div id="wx-hourly" class="wx-hourly-strip"></div>
+          </div>
+        </div>
+
+        <!-- 七天預報：磚塊卡片 -->
+        <div class="panel">
+          <div class="panel-title">七天預報</div>
+          <div id="wx-daily" class="wx-daily-grid"></div>
+          <div class="wx-credit">資料來源：<a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）</div>
+        </div>
+
+      </div><!-- /obs-subtab-panel weather -->
+
+      <!-- ── SPACE sub-tab ── -->
+      <div class="obs-subtab-panel" data-subtab-panel="space" hidden>
+
+        <!-- Row 1: APOD -->
+        <div class="panel sp-apod-panel" id="sp-apod-wrap">
+          <div class="panel-title">ASTRONOMY PICTURE OF THE DAY</div>
+          <div class="sp-apod-body">
+            <div class="sp-apod-img-wrap">
+              <a id="sp-apod-link" href="#" target="_blank" rel="noopener">
+                <img id="sp-apod-img" src="" alt="" hidden />
+              </a>
+              <div class="sp-apod-placeholder" id="sp-apod-placeholder">
+                <span class="sp-loading-dot"></span>
+              </div>
+            </div>
+            <div class="sp-apod-text">
+              <div class="sp-apod-title" id="sp-apod-title">—</div>
+              <div class="sp-apod-date"  id="sp-apod-date">—</div>
+              <div class="sp-apod-desc"  id="sp-apod-desc"></div>
+              <div class="sp-credit">SOURCE: NASA APOD · api.nasa.gov</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: 太陽系行星軌道俯視圖 + Voyager -->
+        <div class="panel sp-orbit-panel">
+          <div class="panel-title">
+            SOLAR SYSTEM · HELIOCENTRIC VIEW
+            <span class="sp-orbit-note">行星即時位置 · Voyager 1/2 標示距離</span>
+          </div>
+          <div class="sp-orbit-wrap" id="sp-orbit-wrap">
+            <canvas id="sp-orbit-canvas" class="sp-orbit-canvas"></canvas>
+            <!-- HUD overlay -->
+            <div class="sp-orbit-hud">
+              <div class="sp-orbit-angles">
+                <span class="sp-orbit-angle-label">AZI</span>
+                <span class="sp-orbit-angle-val" id="sp-orbit-azi">0°</span>
+                <span class="sp-orbit-angle-label">TILT</span>
+                <span class="sp-orbit-angle-val" id="sp-orbit-tilt">90°</span>
+                <span class="sp-orbit-angle-label">ZOOM</span>
+                <span class="sp-orbit-angle-val" id="sp-orbit-zoom">1.0×</span>
+              </div>
+              <button class="sp-orbit-reset" id="sp-orbit-reset" title="Reset view">RESET</button>
+            </div>
+            <div class="sp-orbit-hint">DRAG · SCROLL TO ZOOM</div>
+          </div>
+          <div class="sp-voyager-row">
+            <div class="sp-voy-item">
+              <span class="sp-voy-dot" style="background:#ff9966"></span>
+              <span class="sp-voy-name">VOYAGER 1</span>
+              <span class="sp-voy-au" id="sp-voy1-au">~164 AU</span>
+            </div>
+            <div class="sp-voy-item">
+              <span class="sp-voy-dot" style="background:#9977bb"></span>
+              <span class="sp-voy-name">VOYAGER 2</span>
+              <span class="sp-voy-au" id="sp-voy2-au">~137 AU</span>
+            </div>
+            <div class="sp-credit" style="margin-left:auto">SOURCE: astronomy-engine · NASA JPL Horizons</div>
+          </div>
+        </div>
+
+      </div><!-- /obs-subtab-panel space -->
+
+    </section>
+    <!-- ===== END PAGE: WEATHER / OBSERVATORY ===== -->
+
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- ============================================================ -->
+  <!-- RIGHT BAR — personal notes                                   -->
+  <!-- ============================================================ -->
+  <div class="rightbar" id="notes-panel">
+    <div class="notes-head">
+      <div>
+        <span class="notes-head-title" data-i18n="notesTitle">NOTES</span>
+        <span class="notes-head-count" id="notes-count">0</span>
+      </div>
+      <button class="notes-add-btn" id="notes-add" data-i18n="notesAdd">+ ADD</button>
+    </div>
+
+    <div class="notes-list" id="notes-list">
+      <!-- notes rendered here by JS -->
+    </div>
+
+    <div class="rightbar-elbow"></div>
+  </div>
+
+</div>
+
+<script src="js/finance.js"></script>
+<script src="js/scores.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/library.js"></script>
+<script src="js/films.js"></script>
+<script src="js/reading.js"></script>
+<script src="js/attendance.js"></script>
+<script src="js/project.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/space.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script src="js/core.js"></script>
+
+<div id="treemap-tooltip" class="treemap-tooltip">
+  <span id="treemap-tooltip-code"></span>
+  <span id="treemap-tooltip-pct" class="treemap-tooltip-pct"></span>
+  <span id="treemap-tooltip-alloc" class="treemap-tooltip-alloc"></span>
+</div>
+</body>
+</html>
