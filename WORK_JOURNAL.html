@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LCARS 個人資訊管理網站的架構、功能與更新工作手記">
+  <title>LCARS PROJECT LOG :: 工作手記</title>
+  <style>
+    :root {
+      --bg: #02050a;
+      --panel: #07111d;
+      --frame: #101d2d;
+      --text: #f5cf7a;
+      --cream: #e8d5a8;
+      --orange: #ff9966;
+      --blue: #7a9bd6;
+      --violet: #9977bb;
+      --gold: #d4a23a;
+      --rust: #cc6666;
+      --teal: #2ecfb0;
+      --dim: #8190a0;
+      --line: #26364a;
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 20px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 70% 0%, rgba(122, 155, 214, 0.09), transparent 30rem),
+        var(--bg);
+      color: var(--cream);
+      font-family: "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      line-height: 1.7;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.35;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 3px,
+        rgba(245, 207, 122, 0.025) 4px
+      );
+    }
+
+    a { color: inherit; }
+
+    .shell {
+      width: min(1420px, 100%);
+      margin: 0 auto;
+      padding: 12px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr) auto;
+      min-height: 104px;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+
+    .masthead-elbow {
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 14px 18px;
+      border-radius: 42px 0 0 0;
+      background: var(--orange);
+      color: var(--bg);
+      font: 800 0.74rem/1.2 Consolas, monospace;
+      letter-spacing: 0.12em;
+    }
+
+    .masthead-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 18px 26px;
+      background: var(--frame);
+      border-top: 5px solid var(--orange);
+    }
+
+    .eyebrow,
+    .code,
+    .meta,
+    .section-number,
+    .status,
+    .tag,
+    th {
+      font-family: Consolas, "JetBrains Mono", monospace;
+    }
+
+    .eyebrow {
+      margin-bottom: 5px;
+      color: var(--orange);
+      font-size: 0.76rem;
+      letter-spacing: 0.18em;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(1.7rem, 3.8vw, 3.2rem);
+      line-height: 1.05;
+      letter-spacing: 0.055em;
+    }
+
+    .masthead-copy p {
+      margin: 8px 0 0;
+      color: var(--dim);
+    }
+
+    .masthead-cap {
+      display: grid;
+      align-content: center;
+      min-width: 170px;
+      padding: 14px 20px;
+      border-radius: 0 42px 42px 0;
+      background: var(--blue);
+      color: var(--bg);
+    }
+
+    .masthead-cap strong {
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+    }
+
+    .masthead-cap span {
+      font: 700 0.72rem/1.4 Consolas, monospace;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 7px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: calc(100vh - 24px);
+    }
+
+    .side-label {
+      padding: 13px 16px;
+      border-radius: 0 24px 0 0;
+      background: var(--violet);
+      color: var(--bg);
+      font: 800 0.72rem/1 Consolas, monospace;
+      letter-spacing: 0.13em;
+      text-align: right;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 10px 15px;
+      border-left: 7px solid var(--blue);
+      background: #111c2b;
+      color: var(--cream);
+      text-decoration: none;
+      font-size: 0.92rem;
+      transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .nav-link:nth-of-type(3n + 1) { border-color: var(--orange); }
+    .nav-link:nth-of-type(3n + 2) { border-color: var(--blue); }
+    .nav-link:nth-of-type(3n) { border-color: var(--gold); }
+
+    .nav-link:hover,
+    .nav-link:focus-visible {
+      background: var(--cream);
+      color: var(--bg);
+      transform: translateX(3px);
+      outline: none;
+    }
+
+    .side-footer {
+      flex: 1;
+      min-height: 70px;
+      border-radius: 0 0 0 44px;
+      background: linear-gradient(to bottom, var(--frame), var(--violet));
+    }
+
+    main {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(13, 28, 44, 0.98), rgba(5, 12, 21, 0.98));
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.2);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(16, 29, 45, 0.9);
+    }
+
+    .section-number {
+      min-width: 44px;
+      color: var(--bg);
+      border-radius: 999px;
+      background: var(--orange);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    .panel:nth-of-type(3n + 2) .section-number { background: var(--blue); }
+    .panel:nth-of-type(3n) .section-number { background: var(--gold); }
+
+    h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 1.18rem;
+      letter-spacing: 0.05em;
+    }
+
+    h3 {
+      margin: 0 0 7px;
+      color: var(--orange);
+      font-size: 1rem;
+    }
+
+    .panel-body { padding: 20px; }
+    .panel-body > :first-child { margin-top: 0; }
+    .panel-body > :last-child { margin-bottom: 0; }
+
+    .lead {
+      color: var(--text);
+      font-size: 1.05rem;
+    }
+
+    .meta-grid,
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .meta-card,
+    .feature-card,
+    .note-box {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(2, 5, 10, 0.42);
+    }
+
+    .meta-card span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--dim);
+      font: 0.68rem/1.3 Consolas, monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .meta-card strong { color: var(--cream); }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .arch-node {
+      position: relative;
+      min-height: 116px;
+      padding: 14px;
+      border-top: 5px solid var(--orange);
+      border-radius: 4px 4px 14px 14px;
+      background: #0d1927;
+    }
+
+    .arch-node:nth-child(2) { border-color: var(--blue); }
+    .arch-node:nth-child(3) { border-color: var(--violet); }
+    .arch-node:nth-child(4) { border-color: var(--teal); }
+    .arch-node strong { display: block; color: var(--text); }
+    .arch-node span { color: var(--dim); font-size: 0.86rem; }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--bg);
+      background: var(--blue);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: rgba(122, 155, 214, 0.07); }
+
+    code,
+    .code {
+      color: var(--teal);
+      font-size: 0.88em;
+    }
+
+    ul,
+    ol { padding-left: 1.35rem; }
+    li + li { margin-top: 6px; }
+    li::marker { color: var(--orange); }
+
+    .tag {
+      display: inline-block;
+      margin: 2px 4px 2px 0;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--blue);
+      font-size: 0.7rem;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: var(--bg);
+      background: var(--teal);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .status.open { background: var(--gold); }
+    .status.review { background: var(--violet); color: #fff; }
+
+    .timeline {
+      position: relative;
+      margin-left: 8px;
+      padding-left: 25px;
+      border-left: 2px solid var(--line);
+    }
+
+    .log-entry {
+      position: relative;
+      margin-bottom: 20px;
+      padding: 0 0 4px;
+    }
+
+    .log-entry:last-child { margin-bottom: 0; }
+
+    .log-entry::before {
+      content: "";
+      position: absolute;
+      left: -32px;
+      top: 7px;
+      width: 12px;
+      height: 12px;
+      border: 3px solid var(--panel);
+      border-radius: 50%;
+      background: var(--orange);
+      box-shadow: 0 0 0 1px var(--orange);
+    }
+
+    .log-date {
+      color: var(--blue);
+      font: 700 0.77rem/1.4 Consolas, monospace;
+      letter-spacing: 0.08em;
+    }
+
+    .log-title {
+      margin: 3px 0 5px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .log-entry p { margin: 0; color: var(--cream); }
+
+    .warning {
+      border-left: 5px solid var(--gold);
+      background: rgba(212, 162, 58, 0.08);
+    }
+
+    .template {
+      border: 1px dashed var(--violet);
+      background: rgba(153, 119, 187, 0.07);
+    }
+
+    footer {
+      margin: 6px 0 0 217px;
+      padding: 10px 18px;
+      border-radius: 0 0 32px 32px;
+      background: var(--frame);
+      color: var(--dim);
+      font: 0.72rem/1.6 Consolas, monospace;
+      text-align: right;
+    }
+
+    @media (max-width: 900px) {
+      .masthead { grid-template-columns: 1fr; }
+      .masthead-elbow { display: none; }
+      .masthead-main { border-radius: 28px 28px 0 0; }
+      .masthead-cap { border-radius: 0 0 28px 28px; }
+      .layout { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .side-label { grid-column: 1 / -1; border-radius: 20px 20px 0 0; }
+      .side-footer { display: none; }
+      .nav-link { border-left-width: 5px; }
+      .architecture { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      footer { margin-left: 0; }
+    }
+
+    @media (max-width: 640px) {
+      .shell { padding: 7px; }
+      .masthead-main { align-items: flex-start; padding: 17px; }
+      .masthead-copy p { font-size: 0.86rem; }
+      .sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .meta-grid,
+      .card-grid,
+      .architecture { grid-template-columns: 1fr; }
+      .panel-body { padding: 16px; }
+      .panel-head { padding: 11px 15px; }
+    }
+
+    @media print {
+      :root {
+        --bg: #fff;
+        --panel: #fff;
+        --frame: #e9edf2;
+        --text: #222;
+        --cream: #333;
+        --dim: #555;
+        --line: #bbb;
+      }
+      body { background: #fff; color: #222; font-size: 10pt; }
+      body::before,
+      .sidebar { display: none; }
+      .shell { width: 100%; padding: 0; }
+      .layout { display: block; }
+      .masthead { grid-template-columns: 120px 1fr 150px; }
+      .panel { break-inside: avoid; box-shadow: none; }
+      .meta-card,
+      .feature-card,
+      .note-box,
+      .arch-node { background: #fff; }
+      footer { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <div class="masthead-elbow">STARBASE 074<br>PROJECT RECORD</div>
+      <div class="masthead-main">
+        <div class="masthead-copy">
+          <div class="eyebrow">PERSONAL INFORMATION SYSTEM · LCARS</div>
+          <h1>開發工作手記</h1>
+          <p>記錄目前架構、功能特色、技術決策與後續更新。</p>
+        </div>
+      </div>
+      <div class="masthead-cap">
+        <strong>ACTIVE</strong>
+        <span>UPDATED<br>2026.10.20</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar" aria-label="工作手記目錄">
+        <div class="side-label">INDEX</div>
+        <a class="nav-link" href="#overview">專案概況</a>
+        <a class="nav-link" href="#baseline">接手基線</a>
+        <a class="nav-link" href="#architecture">系統架構</a>
+        <a class="nav-link" href="#features">功能特色</a>
+        <a class="nav-link" href="#data">資料與服務</a>
+        <a class="nav-link" href="#principles">維護原則</a>
+        <a class="nav-link" href="#attention">待確認事項</a>
+        <a class="nav-link" href="#roadmap">後續方向</a>
+        <a class="nav-link" href="#changelog">更新紀錄</a>
+        <a class="nav-link" href="#template">紀錄範本</a>
+        <div class="side-footer"></div>
+      </nav>
+
+      <main>
+        <section class="panel" id="overview">
+          <div class="panel-head">
+            <span class="section-number">01</span>
+            <h2>專案概況</h2>
+          </div>
+          <div class="panel-body">
+            <p class="lead">這是一套以《Star Trek》LCARS 為視覺基礎的個人資訊管理網站，將日常工作、財務、娛樂紀錄、天氣及太空資訊整合在同一個控制台介面。</p>
+            <div class="meta-grid">
+              <div class="meta-card"><span>Application Type</span><strong>原生靜態單頁網站</strong></div>
+              <div class="meta-card"><span>Technology</span><strong>HTML / CSS / JavaScript</strong></div>
+              <div class="meta-card"><span>Build Process</span><strong>無框架、無建置工具</strong></div>
+              <div class="meta-card"><span>Main Entry</span><strong><code>index.html</code></strong></div>
+              <div class="meta-card"><span>Feature Scripts</span><strong><code>js/</code> 共 11 個檔案</strong></div>
+              <div class="meta-card"><span>Current Status</span><strong>長期維護／持續開發</strong></div>
+            </div>
+            <p>目前介面已形成穩定設計語言，後續開發應保留現有導覽、版面配置與操作習慣，以小範圍修改逐步完成尚未實作的功能。</p>
+          </div>
+        </section>
+
+        <section class="panel" id="baseline">
+          <div class="panel-head">
+            <span class="section-number">02</span>
+            <h2>專案接手基線</h2>
+          </div>
+          <div class="panel-body">
+            <p>第一輪靜態分析完成於 2026.09.18，分析起始 Git HEAD 為 <code>3f98ea1</code>（提交訊息「同步測試」，新增一張影集海報）。當時尚未進行瀏覽器視覺驗證、遠端 API 連線測試或資料寫入測試；本頁所稱「已有實作」不等同已完成端到端驗收。</p>
+            <div class="meta-grid">
+              <div class="meta-card"><span>Main Document</span><strong><code>index.html</code> 約 5,620 行</strong></div>
+              <div class="meta-card"><span>Scripts</span><strong>11 個傳統 JavaScript 檔案</strong></div>
+              <div class="meta-card"><span>Modules</span><strong>非 ES modules，共用全域環境</strong></div>
+              <div class="meta-card"><span>Backend Source</span><strong>Repository 內未收錄</strong></div>
+              <div class="meta-card"><span>Tests</span><strong>無自動化測試套件</strong></div>
+              <div class="meta-card"><span>Historical Builds</span><strong><code>_versions/</code> 歷史 ZIP</strong></div>
+            </div>
+            <ul>
+              <li><code>images/posters/series</code>、<code>films</code>、<code>books</code> 依資料 ID 放置封面；缺圖時由介面顯示 fallback。</li>
+              <li><code>_versions/</code> 是歷史版本備份，不能視為目前執行程式，也不能因看似未使用而任意刪除。</li>
+              <li>2026.09.18 的檢查中，11 個 <code>js/*.js</code> 均通過 <code>node --check</code>；此結果只代表語法可解析。</li>
+              <li>當時靜態 HTML 檢查發現重複的 <code>i-log</code> ID；此事項仍列入待確認清單。</li>
+              <li>本專案可能在多台電腦交替開發。開始工作時需先查看本手記、專案目錄、<code>git status</code>，必要時查看最近的 <code>git log</code>、<code>HANDOFF.md</code> 或 <code>TODO.md</code>。</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel" id="architecture">
+          <div class="panel-head">
+            <span class="section-number">03</span>
+            <h2>系統架構</h2>
+          </div>
+          <div class="panel-body">
+            <div class="architecture" aria-label="系統架構圖">
+              <div class="arch-node"><strong>介面層</strong><span><code>index.html</code><br>頁面骨架、全部 CSS、SVG 圖示與響應式配置</span></div>
+              <div class="arch-node"><strong>核心協調層</strong><span><code>js/core.js</code><br>語言、主題、導覽、快取、工具與初始化流程</span></div>
+              <div class="arch-node"><strong>功能模組層</strong><span><code>js/*.js</code><br>專案、出勤、財務、比分、媒體、天氣、太空及便箋</span></div>
+              <div class="arch-node"><strong>資料服務層</strong><span>Apps Script、Google Sheets、外部 API、localStorage 與 sessionStorage</span></div>
+            </div>
+            <ul>
+              <li>網站沒有前端框架、套件管理或編譯步驟，直接開啟 <code>index.html</code> 即可執行。</li>
+              <li>所有 JavaScript 都是傳統腳本，共用全域作用域；載入順序及函式名稱具有相依性。</li>
+              <li><code>core.js</code> 提供 <code>t()</code>、<code>beep()</code>、<code>cacheGet()</code>、<code>cacheSet()</code> 與主頁切換等共用能力。</li>
+              <li><code>switchPage()</code> 依 <code>.page[data-page]</code> 與 <code>.tab-btn[data-tab]</code> 切換頁面，沒有 URL router；次級分頁分別由 <code>setWsSubtab()</code>、<code>setLibSubtab()</code>、<code>setObsSubtab()</code> 與 <code>setFinanceTab()</code> 控制。</li>
+              <li>事件處理混用 HTML inline handler、元素的 <code>onclick</code> 及 <code>addEventListener()</code>，調整 selector 前需搜尋所有呼叫位置。</li>
+              <li><code>scores.js</code> 的 <code>escapeHtml()</code>／<code>escapeAttr()</code> 被媒體模組使用；<code>notes.js</code> 的 overlay、prompt 與 confirm 被多個模組共用。</li>
+              <li><code>project.js</code> 另有同名 <code>closeOverlay()</code>，會在淡出後呼叫 <code>notes.js</code> 留下的 <code>window._overlayClose</code>；不能將其中一個版本直接當成無用重複程式刪除。</li>
+              <li>出勤模組沿用 <code>proj-modal-*</code> 樣式；影集、電影、閱讀共用 <code>lib-*</code> 樣式。調整共用 CSS 時需檢查所有使用端。</li>
+              <li>啟動時會抓取金融、比分、排名及首頁天氣，其他資料部分按頁面造訪延遲讀取；比分計時器目前不會因離開 SCORES 頁面而停止。</li>
+              <li>圖片資產集中在 <code>images/posters/</code>，歷史版本壓縮檔放在 <code>_versions/</code>。</li>
+            </ul>
+            <div class="note-box warning"><strong>腳本載入順序：</strong> finance → scores → notes → library → films → reading → attendance → project → weather → space → Astronomy Engine → core。</div>
+          </div>
+        </section>
+
+        <section class="panel" id="features">
+          <div class="panel-head">
+            <span class="section-number">04</span>
+            <h2>功能特色</h2>
+          </div>
+          <div class="panel-body">
+            <div class="card-grid">
+              <article class="feature-card"><h3>MAIN · 主控台</h3><p>日期時間、台北天氣摘要、系統運行時間、分類捷徑、Captain's Log、計算機、計時器與語音狀態。</p></article>
+              <article class="feature-card"><h3>WORKSPACE · 工作區</h3><p>以 Project → Milestone → Task 管理專案，提供看板、優先順序、期限、模板；另有休假與加班紀錄。</p></article>
+              <article class="feature-card"><h3>FINANCE · 財務</h3><p>顯示台美股、基金與匯率，支援自訂投資分頁、持倉資料、資產配置堆疊圖與 treemap。</p></article>
+              <article class="feature-card"><h3>SCORES · 賽事</h3><p>讀取 MLB 比分與排名，預設聚焦 Baltimore Orioles，包含逐局資訊、賽況與自動更新。</p></article>
+              <article class="feature-card"><h3>LIBRARY · 媒體庫</h3><p>記錄影集季／集進度、電影與重看、書籍閱讀與評分，提供搜尋、篩選及本機海報。</p></article>
+              <article class="feature-card"><h3>OBSERVATORY · 觀測站</h3><p>台灣縣市天氣、逐時與逐日預報、日照資訊，以及 NASA APOD、行星軌道與 Voyager 顯示。</p></article>
+              <article class="feature-card"><h3>NOTES · 全站便箋</h3><p>右側便箋跨頁顯示，支援排序、顏色及到期提醒；資料保存在目前瀏覽器。</p></article>
+              <article class="feature-card"><h3>LCARS UI</h3><p>深色控制台、彎肘框架、膠囊按鈕、掃描線、SVG 圖示、三種主題及中英文切換。</p></article>
+              <article class="feature-card"><h3>RESPONSIVE</h3><p>桌面使用左側導覽、中央內容與右側便箋三欄；900px 以下調整為單欄流程。</p></article>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="data">
+          <div class="panel-head">
+            <span class="section-number">05</span>
+            <h2>資料來源與儲存方式</h2>
+          </div>
+          <div class="panel-body table-wrap">
+            <table>
+              <thead><tr><th>資料類型</th><th>來源／儲存</th><th>注意事項</th></tr></thead>
+              <tbody>
+                <tr><td>便箋</td><td><code>localStorage</code></td><td>只存在目前瀏覽器，不會隨 Git 或 Dropbox 同步。</td></tr>
+                <tr><td>Captain's Log</td><td><code>sessionStorage</code></td><td>僅保留目前瀏覽器工作階段，可手動匯出。</td></tr>
+                <tr><td>語言、主題、目前頁面</td><td><code>sessionStorage</code></td><td>重新開啟瀏覽器後不一定保留。</td></tr>
+                <tr><td>專案與出勤</td><td>Google Apps Script</td><td>分別使用獨立 endpoint，讀取失敗時可使用快取。</td></tr>
+                <tr><td>影集、電影、書籍</td><td>共用 Google Apps Script</td><td>以分表及 action 區分資料操作。</td></tr>
+                <tr><td>行情、基金、匯率</td><td>Google Sheets Visualization JSONP</td><td>設計上可從本機檔案載入，並使用瀏覽器快取。</td></tr>
+                <tr><td>投資持倉</td><td><code>localStorage</code> + Apps Script</td><td>目前以完整 tabs／holdings 狀態同步。</td></tr>
+                <tr><td>天氣</td><td>Open-Meteo</td><td>首頁使用固定台北座標；詳細頁保存縣市與行政區設定。</td></tr>
+                <tr><td>MLB</td><td>ESPN API</td><td>使用比分、賽況與排名資料，並有定時更新。</td></tr>
+                <tr><td>太空</td><td>NASA APOD、JPL Horizons、Astronomy Engine</td><td>APOD 使用 DEMO_KEY；Voyager 保留靜態 fallback。</td></tr>
+              </tbody>
+            </table>
+            <div class="note-box warning" style="margin-top:16px">
+              Apps Script 的 GET 用於讀取，POST 多半以 <code>text/plain</code> 傳送 JSON，並以 <code>action</code> 指定操作。端點直接寫在前端，但 repository 沒有後端程式、資料表 schema、部署或權限設定，因此無法只靠前端確認伺服器驗證及真實資料狀態。瀏覽器儲存也綁定 origin；若改用不同 hostname、port 或開啟方式，看到的 localStorage／sessionStorage 可能不同。
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="principles">
+          <div class="panel-head">
+            <span class="section-number">06</span>
+            <h2>設計與維護原則</h2>
+          </div>
+          <div class="panel-body">
+            <div class="card-grid">
+              <article class="feature-card">
+                <h3>開始工作前</h3>
+                <ol>
+                  <li>先閱讀本工作手記。</li>
+                  <li>查看專案目錄與 <code>git status</code>。</li>
+                  <li>必要時查看最近的 <code>git log</code> 與相關 commit。</li>
+                  <li>若有 <code>HANDOFF.md</code> 或 <code>TODO.md</code>，先閱讀再修改。</li>
+                  <li>若其他電腦最近有新修改，先理解變更內容。</li>
+                </ol>
+              </article>
+              <article class="feature-card">
+                <h3>程式修改</h3>
+                <ul>
+                  <li>採取最小必要變更，優先修改現有檔案。</li>
+                  <li>不任意更換框架、函式庫或建置方式。</li>
+                  <li>不新增不必要的相依套件。</li>
+                  <li>修改函式前先確認所有呼叫位置。</li>
+                  <li>範圍外的舊問題先記錄，不順手大改。</li>
+                </ul>
+              </article>
+              <article class="feature-card">
+                <h3>UI / UX</h3>
+                <ul>
+                  <li>未經明確要求，不改變頁面配置、操作流程、導覽方式、按鈕位置或響應式行為。</li>
+                  <li>沿用現有 LCARS 設計語言及命名。</li>
+                  <li>桌機與手機版須交叉檢查。</li>
+                  <li>跨頁調整前先確認共用元件與共用樣式。</li>
+                </ul>
+              </article>
+              <article class="feature-card">
+                <h3>JavaScript</h3>
+                <ul>
+                  <li>先找出事件監聽、DOM selector、共用函式、資料來源及瀏覽器儲存。</li>
+                  <li>不任意重新命名函式、DOM ID 或 class。</li>
+                  <li>新增功能應整合進現有架構，避免平行重複邏輯。</li>
+                  <li>資料格式變更須同步檢查讀寫及所有使用端。</li>
+                </ul>
+              </article>
+              <article class="feature-card">
+                <h3>CSS</h3>
+                <ul>
+                  <li>優先修改現有 class，避免大量重複樣式。</li>
+                  <li>注意 selector specificity。</li>
+                  <li>沿用既有 responsive breakpoint。</li>
+                  <li>不為單一畫面問題大量使用 <code>!important</code>。</li>
+                </ul>
+              </article>
+              <article class="feature-card">
+                <h3>Git 與檔案安全</h3>
+                <ul>
+                  <li>保留未提交修改，不覆蓋或丟棄使用者內容。</li>
+                  <li>未經明確要求，不執行 commit、push、pull、merge、rebase、reset，亦不建立或切換 branch。</li>
+                  <li>不刪除用途未確認的檔案或大量既有程式碼。</li>
+                  <li>不因程式可以更漂亮而重做整個網站。</li>
+                </ul>
+              </article>
+            </div>
+            <div class="note-box warning" style="margin-top:16px"><strong>核心原則：</strong>先理解現有專案，再修改；優先維持既有功能與使用者操作方式；採用最小必要變更，避免非必要重構。</div>
+            <h3 style="margin-top:18px">完成工作後的固定回報</h3>
+            <ol>
+              <li>修改了哪些檔案，以及每個檔案的主要變更。</li>
+              <li>是否可能影響其他功能或共用元件。</li>
+              <li>建議使用者測試哪些項目。</li>
+              <li>若適合，提供簡潔明確的 Git commit message，但不自行提交。</li>
+              <li>在本頁更新紀錄留下日期、行為變更、影響範圍與驗證結果。</li>
+            </ol>
+          </div>
+        </section>
+
+        <section class="panel" id="attention">
+          <div class="panel-head">
+            <span class="section-number">07</span>
+            <h2>已知待確認事項</h2>
+          </div>
+          <div class="panel-body table-wrap">
+            <table>
+              <thead><tr><th>狀態</th><th>項目</th><th>說明</th></tr></thead>
+              <tbody>
+                <tr><td><span class="status open">OPEN</span></td><td>專案初始化</td><td><code>initProject()</code> 已定義，但靜態分析未找到啟動呼叫；需驗證快取與新增任務按鈕。</td></tr>
+                <tr><td><span class="status open">OPEN</span></td><td>工作區狀態還原</td><td>已讀取上次選擇的子分頁，但初始畫面可能仍停留在 PROJECT。</td></tr>
+                <tr><td><span class="status review">REVIEW</span></td><td>重複資料請求</td><td>頁面切換與啟動流程可能重複載入 project、weather 或 library。</td></tr>
+                <tr><td><span class="status review">REVIEW</span></td><td>共用彈窗</td><td>跨檔案存在同名 <code>closeOverlay()</code>，需驗證 ESC、取消與 scroll-lock。</td></tr>
+                <tr><td><span class="status open">OPEN</span></td><td>未完成區域</td><td>LIBRARY / COLLECTION 仍為 COMING SOON；MAIN 新增捷徑尚未完成保存流程。</td></tr>
+                <tr><td><span class="status review">REVIEW</span></td><td>金融同步</td><td>跨裝置同時修改、離線保存及同步失敗提示尚待完整測試。</td></tr>
+                <tr><td><span class="status review">REVIEW</span></td><td>語言切換</td><td><code>applyLang()</code> 會更新標記並重繪金融分頁，但未統一重繪所有動態模組；需檢查已載入卡片與表單。</td></tr>
+                <tr><td><span class="status open">OPEN</span></td><td>靜態資源</td><td><code>favicon.ico</code> 缺少，且 SVG sprite 中存在重複的 <code>i-log</code> ID。</td></tr>
+                <tr><td><span class="status review">REVIEW</span></td><td>註解與行為落差</td><td><code>core.js</code> 結尾稱比分手動更新，但 <code>scores.js</code> 已實作 30 秒自動更新。</td></tr>
+                <tr><td><span class="status review">REVIEW</span></td><td>Voyager 數值</td><td>JPL response 的 AU 解析方式需用真實回應確認正確性。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="roadmap">
+          <div class="panel-head">
+            <span class="section-number">08</span>
+            <h2>後續開發方向</h2>
+          </div>
+          <div class="panel-body">
+            <div class="card-grid">
+              <div class="feature-card"><h3>第一階段 · 穩定性</h3><p>驗證初始化流程、子分頁還原、重複請求及共用彈窗生命週期。</p></div>
+              <div class="feature-card"><h3>第二階段 · 資料安全</h3><p>補齊 Apps Script 與資料表契約文件，測試失敗回復、離線狀態及跨裝置同步。</p></div>
+              <div class="feature-card"><h3>第三階段 · 未完成功能</h3><p>依使用優先順序完成 COLLECTION、新增捷徑及其他佔位功能。</p></div>
+              <div class="feature-card"><h3>持續工作 · 品質</h3><p>每次改動驗證桌面／手機、中英文、三種主題、缺圖、長文字及 API 失敗情境。</p></div>
+              <div class="feature-card"><h3>文件化</h3><p>將後端部署、Sheet 欄位、狀態值、快取鍵與測試方式逐步加入專案文件。</p></div>
+              <div class="feature-card"><h3>版本紀錄</h3><p>完成改動後直接更新本手記，讓架構說明、開發規則、待辦狀態與程式現況保持一致。</p></div>
+            </div>
+            <h3 style="margin-top:18px">建議驗收矩陣</h3>
+            <ul>
+              <li>桌面及手機：六個主頁、所有子分頁、重新整理後狀態還原、三種主題、中英文、長文字與缺圖。</li>
+              <li>共用 UI：表單開關、ESC、取消、儲存、捲動鎖定、焦點管理與觸控操作。</li>
+              <li>資料流程：載入中、空資料、API 失敗、離線快取、異動後重新載入；寫入時使用可辨識的測試資料與適當環境。</li>
+              <li>資料異動：同步確認讀取、正規化、寫入、快取及 UI 更新，保留既有 ID 與狀態值。</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel" id="changelog">
+          <div class="panel-head">
+            <span class="section-number">09</span>
+            <h2>更新紀錄</h2>
+          </div>
+          <div class="panel-body">
+            <div class="timeline">
+              <article class="log-entry">
+                <div class="log-date">2026.10.20</div>
+                <h3 class="log-title">建立並整合 HTML 工作手記</h3>
+                <p>新增 <code>WORK_JOURNAL.html</code>，完整整合原開發規則與專案接手紀錄，集中管理架構、功能、資料來源、維護流程、驗收方式、待確認事項及後續方向；整合完成後移除兩份舊 Markdown 文件。此變更不影響主網站執行。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.09.18</div>
+                <h3 class="log-title">完成第一輪專案接手分析</h3>
+                <p>盤點主頁、11 個 JavaScript 模組、儲存方式與外部 API，完成第一版接手紀錄，並確認所有 JavaScript 通過語法檢查。該紀錄已於 2026.10.20 整合至本頁。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.09.16</div>
+                <h3 class="log-title">最近基線版本</h3>
+                <p>Git HEAD <code>3f98ea1</code>，提交訊息為「同步測試」，加入一張影集海報資產。</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="template">
+          <div class="panel-head">
+            <span class="section-number">10</span>
+            <h2>後續更新紀錄範本</h2>
+          </div>
+          <div class="panel-body">
+            <div class="note-box template">
+              <p><span class="tag">日期</span> YYYY.MM.DD</p>
+              <p><span class="tag">主題</span> 簡短描述本次工作的目標</p>
+              <p><span class="tag">修改檔案</span> 列出所有異動檔案</p>
+              <p><span class="tag">主要變更</span> 說明使用者可觀察到的行為差異及技術調整</p>
+              <p><span class="tag">影響範圍</span> 記錄可能受到影響的頁面、共用元件、資料格式或儲存方式</p>
+              <p><span class="tag">驗證結果</span> 桌面／手機、語言、主題、API、離線與錯誤狀態的測試情形</p>
+              <p><span class="tag">待辦</span> 尚未處理或需後續觀察的項目</p>
+            </div>
+            <p>新增紀錄時，將最新項目放在「更新紀錄」最上方，並同步修改頁首的 UPDATED 日期。完成或失效的待確認項目也應更新狀態，避免手記與程式現況脫節。</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer>LCARS PROJECT LOG · LOCAL DEVELOPMENT RECORD · 2026</footer>
+  </div>
+</body>
+</html>
