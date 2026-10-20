@@ -499,7 +499,7 @@
       </div>
       <div class="masthead-cap">
         <strong>ACTIVE</strong>
-        <span>UPDATED<br>2026.10.20</span>
+        <span>UPDATED<br>2026.10.21</span>
       </div>
     </header>
 
@@ -507,6 +507,7 @@
       <nav class="sidebar" aria-label="工作手記目錄">
         <div class="side-label">INDEX</div>
         <a class="nav-link" href="#overview">專案概況</a>
+        <a class="nav-link" href="#ux-system">目前 UI／UX 設計規範</a>
         <a class="nav-link" href="#baseline">接手基線</a>
         <a class="nav-link" href="#architecture">系統架構</a>
         <a class="nav-link" href="#features">功能特色</a>
@@ -526,7 +527,8 @@
             <h2>專案概況</h2>
           </div>
           <div class="panel-body">
-            <p class="lead">這是一套以《Star Trek》LCARS 為視覺基礎的個人資訊管理網站，將日常工作、財務、娛樂紀錄、天氣及太空資訊整合在同一個控制台介面。</p>
+            <p class="lead">這是一套整合日常工作、財務、娛樂紀錄、天氣資訊的個人資訊管理網站。原始介面以《Star Trek》LCARS 為基礎；ui-redesign 分支目前採暖灰與朱紅的呈報簿介面。首頁以人物選擇、資料呈報及 TO DO LIST 組成，其他主頁顯示對應人物對話。摘要依既有資料在本機產生。</p>
+            <p>目前分支的介面與功能以本頁「目前 UI／UX 設計規範」及最新更新紀錄為準；「專案接手基線」保留 2026.09.18 的歷史盤點。新版增加 <code>css/redesign.css</code> 與 <code>js/briefing.js</code>，主網站目前有 11 個本機 JavaScript 檔案。</p>
             <div class="meta-grid">
               <div class="meta-card"><span>Application Type</span><strong>原生靜態單頁網站</strong></div>
               <div class="meta-card"><span>Technology</span><strong>HTML / CSS / JavaScript</strong></div>
@@ -536,6 +538,41 @@
               <div class="meta-card"><span>Current Status</span><strong>長期維護／持續開發</strong></div>
             </div>
             <p>目前介面已形成穩定設計語言，後續開發應保留現有導覽、版面配置與操作習慣，以小範圍修改逐步完成尚未實作的功能。</p>
+          </div>
+        </section>
+
+        <section class="panel" id="ux-system">
+          <div class="panel-head"><span class="section-number">UX</span><h2>目前 UI／UX 設計規範</h2></div>
+          <div class="panel-body">
+            <p>適用分支：ui-redesign。2026.10.20 依使用者回饋重新定義。網站是需要反覆查看與操作的個人資訊管理工具，設計目標是快速理解狀況、找到下一步、完成後回到原來位置。介面不以品牌展示、刊物裝飾或儀表板卡片數量作為設計目標。</p>
+            <h3>使用情境與資訊架構</h3>
+            <div class="table-wrap"><table>
+              <thead><tr><th>使用目的</th><th>對應區域</th><th>呈現規則</th></tr></thead>
+              <tbody>
+                <tr><td>知道自己在哪裡</td><td>上方功能導覽、頁首標題</td><td>選取狀態使用底線、文字與底色共同提示；手機導覽換行，保留完整文字。</td></tr>
+                <tr><td>決定先做什麼</td><td>首頁 TO DO LIST</td><td>便箋與待辦只在首頁顯示；可新增、編輯、排序、設定提醒及勾選完成，沿用既有瀏覽器儲存資料。</td></tr>
+                <tr><td>了解需要注意的事</td><td>人物選擇與呈報內容</td><td>景綱、宗信、直澄、小夜、晴分別對應工作、財務、賽事、影劇閱讀及天氣；可查閱各人的摘要。其他主頁顯示相應人物對話側欄。</td></tr>
+                <tr><td>確認數據與建議依據</td><td>每則呈報的展開區與「資料與觀察」分頁</td><td>報價列、比分、封面與觀察按需展開；不製造不存在的對話紀錄或數據，也不將本機規則摘要宣稱為 AI 回覆。</td></tr>
+                <tr><td>執行或深入處理</td><td>「查看工作／財務／賽況／影劇與閱讀」</td><td>操作名稱說明目的地，不使用四個完全相同而無法辨識的「查看詳情」。</td></tr>
+                <tr><td>隨手記錄</td><td>首頁 TO DO LIST</td><td>沿用同一份便箋資料與儲存鍵；完成項目不觸發提醒。其他主頁不顯示便箋抽屜。</td></tr>
+              </tbody>
+            </table></div>
+            <h3>視覺規則</h3>
+            <ul>
+              <li>全站採系統無襯線字體，不依賴外部字體載入；正文 16px、一般輔助資訊 14px；表格欄名、行情日期、狀態與來源等緊湊資訊採 12–13px。全頁共用單一 H1（桌面 24px、手機 22px），區域標題約 19–20px，使用字重與間距建立層級。</li>
+              <li>正文行高約 1.7，長文字限制閱讀寬度；主要區域以 8／16／24／32px 間距對齊。一般控制項至少 44px 高，卡片內次要按鈕約 38–40px，觸控裝置擴至 44px。鍵盤操作有清楚焦點框。</li>
+              <li>依使用者選定的第三版「呈報簿」，預設採暖灰 #f6f2ec、米白 #fffcf7、朱紅 #a44d43 與深灰棕文字 #463b36。上方導覽維持淺色，選取人物使用朱紅側線與淡色底。警示搭配說明文字；配色固定使用目前版本，已移除舊主題切換。</li>
+              <li>首頁不使用大型日期章、雙語品牌標語、裝飾英文標籤、拼貼式多尺寸卡片與各區不同的襯線標題。分隔線只標示資訊邊界，不讓每段文字都多包一層容器。</li>
+              <li>共用視覺變數包括 --ui-line、--ui-soft、--ui-radius、--ui-radius-sm 與 --ui-shadow。主卡片採 10px 圓角、細框及輕陰影，內部控制採 6px 圓角；各主頁次級分頁統一朱紅底線與淡色選取，篩選按鈕使用較低層級。搜尋框只有一層邊框；行情漲跌採低彩度語意色，不使用深色標籤或螢光效果。</li>
+              <li>圖示搭配文字；五位原創人物使用本機 <code>images/advisors/council-five-cel.png</code> 圓形頭像。桌面人物列位於首頁左側，手機改為五人橫向排列。主工作區上限 1440px；首頁右側為 TO DO LIST，其他主頁右側為相應人物對話，窄版改為單欄。戰績表在桌面固定美聯三欄在上、國聯三欄在下，較窄尺寸改兩欄或單欄。</li>
+            </ul>
+            <h3>互動、資料狀態與驗證</h3>
+            <ul>
+              <li>載入時顯示「更新中」，停用重複更新；無資料與已知更新失敗使用不同文案，不把空清單直接當成錯誤。上次檢查時間是請求完成時間，不宣稱所有報價都在該時間更新。</li>
+              <li>資料與觀察展開狀態、任務展開狀態及篩選選擇在重新渲染時保留；鍵盤焦點回到對應的操作。正在編輯便箋時不重建便箋 DOM。</li>
+              <li>數據只從既有模組狀態讀取，缺資料不補造數字。保留原 API、儲存鍵與資料格式，使用隔離測試資料驗證，不測寫真實財務或個人紀錄。</li>
+              <li>驗收包括：已載入／空資料／失敗、長標題、資料轉義、桌面與手機、文字實際字級、一般文字與背景對比、觸控尺寸、鍵盤焦點、各領域入口與便箋保存。</li>
+            </ul>
           </div>
         </section>
 
@@ -571,9 +608,9 @@
           </div>
           <div class="panel-body">
             <div class="architecture" aria-label="系統架構圖">
-              <div class="arch-node"><strong>介面層</strong><span><code>index.html</code><br>頁面骨架、全部 CSS、SVG 圖示與響應式配置</span></div>
-              <div class="arch-node"><strong>核心協調層</strong><span><code>js/core.js</code><br>語言、主題、導覽、快取、工具與初始化流程</span></div>
-              <div class="arch-node"><strong>功能模組層</strong><span><code>js/*.js</code><br>專案、出勤、財務、比分、媒體、天氣、太空及便箋</span></div>
+              <div class="arch-node"><strong>介面層</strong><span><code>index.html</code>、<code>css/redesign.css</code><br>頁面骨架、樣式、SVG 圖示與響應式配置</span></div>
+              <div class="arch-node"><strong>核心協調層</strong><span><code>js/core.js</code>、<code>js/briefing.js</code><br>語言、導覽、快取、首頁呈報與人物對話</span></div>
+              <div class="arch-node"><strong>功能模組層</strong><span><code>js/*.js</code><br>專案、出勤、財務、比分、媒體、天氣及便箋</span></div>
               <div class="arch-node"><strong>資料服務層</strong><span>Apps Script、Google Sheets、外部 API、localStorage 與 sessionStorage</span></div>
             </div>
             <ul>
@@ -586,9 +623,9 @@
               <li><code>project.js</code> 另有同名 <code>closeOverlay()</code>，會在淡出後呼叫 <code>notes.js</code> 留下的 <code>window._overlayClose</code>；不能將其中一個版本直接當成無用重複程式刪除。</li>
               <li>出勤模組沿用 <code>proj-modal-*</code> 樣式；影集、電影、閱讀共用 <code>lib-*</code> 樣式。調整共用 CSS 時需檢查所有使用端。</li>
               <li>啟動時會抓取金融、比分、排名及首頁天氣，其他資料部分按頁面造訪延遲讀取；比分計時器目前不會因離開 SCORES 頁面而停止。</li>
-              <li>圖片資產集中在 <code>images/posters/</code>，歷史版本壓縮檔放在 <code>_versions/</code>。</li>
+              <li>封面圖片放在 <code>images/posters/</code>，人物圖集放在 <code>images/advisors/</code>，歷史版本壓縮檔放在 <code>_versions/</code>。</li>
             </ul>
-            <div class="note-box warning"><strong>腳本載入順序：</strong> finance → scores → notes → library → films → reading → attendance → project → weather → space → Astronomy Engine → core。</div>
+            <div class="note-box warning"><strong>目前腳本載入順序：</strong> finance → scores → notes → library → films → reading → attendance → project → weather → core → briefing。</div>
           </div>
         </section>
 
@@ -599,15 +636,15 @@
           </div>
           <div class="panel-body">
             <div class="card-grid">
-              <article class="feature-card"><h3>MAIN · 主控台</h3><p>日期時間、台北天氣摘要、系統運行時間、分類捷徑、Captain's Log、計算機、計時器與語音狀態。</p></article>
+              <article class="feature-card"><h3>MAIN · 首頁呈報</h3><p>五位人物依既有資料呈報工作、財務、賽事、影劇閱讀與天氣；右側 TO DO LIST 管理便箋與完成狀態。</p></article>
               <article class="feature-card"><h3>WORKSPACE · 工作區</h3><p>以 Project → Milestone → Task 管理專案，提供看板、優先順序、期限、模板；另有休假與加班紀錄。</p></article>
               <article class="feature-card"><h3>FINANCE · 財務</h3><p>顯示台美股、基金與匯率，支援自訂投資分頁、持倉資料、資產配置堆疊圖與 treemap。</p></article>
               <article class="feature-card"><h3>SCORES · 賽事</h3><p>讀取 MLB 比分與排名，預設聚焦 Baltimore Orioles，包含逐局資訊、賽況與自動更新。</p></article>
               <article class="feature-card"><h3>LIBRARY · 媒體庫</h3><p>記錄影集季／集進度、電影與重看、書籍閱讀與評分，提供搜尋、篩選及本機海報。</p></article>
-              <article class="feature-card"><h3>OBSERVATORY · 觀測站</h3><p>台灣縣市天氣、逐時與逐日預報、日照資訊，以及 NASA APOD、行星軌道與 Voyager 顯示。</p></article>
-              <article class="feature-card"><h3>NOTES · 全站便箋</h3><p>右側便箋跨頁顯示，支援排序、顏色及到期提醒；資料保存在目前瀏覽器。</p></article>
-              <article class="feature-card"><h3>LCARS UI</h3><p>深色控制台、彎肘框架、膠囊按鈕、掃描線、SVG 圖示、三種主題及中英文切換。</p></article>
-              <article class="feature-card"><h3>RESPONSIVE</h3><p>桌面使用左側導覽、中央內容與右側便箋三欄；900px 以下調整為單欄流程。</p></article>
+              <article class="feature-card"><h3>OBSERVATORY · 觀測站</h3><p>台灣縣市天氣、逐時與逐日預報及日照資訊。</p></article>
+              <article class="feature-card"><h3>NOTES · 首頁待辦</h3><p>首頁 TO DO LIST 支援新增、編輯、排序、顏色、到期提醒及完成勾選；資料保存在目前瀏覽器。</p></article>
+              <article class="feature-card"><h3>呈報簿 UI</h3><p>暖灰與朱紅配色、上方導覽、五人原創圓形頭像、SVG 圖示及中英文切換。</p></article>
+              <article class="feature-card"><h3>RESPONSIVE</h3><p>桌面首頁顯示人物、呈報與待辦；其他主頁顯示功能內容與人物對話。窄版改為單欄。</p></article>
             </div>
           </div>
         </section>
@@ -621,16 +658,15 @@
             <table>
               <thead><tr><th>資料類型</th><th>來源／儲存</th><th>注意事項</th></tr></thead>
               <tbody>
-                <tr><td>便箋</td><td><code>localStorage</code></td><td>只存在目前瀏覽器，不會隨 Git 或 Dropbox 同步。</td></tr>
+                <tr><td>便箋／待辦</td><td><code>localStorage</code>（<code>lcars_notes_v1</code>）</td><td>含完成狀態；只存在目前瀏覽器，不會隨 Git 或 Dropbox 同步。</td></tr>
                 <tr><td>Captain's Log</td><td><code>sessionStorage</code></td><td>僅保留目前瀏覽器工作階段，可手動匯出。</td></tr>
-                <tr><td>語言、主題、目前頁面</td><td><code>sessionStorage</code></td><td>重新開啟瀏覽器後不一定保留。</td></tr>
+                <tr><td>語言、目前頁面</td><td><code>sessionStorage</code></td><td>重新開啟瀏覽器後不一定保留；目前沒有主題切換。</td></tr>
                 <tr><td>專案與出勤</td><td>Google Apps Script</td><td>分別使用獨立 endpoint，讀取失敗時可使用快取。</td></tr>
                 <tr><td>影集、電影、書籍</td><td>共用 Google Apps Script</td><td>以分表及 action 區分資料操作。</td></tr>
                 <tr><td>行情、基金、匯率</td><td>Google Sheets Visualization JSONP</td><td>設計上可從本機檔案載入，並使用瀏覽器快取。</td></tr>
                 <tr><td>投資持倉</td><td><code>localStorage</code> + Apps Script</td><td>目前以完整 tabs／holdings 狀態同步。</td></tr>
                 <tr><td>天氣</td><td>Open-Meteo</td><td>首頁使用固定台北座標；詳細頁保存縣市與行政區設定。</td></tr>
                 <tr><td>MLB</td><td>ESPN API</td><td>使用比分、賽況與排名資料，並有定時更新。</td></tr>
-                <tr><td>太空</td><td>NASA APOD、JPL Horizons、Astronomy Engine</td><td>APOD 使用 DEMO_KEY；Voyager 保留靜態 fallback。</td></tr>
               </tbody>
             </table>
             <div class="note-box warning" style="margin-top:16px">
@@ -670,7 +706,7 @@
                 <h3>UI / UX</h3>
                 <ul>
                   <li>未經明確要求，不改變頁面配置、操作流程、導覽方式、按鈕位置或響應式行為。</li>
-                  <li>沿用現有 LCARS 設計語言及命名。</li>
+                  <li>沿用目前呈報簿設計語言及既有程式命名。</li>
                   <li>桌機與手機版須交叉檢查。</li>
                   <li>跨頁調整前先確認共用元件與共用樣式。</li>
                 </ul>
@@ -728,12 +764,12 @@
                 <tr><td><span class="status open">OPEN</span></td><td>工作區狀態還原</td><td>已讀取上次選擇的子分頁，但初始畫面可能仍停留在 PROJECT。</td></tr>
                 <tr><td><span class="status review">REVIEW</span></td><td>重複資料請求</td><td>頁面切換與啟動流程可能重複載入 project、weather 或 library。</td></tr>
                 <tr><td><span class="status review">REVIEW</span></td><td>共用彈窗</td><td>跨檔案存在同名 <code>closeOverlay()</code>，需驗證 ESC、取消與 scroll-lock。</td></tr>
-                <tr><td><span class="status open">OPEN</span></td><td>未完成區域</td><td>LIBRARY / COLLECTION 仍為 COMING SOON；MAIN 新增捷徑尚未完成保存流程。</td></tr>
+                <tr><td><span class="status open">OPEN</span></td><td>未完成區域</td><td>LIBRARY / COLLECTION 仍需確認是否為佔位功能。</td></tr>
                 <tr><td><span class="status review">REVIEW</span></td><td>金融同步</td><td>跨裝置同時修改、離線保存及同步失敗提示尚待完整測試。</td></tr>
                 <tr><td><span class="status review">REVIEW</span></td><td>語言切換</td><td><code>applyLang()</code> 會更新標記並重繪金融分頁，但未統一重繪所有動態模組；需檢查已載入卡片與表單。</td></tr>
                 <tr><td><span class="status open">OPEN</span></td><td>靜態資源</td><td><code>favicon.ico</code> 缺少，且 SVG sprite 中存在重複的 <code>i-log</code> ID。</td></tr>
                 <tr><td><span class="status review">REVIEW</span></td><td>註解與行為落差</td><td><code>core.js</code> 結尾稱比分手動更新，但 <code>scores.js</code> 已實作 30 秒自動更新。</td></tr>
-                <tr><td><span class="status review">REVIEW</span></td><td>Voyager 數值</td><td>JPL response 的 AU 解析方式需用真實回應確認正確性。</td></tr>
+                <tr><td><span class="status review">REVIEW</span></td><td>媒體卡片驗收</td><td>2026.10.21 的寬螢幕瀏覽器檢查仍停留在載入狀態；須以實際追劇、電影與圖書卡片確認網格和封面。</td></tr>
               </tbody>
             </table>
           </div>
@@ -748,14 +784,14 @@
             <div class="card-grid">
               <div class="feature-card"><h3>第一階段 · 穩定性</h3><p>驗證初始化流程、子分頁還原、重複請求及共用彈窗生命週期。</p></div>
               <div class="feature-card"><h3>第二階段 · 資料安全</h3><p>補齊 Apps Script 與資料表契約文件，測試失敗回復、離線狀態及跨裝置同步。</p></div>
-              <div class="feature-card"><h3>第三階段 · 未完成功能</h3><p>依使用優先順序完成 COLLECTION、新增捷徑及其他佔位功能。</p></div>
-              <div class="feature-card"><h3>持續工作 · 品質</h3><p>每次改動驗證桌面／手機、中英文、三種主題、缺圖、長文字及 API 失敗情境。</p></div>
+              <div class="feature-card"><h3>第三階段 · 未完成功能</h3><p>確認 COLLECTION 等佔位功能的需求與優先順序。</p></div>
+              <div class="feature-card"><h3>持續工作 · 品質</h3><p>每次改動驗證桌面／手機、中英文、缺圖、長文字及 API 失敗情境。</p></div>
               <div class="feature-card"><h3>文件化</h3><p>將後端部署、Sheet 欄位、狀態值、快取鍵與測試方式逐步加入專案文件。</p></div>
               <div class="feature-card"><h3>版本紀錄</h3><p>完成改動後直接更新本手記，讓架構說明、開發規則、待辦狀態與程式現況保持一致。</p></div>
             </div>
             <h3 style="margin-top:18px">建議驗收矩陣</h3>
             <ul>
-              <li>桌面及手機：六個主頁、所有子分頁、重新整理後狀態還原、三種主題、中英文、長文字與缺圖。</li>
+              <li>桌面及手機：六個主頁、所有子分頁、重新整理後狀態還原、中英文、長文字與缺圖。</li>
               <li>共用 UI：表單開關、ESC、取消、儲存、捲動鎖定、焦點管理與觸控操作。</li>
               <li>資料流程：載入中、空資料、API 失敗、離線快取、異動後重新載入；寫入時使用可辨識的測試資料與適當環境。</li>
               <li>資料異動：同步確認讀取、正規化、寫入、快取及 UI 更新，保留既有 ID 與狀態值。</li>
@@ -770,6 +806,82 @@
           </div>
           <div class="panel-body">
             <div class="timeline">
+              <article class="log-entry">
+                <div class="log-date">2026.10.21 · JOURNAL SYNC</div>
+                <h3 class="log-title">同步工作手記與目前介面</h3>
+                <p>將概況、UI／UX 規範、架構、功能與資料來源更新為五人呈報簿、首頁 TO DO LIST 及六個現行主頁；移除將太空、計算機、三種主題及跨頁便箋寫成現行功能的描述。接手基線與先前改版紀錄保留歷史原文，並將 10 月 21 日更新項目移入紀錄內容區。已檢查 HTML 容器標籤配對及 <code>git diff --check</code>。</p>
+              </article>
+            <p><strong>2026.10.21 · 搜尋框雙框修正：</strong>移除複合搜尋欄位內層 input 的 focus-visible 外框，由外層 focus-within 統一呈現焦點，並限制內層寬度。檢查追劇、電影、閱讀均使用相同 lib-search 元件，已共同套用。瀏覽器確認追劇輸入框 outline:none、容器 outline:solid，且輸入框未超出容器；其他獨立表單欄位保留焦點提示。</p>
+            <p><strong>2026.10.21 · 追劇編輯視窗：</strong>修正表單內容未限制高度而底部被裁切的問題，欄位改為獨立捲動，標題和刪除／關閉／儲存列保留可見。已以現有卡片的編輯資訊驗證 1366×768 與 390×844 底部按鈕均位於視窗內，未更動紀錄。</p>
+            <p><strong>2026.10.21 · 更多按鈕置中：</strong>追劇、電影及閱讀的三點按鈕改為對稱 SVG 圓點，使用 inline-flex 水平垂直置中與零內距，避免文字字型基線偏移；便條更多按鈕同步置中，並補上按鈕無障礙名稱。已通過三個模組的語法檢查。</p>
+            <p><strong>2026.10.21 · 媒體卡片版面：</strong>1280px 以上追劇網格固定每列三部，保留人物對話側欄；電影與圖書封面容器固定 2:3，圖片使用 object-fit:contain 完整保留原比例，避免隨卡片內容高度被拉長。手機封面縮為 96×144。已檢查 CSS 規則；1920×1080 瀏覽器驗證時媒體資料仍停留載入狀態，尚未確認實際卡片畫面。</p>
+            <p><strong>2026.10.21 · 頭像清晰度：</strong>將 CSS background 圖集改為 img 元素縮放及容器裁切，明確使用 image-rendering:auto，保留原始高解析圖。桌面人物選單頭像放大至 72px，手機保留緊湊尺寸。已於瀏覽器檢視五人圓形裁切。</p>
+            <p><strong>2026.10.21 · 依動畫參考修正：</strong>根據使用者提供的畫風截圖，五人頭像改為圓潤臉型、簡化五官、大眼及明確賽璐璐陰影的 council-five-cel.png，保留原創人物與兩男三女配置，已檢視圖集並更新共用頭像來源及快取版本。</p>
+            <p><strong>2026.10.21 · 五人幕僚團：</strong>設定兩男三女：景綱（男／工作）、宗信（男／財務）、直澄（女／賽事）、小夜（女／影劇閱讀）、晴（女／天氣）。新增五人日式動漫圖集，首頁增加晴的選擇與天氣呈報，天氣對話改由晴負責。同步調整手機五人排列與快取版本。</p>
+            <p><strong>2026.10.20 · 日式動漫頭像修正：</strong>依使用者回饋改用清晰線稿、平塗賽璐璐陰影與動漫五官，降低寫實筆觸。新增 retainers-anime-v2.png 並更新所有圓形頭像的共用圖集來源，已檢視四人圖集。</p>
+            <p><strong>2026.10.20 · 動畫幕僚與對話側欄：</strong>新增 retainers-anime.png 四人動畫頭像圖集，延續圓形呈現。首頁以外增加對應人物對話：工作景綱、財務宗信、賽事直澄、影劇閱讀及天氣小夜。提供目前狀況／給我建議／需要注意什麼選項，以既有資料與固定規則切換內容，未接入自由文字 AI。首頁維持 TO DO LIST。已驗證五頁人物映射、按鈕切換、首頁隱藏、1440px 與 390px 排版及 JavaScript 語法。</p>
+            <p><strong>2026.10.20 · 首頁 TO DO LIST：</strong>移除近期事項與時程提醒側欄，將原便條 DOM 移至首頁右側 TO DO LIST；沿用 lcars_notes_v1 本機資料，新增 completed 欄位與完成勾選，保留文字、色彩、排序和提醒，完成項目不觸發提醒。取消其他頁面的筆記抽屜與側欄，窄螢幕排到首頁內容下方。瀏覽器已驗證新增、編輯、完成狀態重載保存、刪除、跨頁隱藏及 390px 無橫向溢出；測試項目已清除。</p>
+            <p><strong>2026.10.20 · 側欄精簡：</strong>移除共用側欄「留給自己的時間」區塊，側欄保留近期事項與時程提醒。已通過 JavaScript 語法檢查。</p>
+            <p><strong>2026.10.20 · 修正標題列：</strong>依截圖移除導覽下方的整列頁面名稱（如財務），日期、語言與筆記操作移至頂部導覽。恢復首頁「今日呈報」區塊標題。</p>
+            <p><strong>2026.10.20 · 標題層級：</strong>頁面名稱只保留頂欄的 h1；移除首頁與分頁名稱重複的「今日呈報」內容標題，以 aria-label 保留區域名稱。其他功能頁已直接從分頁、篩選或資料區塊開始，保留必要的區塊標題。</p>
+            <p><strong>2026.10.20 · 移除功能：</strong>移除太空分頁、計算機及主題切換入口與相關程式，刪除 js/space.js 及 astronomy-engine 載入。天氣維持地區選擇與預報，配色固定為暖灰、米白與朱紅。通過 JavaScript 語法檢查，並在瀏覽器確認導覽與天氣頁。</p>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · SHARED COMPONENT REFINEMENT</div>
+                <h3 class="log-title">統一各主頁的排版、元件與視覺質感</h3>
+                <p>更新 css/redesign.css、index.html 與 js/briefing.js：建立共用邊線、淺底、圓角、陰影與語意色變數；統一全頁 H1、導覽、次級分頁、篩選、搜尋、卡片、表格、側欄及表單。移除首頁重複主標題；財務改用低彩度漲跌標籤、收藏卡片調整文字與操作空間、工作頁移除深色 hover 與光暈、觀測資訊卡與其他模組共用層級。表單與資產摘要補上窄版尺寸約束，保留原資料、事件與 API。</p>
+                <p>驗證：六主頁於 1920／1280／1024／768／390／360px 無橫向溢位，主標題皆為單一 H1，桌面 24px、手機 22px。已確認 360px 新增電影表單的三組 grid 與表單內容無溢位、開啟後取消未儲存；1440／390px 持倉摘要無溢位；20 張電影卡片操作列均在卡片範圍內。未測試遠端寫入，未提交或推送。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · SHARED SIDEBAR / STANDINGS</div>
+                <h3 class="log-title">將近期事項欄延伸至全部功能頁，固定戰績表三欄兩列</h3>
+                <p>更新 css/redesign.css 與 js/briefing.js：把唯一的近期事項元件移至 main 共用外層，六主頁在桌面均保留 250px 右欄；首頁維持人物／呈報／近期事項，其他頁面使用內容／近期事項。側欄持續由原模組狀態更新，跨頁可直接返回總覽待辦，便箋元件與儲存方式不變。戰績表改為桌面固定三欄，沿用 AL East／Central／West、NL East／Central／West 排序，1000px 以下兩欄、600px 以下單欄；修正表頭隊伍格的 table-cell 排列。</p>
+                <p>驗證：六主頁各於 1920／1440／1280／1024／390px 無橫向溢位；1280px 以上皆顯示同一份右欄，較窄尺寸收起。1920px 實際戰績表為六區、三個橫向位置及兩個列位置，表格本身未溢位。已確認從賽事側欄開啟總覽待辦，以及便箋抽屜 Escape、焦點回復、單一便箋 DOM。未修改比分資料來源、刷新頻率或後端資料，未提交或推送。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · WIDESCREEN / THREE COLUMNS</div>
+                <h3 class="log-title">限制寬螢幕閱讀範圍，加入近期事項側欄</h3>
+                <p>更新 css/redesign.css 與 js/briefing.js：工作區最大寬度 1440px 並置中。首頁在 1280px 以上採左側人物 210px、中央呈報與右側近期事項 250px 的三欄配置；右欄從既有任務、閱讀和觀看進度整理近期事項、逾期及三天內到期數量，可直接開啟待辦或相關功能頁。小螢幕隱藏右欄，保留原分頁入口；未新增 API 或資料寫入。</p>
+                <p>驗證：1920×1080 實際工作區寬度為 1440px；1920／1440／1280／1279／1024／390px 的三欄、兩欄及單欄斷點無橫向溢位，六主頁寬螢幕排列正常，右欄「查看交代的事」可切換到原待辦。檢查期間既有閱讀服務回傳 HTTP 404，未修改其 API 串接；資料服務錯誤不屬於本次版面調整。未提交或推送。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · DISPATCH BOOK / WARM GRAY &amp; CINNABAR</div>
+                <h3 class="log-title">沿用未完成改版，套用第三版呈報簿</h3>
+                <p>確認分支為 ui-redesign，保留既有未提交修改。更新 css/redesign.css、js/briefing.js、js/core.js 與 index.html：全站改為淺色上方導覽；首頁左側人物與原便箋元件、右側呈報，提供今日呈報／交代的事／資料與觀察分頁。景綱、宗信、直澄、小夜為暫定名字，可選個別呈報或分類查看。新增 images/advisors/retainers.png，使用 built-in ImageGen 產生原創成熟寫實戰國頭像四格圖，依格位圓形裁切；沒有更動 API、業務資料格式或儲存鍵，沒有接入 AI 對話。</p>
+                <p>驗證：JavaScript 語法檢查通過；六主頁各於 1440／1024／768／390／360px 無橫向溢位。已確認四位人物切換、全部呈報、時程提醒空狀態、待辦分頁、資料展開、中英文切換與選擇保持、便箋抽屜 Escape 與焦點回復、原便箋元件返回首頁。瀏覽器檢查未見 console error。未做真實資料寫入驗收，未提交或推送。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · WARM GRAY / INK NAVY</div>
+                <h3 class="log-title">套用使用者確認的暖灰與墨藍示意圖</h3>
+                <p>修改 css/redesign.css 與 js/core.js 的預設色票：墨藍導覽、暖灰背景、米白簡報區、暖沙色待辦區與淡米色筆記。保留單一閱讀軸與正文 16px／輔助文字至少 14px；桌面簡報右側放置功能入口和資料／觀察展開按鈕，手機版維持垂直閱讀順序。</p>
+                <p>使用隔離瀏覽器驗證六主頁各於 1440／1024／768／390px 無橫向溢位，篩選、簡報展開、便箋抽屜與 Escape 正常；首頁可見文字均至少 14px，便箋儲存字串保持一致，未發出 POST 或產生頁面執行錯誤。資料格式、儲存鍵與 API 流程未更動，未提交或推送。後續細節依使用者回饋再調整。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · TASK-FIRST UI / UX</div>
+                <h3 class="log-title">依閱讀與操作任務重新設計介面</h3>
+                <p>針對版面混亂、制式裝飾與文字不清楚的回饋，建立本頁「目前 UI／UX 設計規範」。css/redesign.css 改為單一閱讀軸、白色工作區、低干擾導覽、16px 正文與至少 14px 輔助文字。移除大型刊頭、裝飾中英標語、日期章與拼貼卡片；index.html 移除外部字體，js/core.js 更新預設淺色配色。</p>
+                <p>js/briefing.js 將待辦移回首頁上方的標準清單，各領域簡報依同一結構排列；數據及觀察採展開方式查看，功能入口明確標示目的地。保留篩選與展開狀態，並恢復重新渲染前的對應鍵盤焦點。資料讀寫方式維持原樣。</p>
+                <p>驗證：首頁所有可見文字實際字級至少 14px；預設主題白底正文對比 14.16:1、輔助文字 6.32:1、操作文字 7.36:1。修正便箋 metadata 與按鈕的透明度，避免繼承舊樣式而使文字過淡；便箋操作與色彩選擇控制項擴大至 44px。隔離瀏覽器確認待辦展開、分類篩選、按需查看數據、焦點還原、抽屜 Escape 與便箋儲存不變。六主頁各測試 1440／1024／768／390px，無橫向溢位；無頁面執行錯誤，測試未發出 POST。未提交或推送。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · EDITORIAL REDESIGN</div>
+                <h3 class="log-title">重做配色、版面、字體與圖示系統</h3>
+                <p>依使用者授權大幅調整介面。css/redesign.css 重建為編輯刊物式視覺：暖紙色背景、深墨綠導覽、陶土紅重點、鼠尾草綠待辦；使用襯線標題、清楚的數字層級、統一間距與線條圖示。index.html 更新字體來源，js/core.js 更新 PAPER 色票與共用字體。保留既有主題切換功能。</p>
+                <p>js/briefing.js 改為日期刊頭、首頁內的待辦索引與不對稱簡報網格；工作時程重點、財務報價列、比分版面與媒體封面使用不同視覺層級，觀察入口僅顯示小型圓形幕僚圖像。封面讀取既有本機檔案，缺圖使用圖示替代。其他功能頁同步調整分頁、行情版面、表單及卡片，筆記仍是首頁區塊與按需開啟的抽屜。</p>
+                <p>原有 API、資料儲存鍵值、資料格式與讀寫流程維持原樣。驗證使用隔離瀏覽器及測試資料，未寫入真實遠端資料；確認任務文字轉義、行情與比分數值、媒體封面、六主頁切換、篩選、筆記抽屜、Escape、中英文。六主頁各驗證 1440／1024／768／390px 無橫向溢位，首頁另驗證 1280／900／760／360px。元件搬移前後測試便箋的 localStorage 字串一致。字體服務不可用時亦能以系統字體顯示；無 JavaScript 執行錯誤。尚未完成真實服務的端到端寫入驗收，未提交或推送。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · HOMEPAGE LAYOUT</div>
+                <h3 class="log-title">待辦移至首頁，取消常駐右欄</h3>
+                <p>更新 css/redesign.css 與 js/briefing.js。整站改為導覽與主要工作區兩欄；近期待辦只在首頁顯示前三項，可展開其餘項目。首頁增加全部／需處理／工作／財務／生活篩選，專案簡報僅在有逾期或三天內到期事項時提供時程提醒，不重複列出待辦。簡報採細分隔線與較緊湊的操作列。</p>
+                <p>原便箋元件搬至首頁下方，在其他頁面透過頁首筆記按鈕開啟非模態抽屜，可按關閉或 Escape 收起。搬移同一份 DOM，保留原事件、儲存鍵及資料讀寫流程；沒有新增資料格式或寫入遠端資料。</p>
+                <p>獨立瀏覽器測試確認：首頁待辦展開、簡報篩選、抽屜開關與返回首頁正常；元件搬移前後測試便箋的 localStorage 字串完全相同，搬移後編輯仍能儲存。1440／1024／768／390px 沒有橫向溢位，在阻擋外部服務情境下無頁面執行錯誤。遠端服務及真實資料未進行寫入驗收。</p>
+              </article>
+              <article class="log-entry">
+                <div class="log-date">2026.10.20 · UI REDESIGN</div>
+                <h3 class="log-title">新增 ui-redesign 分支並套用個人資訊簡報版面</h3>
+                <p>依使用者要求建立並切換至 ui-redesign。index.html 加入今日簡報入口與可展開的舊工具區；css/redesign.css 將全站配置調整為暖白、墨綠的響應式介面；js/core.js 加入預設 PAPER 主題、獨立主題儲存鍵與中文預設；js/briefing.js 從現有任務、行情、比分及影劇／閱讀資料產生摘要與待處理清單，附小型圓形 SVG 人像。幕僚建議為本機規則整理，尚未串接 AI 對話後端。保留原有資料鍵與各功能頁。原 AGENTS.md 規範已由使用者明確撤銷。</p>
+                <p>已用無頭瀏覽器於 1440px 與 390px 驗證無橫向溢位、四張摘要及六主頁切換；測試資料涵蓋任務、行情、比分、影劇及閱讀，並確認 HTML 轉義、展開狀態保存、中英文和主題切換。在阻擋外部網路的情境沒有 JavaScript 執行錯誤；真實遠端讀寫與完整功能驗收仍需後續確認。未執行提交或推送。</p>
+              </article>
               <article class="log-entry">
                 <div class="log-date">2026.10.20</div>
                 <h3 class="log-title">建立並整合 HTML 工作手記</h3>

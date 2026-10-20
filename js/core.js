@@ -1143,7 +1143,7 @@
     }
   };
 
-  let currentLang = 'en';
+  let currentLang = 'zh';
   // Restore preference if available
   try {
     const saved = sessionStorage.getItem('lcars_lang');
@@ -1179,9 +1179,9 @@
     // Adjust font for Chinese — Antonio doesn't support CJK
     if (currentLang === 'zh') {
       document.body.style.fontFamily =
-        '"Antonio", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif';
+        'var(--ui-sans, "Segoe UI"), "Microsoft JhengHei", sans-serif';
     } else {
-      document.body.style.fontFamily = '"Antonio", "Helvetica Neue", sans-serif';
+      document.body.style.fontFamily = 'var(--ui-sans, "Segoe UI"), sans-serif';
     }
     // Finance sub-tabs are rendered dynamically, so refresh their labels too.
     if (typeof renderFinanceTabs === 'function') renderFinanceTabs();
@@ -1281,104 +1281,6 @@
       try { sessionStorage.setItem(key, JSON.stringify(value)); } catch(e2) {}
     }
   }
-
-  /* ============================================================
-     THEME CYCLE — four LCARS-era palettes
-     ============================================================ */
-  const THEMES = [
-    {
-      // 0 — PICARD: deep navy + warm coral (Stargazer / bridge feel)
-      name: 'PICARD',
-      vars: {
-        '--lcars-bg':     '#02050a',
-        '--lcars-panel':  '#06101c',
-        '--lcars-frame':  '#0a1828',
-        '--lcars-text':   '#f5cf7a',
-        '--lcars-orange': '#ff9966',
-        '--lcars-rust':   '#cc6666',
-        '--lcars-blue':   '#7a9bd6',
-        '--lcars-violet': '#9977bb',
-        '--lcars-gold':   '#d4a23a',
-        '--lcars-cream':  '#e8d5a8',
-        '--lcars-muted':  '#2a3548',
-        '--lcars-dim':    '#5a6a5a'
-      }
-    },
-    {
-      // 1 — PICARD-COOL: pure black + slate gray + coral accents
-      // (Starfleet HQ / TheLCARS.com Picard Theme aesthetic)
-      name: 'PICARD-COOL',
-      vars: {
-        '--lcars-bg':     '#000000',
-        '--lcars-panel':  '#0a0a0a',
-        '--lcars-frame':  '#3d4757',
-        '--lcars-text':   '#a9b4c2',
-        '--lcars-orange': '#e89878',     // coral accent (HELLO color)
-        '--lcars-rust':   '#c47a5e',
-        '--lcars-blue':   '#6b8caf',     // muted slate blue
-        '--lcars-violet': '#7a7a9a',     // dusty cool violet
-        '--lcars-gold':   '#9ba6b5',     // cool light slate
-        '--lcars-cream':  '#d8dde5',     // off-white slate
-        '--lcars-muted':  '#252b35',
-        '--lcars-dim':    '#6b7a8a'
-      }
-    },
-    {
-      // 2 — TNG classic: pure black + iconic bright orange/peach
-      name: 'TNG',
-      vars: {
-        '--lcars-bg':     '#000000',
-        '--lcars-panel':  '#000000',
-        '--lcars-frame':  '#1a1a1a',
-        '--lcars-text':   '#ff9c00',
-        '--lcars-orange': '#ff9c00',
-        '--lcars-rust':   '#cc6666',
-        '--lcars-blue':   '#9999ff',
-        '--lcars-violet': '#cc99cc',
-        '--lcars-gold':   '#ffcc66',
-        '--lcars-cream':  '#ffcc99',
-        '--lcars-muted':  '#333333',
-        '--lcars-dim':    '#7a6a50'
-      }
-    }
-  ];
-
-  let themeIdx = 1;   // default = PICARD-COOL
-  // Restore saved theme
-  try {
-    const saved = parseInt(sessionStorage.getItem('lcars_theme'), 10);
-    if (!isNaN(saved) && saved >= 0 && saved < THEMES.length) themeIdx = saved;
-  } catch(e) {}
-
-  function applyTheme(idx) {
-    const theme = THEMES[idx];
-    const root = document.documentElement;
-    Object.entries(theme.vars).forEach(([k, v]) => root.style.setProperty(k, v));
-    // Brief flash on the button to show the new theme name
-    const btn = document.querySelector('[data-theme-btn]');
-    if (btn) {
-      const labelSpan = btn.querySelector('[data-i18n]');
-      if (labelSpan) {
-        const original = t('navTheme');
-        labelSpan.removeAttribute('data-i18n');
-        labelSpan.textContent = theme.name;
-        setTimeout(() => {
-          labelSpan.setAttribute('data-i18n', 'navTheme');
-          labelSpan.textContent = original;
-        }, 1200);
-      }
-    }
-  }
-
-  function cycleTheme() {
-    themeIdx = (themeIdx + 1) % THEMES.length;
-    try { sessionStorage.setItem('lcars_theme', themeIdx); } catch(e) {}
-    applyTheme(themeIdx);
-    beep(540 + themeIdx * 80);
-  }
-
-  // Apply saved theme on load (after DOM is ready)
-  applyTheme(themeIdx);
 
   /* ============================================================
      LCARS BEEP (tiny synthesized chirp)
@@ -1529,11 +1431,6 @@
         // already inited — just refresh if cache is stale
         if (!wxData || (Date.now() - wxData.ts) > 600000) fetchWeatherPage();
       }
-      // If landing on SPACE tab, init space module
-      const activeObs = document.querySelector('.obs-subtab-btn.active');
-      if (activeObs?.dataset?.subtab === 'space' && typeof initSpace === 'function') {
-        initSpace();
-      }
     }
   }
 
@@ -1678,42 +1575,13 @@
   }
 
   /* ============================================================
-     TOOLS — Calculator + Timer
+     TOOLS — Timer
      ============================================================ */
   function showTool(name) {
     document.getElementById('tools-default').style.display = 'none';
-    document.getElementById('calc-tool').classList.add('hidden');
     document.getElementById('timer-tool').classList.add('hidden');
-    if (name === 'calc') document.getElementById('calc-tool').classList.remove('hidden');
     if (name === 'timer') document.getElementById('timer-tool').classList.remove('hidden');
     beep(550);
-  }
-
-  let calcExpr = '';
-  function calcIn(v) {
-    if (calcExpr === '0' || document.getElementById('calc-screen').value === 'ERROR') calcExpr = '';
-    calcExpr += v;
-    document.getElementById('calc-screen').value = calcExpr || '0';
-  }
-  function calcDel() {
-    calcExpr = calcExpr.slice(0, -1);
-    document.getElementById('calc-screen').value = calcExpr || '0';
-  }
-  function calcClr() {
-    calcExpr = '';
-    document.getElementById('calc-screen').value = '0';
-  }
-  function calcEq() {
-    try {
-      // Safer than eval: only allow digits & operators
-      if (!/^[0-9+\-*/().\s]+$/.test(calcExpr)) throw 'bad';
-      const result = Function('"use strict";return (' + calcExpr + ')')();
-      document.getElementById('calc-screen').value = result;
-      calcExpr = String(result);
-    } catch(e) {
-      document.getElementById('calc-screen').value = 'ERROR';
-      calcExpr = '';
-    }
   }
 
   // Timer
@@ -1822,24 +1690,6 @@
   }
   window.setWsSubtab = setWsSubtab;
 
-  /* ── Observatory sub-tab (WEATHER / SPACE) ── */
-  function setObsSubtab(name) {
-    document.querySelectorAll('.obs-subtab-btn').forEach(b => {
-      b.classList.toggle('active', b.getAttribute('data-subtab') === name);
-    });
-    document.querySelectorAll('.obs-subtab-panel').forEach(p => {
-      p.hidden = p.getAttribute('data-subtab-panel') !== name;
-    });
-    // Show/hide city selectors — only relevant on WEATHER tab
-    const sel = document.getElementById('obs-selectors');
-    if (sel) sel.style.display = (name === 'weather') ? '' : 'none';
-    // Lazy-init SPACE module
-    if (name === 'space' && typeof initSpace === 'function') {
-      initSpace();
-    }
-    beep(560);
-  }
-  window.setObsSubtab = setObsSubtab;
   if (typeof initAttendance === 'function') initAttendance();
   // initWeather is triggered lazily by switchPage('weather') on first visit
   fetchWeather();  // lightweight main-page weather summary only

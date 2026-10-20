@@ -389,7 +389,8 @@
 
     const moreBtn = document.createElement('button');
     moreBtn.className = 'series-btn icon-btn';
-    moreBtn.textContent = '⋯';
+    moreBtn.setAttribute('aria-label', t('notesMoreTip'));
+    moreBtn.innerHTML = '<svg class="more-dots-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
     moreBtn.addEventListener('click', e => {
       e.stopPropagation();
       showFilmEditForm(f);

@@ -569,7 +569,8 @@
     // ⋯ menu — edit / delete / add-season
     const moreBtn = document.createElement('button');
     moreBtn.className = 'series-btn icon-btn';
-    moreBtn.textContent = '⋯';
+    moreBtn.setAttribute('aria-label', t('notesMoreTip'));
+    moreBtn.innerHTML = '<svg class="more-dots-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
     moreBtn.addEventListener('click', e => {
       e.stopPropagation();
       showSeriesMenu(s, se, moreBtn);
@@ -1169,14 +1170,14 @@
       overlay.className = 'alert-overlay';
       overlay.style.zIndex = 10000;
       const stack = document.createElement('div');
-      stack.className = 'alert-stack';
+      stack.className = 'alert-stack series-form-stack';
       // alert-stack defaults to max-width:420px which would crop our wider
       // form modal — override for this stack only.
       stack.style.maxWidth = '640px';
       overlay.appendChild(stack);
 
       const card = document.createElement('div');
-      card.className = 'alert-card';
+      card.className = 'alert-card series-form-card';
       card.style.borderColor = 'var(--lcars-cream)';
       card.style.maxWidth = '640px';
       card.style.width = '100%';
@@ -1191,11 +1192,7 @@
 
       const body = document.createElement('div');
       body.className = 'alert-body';
-      // Generous padding + no max-height clamp so the form fits without
-      // either a vertical or horizontal scrollbar at typical sizes.
       body.style.padding = '20px 24px';
-      body.style.maxHeight = 'none';
-      body.style.overflow = 'visible';
       body.innerHTML = buildSeriesFormBody(s, se);
 
       const footer = document.createElement('div');

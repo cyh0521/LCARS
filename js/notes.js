@@ -50,6 +50,7 @@
     let changed = false;
     notesCache.forEach(n => {
       if (typeof n.order !== 'number') { n.order = n.created || 0; changed = true; }
+      if (typeof n.completed !== 'boolean') { n.completed = false; changed = true; }
       if (!n.color) { n.color = 'gold'; changed = true; }
       if (n.remindAt === undefined) { n.remindAt = null; changed = true; }
       if (n.notified === undefined) { n.notified = false; changed = true; }
@@ -650,7 +651,7 @@
     let firedAny = false;
     // Sort by remindAt so multiple due reminders queue oldest-first
     const due = notesCache
-      .filter(n => n.remindAt && !n.notified && n.remindAt <= now)
+      .filter(n => !n.completed && n.remindAt && !n.notified && n.remindAt <= now)
       .sort((a, b) => a.remindAt - b.remindAt);
     due.forEach(n => {
       n.notified = true;
@@ -674,7 +675,7 @@
     document.querySelectorAll('.note-card').forEach(card => {
       const id = card.dataset.id;
       const note = notesCache.find(n => n.id === id);
-      if (!note || !note.remindAt || note.notified) return;
+      if (!note || note.completed || !note.remindAt || note.notified) return;
       const span = card.querySelector('.note-reminder-status');
       if (span) {
         // Monochrome inline SVG stopwatch — picks up currentColor via the
@@ -711,6 +712,7 @@
       const card = document.createElement('div');
       card.className = 'note-card color-' + (note.color || 'gold');
       card.dataset.id = note.id;
+      card.classList.toggle('is-complete', !!note.completed);
       card.draggable = true;
 
       // ----- Drag handlers -----
@@ -842,7 +844,20 @@
       });
 
       card.appendChild(meta);
-      card.appendChild(ta);
+      const body = document.createElement('div');
+      body.className = 'todo-entry';
+      const complete = document.createElement('input');
+      complete.type = 'checkbox'; complete.className = 'todo-complete';
+      complete.checked = !!note.completed;
+      complete.setAttribute('aria-label', currentLang === 'zh' ? '標記完成' : 'Mark complete');
+      complete.addEventListener('change', () => {
+        note.completed = complete.checked;
+        card.classList.toggle('is-complete', note.completed);
+        saveNotes();
+      });
+      ta.setAttribute('aria-label', currentLang === 'zh' ? '待辦與備忘內容' : 'Task and note');
+      body.append(complete, ta);
+      card.appendChild(body);
       list.appendChild(card);
 
       // Size after insertion (scrollHeight needs the element to be in the DOM)
@@ -867,6 +882,7 @@
     const newNote = {
       id: 'n' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       text: '',
+      completed: false,
       created: Date.now(),
       color: nextColor,
       order: maxOrder + 1000,

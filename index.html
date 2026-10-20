@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <link rel="icon" href="favicon.ico" sizes="any">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STARBASE 074 :: OPERATIONS</title>
+<title>私人據點 · 呈報簿</title>
 <style>
   /* ============================================================
      LCARS — Starbase Operations Console
      Picard-era palette (deep navy base, refined accents)
      ============================================================ */
 
-  @import url('https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oxanium:wght@400;500;600&display=swap');
+  /* Use system fonts for consistent, immediately available text rendering. */
 
   :root {
     /* Picard-era LCARS palette — deep, refined */
@@ -1614,36 +1614,6 @@
   }
 
   .tool-display.hidden { display: none; }
-
-  .calc-display {
-    font-size: 22px;
-    color: var(--lcars-orange);
-    text-align: right;
-    width: 100%;
-    font-weight: 600;
-  }
-
-  .calc-pad {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 3px;
-    margin-top: 6px;
-  }
-  .calc-key {
-    background: var(--lcars-frame);
-    border: none;
-    color: var(--lcars-text);
-    padding: 8px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 4px;
-  }
-  .calc-key:hover { background: var(--lcars-orange); color: var(--lcars-bg); }
-  .calc-key.op { background: var(--lcars-violet); color: var(--lcars-bg); }
-  .calc-key.eq { background: var(--lcars-orange); color: var(--lcars-bg); }
-  .calc-key.clr { background: var(--lcars-rust); color: var(--lcars-bg); }
 
   /* Timer */
   .timer-display {
@@ -4427,7 +4397,7 @@
   @keyframes wx-dot { from { opacity: 0.1; } to { opacity: 1; } }
   .wx-error { color: var(--lcars-rust); font-size: 11px; }
 
-  /* ── Observatory sub-tab bar (WEATHER / SPACE) ── */
+  /* ── Weather location controls ── */
   .obs-subtab-bar {
     display: flex;
     align-items: center;
@@ -4435,27 +4405,6 @@
     padding: 4px 20px 2px 20px;
     border-bottom: 2px solid var(--lcars-frame);
     margin-bottom: var(--gap);
-  }
-  .obs-subtab-btn {
-    background: var(--lcars-frame);
-    color: var(--lcars-cream);
-    border: none;
-    padding: 8px 18px;
-    font-family: 'Antonio', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    cursor: pointer;
-    border-radius: 0;
-    transition: background 0.15s, color 0.15s, opacity 0.15s;
-    opacity: 0.55;
-    text-transform: uppercase;
-  }
-  .obs-subtab-btn:hover { opacity: 1; }
-  .obs-subtab-btn.active {
-    background: var(--lcars-cream);
-    color: var(--lcars-bg);
-    opacity: 1;
   }
   /* City/district selectors pushed to the far right of the tab bar */
   .obs-subtab-selectors {
@@ -4539,114 +4488,6 @@
   .wx-credit a { color: var(--lcars-dim); text-decoration: none; }
   .wx-credit a:hover { color: var(--lcars-cream); }
 
-  /* ============================================================
-     SPACE TAB
-     ============================================================ */
-
-  .sp-credit { font-size: 10px; color: var(--lcars-dim); padding-top: 8px; letter-spacing: 0.08em; }
-  .sp-error  { color: var(--lcars-rust); font-size: 12px; padding: 20px 0; }
-  .sp-loading-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--lcars-blue);
-    animation: wx-dot 0.8s ease-in-out infinite alternate;
-  }
-
-  /* ── APOD ── */
-  .sp-apod-body {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 20px; align-items: start;
-  }
-  .sp-apod-img-wrap {
-    position: relative; background: var(--lcars-frame);
-    overflow: hidden; aspect-ratio: 16 / 10;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .sp-apod-img-wrap a { display: block; width: 100%; height: 100%; }
-  .sp-apod-img-wrap img {
-    width: 100%; height: 100%; object-fit: cover; display: block;
-    transition: opacity 0.2s;
-  }
-  .sp-apod-img-wrap a:hover img { opacity: 0.82; }
-  .sp-apod-placeholder {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .sp-apod-title {
-    font-family: 'Antonio', sans-serif;
-    font-size: 17px; font-weight: 700;
-    letter-spacing: 0.1em; color: var(--lcars-cream); margin-bottom: 4px;
-  }
-  .sp-apod-date  { font-size: 11px; color: var(--lcars-dim); letter-spacing: 0.15em; margin-bottom: 12px; }
-  .sp-apod-desc  {
-    font-size: 14px; line-height: 1.75; color: var(--lcars-text);
-    max-height: 260px; overflow-y: auto; padding-right: 6px;
-    scrollbar-width: thin; scrollbar-color: var(--lcars-muted) transparent;
-  }
-
-
-  /* ── Orbit map ── */
-  .sp-orbit-panel .panel-title { align-items: baseline; flex-wrap: wrap; }
-  .sp-orbit-note {
-    margin-left: 8px; font-size: 11px; letter-spacing: 0.08em;
-    color: var(--lcars-dim); font-family: 'Noto Sans TC', sans-serif; font-weight: 400;
-  }
-  .sp-orbit-wrap {
-    position: relative;
-    cursor: grab;
-    user-select: none;
-    touch-action: none;
-  }
-  .sp-orbit-wrap:active { cursor: grabbing; }
-  .sp-orbit-canvas { display: block; width: 100%; aspect-ratio: 16/9; background: #02050a; }
-
-  /* HUD overlay */
-  .sp-orbit-hud {
-    position: absolute; top: 10px; right: 10px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .sp-orbit-angles {
-    display: flex; align-items: center; gap: 6px;
-    background: rgba(2,5,10,0.75);
-    border: 1px solid var(--lcars-muted);
-    padding: 4px 10px; border-radius: 2px;
-  }
-  .sp-orbit-angle-label {
-    font-family: 'Antonio', sans-serif; font-size: 9px;
-    letter-spacing: 0.15em; color: var(--lcars-dim);
-  }
-  .sp-orbit-angle-val {
-    font-family: 'Antonio', sans-serif; font-size: 12px; font-weight: 700;
-    color: var(--lcars-text); letter-spacing: 0.06em; min-width: 34px;
-  }
-  .sp-orbit-reset {
-    font-family: 'Antonio', sans-serif; font-size: 10px; font-weight: 700;
-    letter-spacing: 0.15em; color: var(--lcars-dim);
-    background: rgba(2,5,10,0.75); border: 1px solid var(--lcars-muted);
-    padding: 4px 10px; cursor: pointer; border-radius: 2px;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .sp-orbit-reset:hover { color: var(--lcars-orange); border-color: var(--lcars-orange); }
-  .sp-orbit-hint {
-    position: absolute; bottom: 8px; left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Antonio', sans-serif; font-size: 9px;
-    letter-spacing: 0.15em; color: var(--lcars-muted);
-    pointer-events: none; opacity: 0.6;
-  }
-  .sp-voyager-row {
-    display: flex; align-items: center; gap: 20px;
-    padding-top: 10px; border-top: 1px solid var(--lcars-frame); margin-top: 8px;
-  }
-  .sp-voy-item { display: flex; align-items: center; gap: 8px; }
-  .sp-voy-dot  { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-  .sp-voy-name { font-family: 'Antonio', sans-serif; font-size: 12px; letter-spacing: 0.14em; color: var(--lcars-cream); }
-  .sp-voy-au   { font-family: 'Antonio', sans-serif; font-size: 13px; font-weight: 700; color: var(--lcars-text); letter-spacing: 0.06em; }
-
-  /* RWD */
-  @media (max-width: 800px) {
-    .sp-apod-body { grid-template-columns: 1fr; }
-  }
-
   @media (max-width: 900px) {
     .wx-daily-grid { grid-template-columns: repeat(4, 1fr); }
     .wx-mid-body { flex-direction: column; }
@@ -4654,6 +4495,7 @@
   }
 </style>
 
+<link rel="stylesheet" href="css/redesign.css?v=search-focus-20261021">
 </head>
 <body>
 
@@ -4978,16 +4820,11 @@
       <div style="display:flex; align-items:center; gap:14px;">
         <svg class="icon icon-lg" id="pageIcon" style="color:var(--lcars-orange)"><use href="#i-ops"/></svg>
         <div>
-          <span class="station-id" id="pageTitle" data-i18n="tabMain">MAIN</span>
+          <h1 class="station-id" id="pageTitle" data-i18n="tabMain">MAIN</h1>
           <span class="sub" id="pageSubtitle" data-i18n="mainSub">OPERATIONS</span>
         </div>
       </div>
-      <div class="header-status">
-        <span class="status-pill gold" id="shift-pill" data-shift>—</span>
-        <button class="lang-toggle refresh-btn" id="refreshBtn" onclick="refreshCurrentPage()" hidden><span data-i18n="btnRefresh">REFRESH</span></button>
-        <button class="lang-toggle" id="pageActionBtn" onclick="pageActionBtnClick()" hidden></button>
-<button class="lang-toggle" id="langToggle" onclick="toggleLang()">CH</button>
-      </div>
+
     </div>
     <div class="header-cap"></div>
   </div>
@@ -5007,11 +4844,14 @@
     <button class="nav-btn tab-btn teal"   onclick="switchPage('weather')" data-tab="weather"><svg class="icon icon-md"><use href="#i-weather"/></svg><span data-i18n="tabWeather">OBSERVATORY</span></button>
 
     <!-- TOOL GROUP — utilities -->
-    <div class="sidebar-group-label" data-i18n="grpTools">TOOLS</div>
 
-    <button class="nav-btn"        onclick="showTool('calc')"><svg class="icon icon-md"><use href="#i-compute"/></svg><span data-i18n="navCompute">COMPUTE</span></button>
-    <button class="nav-btn rust"   onclick="cycleTheme()" data-theme-btn><svg class="icon icon-md"><use href="#i-theme"/></svg><span data-i18n="navTheme">THEME</span></button>
 
+      <div class="header-status">
+        <span class="status-pill gold" id="shift-pill" data-shift>—</span>
+        <button class="lang-toggle refresh-btn" id="refreshBtn" onclick="refreshCurrentPage()" hidden><span data-i18n="btnRefresh">REFRESH</span></button>
+        <button class="lang-toggle" id="pageActionBtn" onclick="pageActionBtnClick()" hidden></button>
+<button class="lang-toggle" id="langToggle" onclick="toggleLang()">CH</button>
+      </div>
     <div class="sidebar-spacer"></div>
     <div class="sidebar-elbow-bottom"></div>
   </div>
@@ -5023,6 +4863,10 @@
 
     <!-- ===== PAGE: MAIN ===== -->
     <section class="page" data-page="main">
+
+    <div id="briefing-home" aria-label="呈報簿"></div>
+    <details class="legacy-tools">
+      <summary>捷徑、日誌與工具</summary>
 
     <!-- Info strip -->
     <div class="info-strip">
@@ -5164,35 +5008,6 @@
       <div class="panel blue">
         <div class="panel-title"><span data-i18n="auxTitle">AUXILIARY SYSTEMS</span></div>
 
-        <!-- Calculator -->
-        <div class="tool-display hidden" id="calc-tool">
-          <div style="width:100%">
-            <input class="calc-display" id="calc-screen" value="0" readonly>
-            <div class="calc-pad">
-              <button class="calc-key clr" onclick="calcClr()">AC</button>
-              <button class="calc-key op" onclick="calcIn('(')">(</button>
-              <button class="calc-key op" onclick="calcIn(')')">)</button>
-              <button class="calc-key op" onclick="calcIn('/')">÷</button>
-              <button class="calc-key" onclick="calcIn('7')">7</button>
-              <button class="calc-key" onclick="calcIn('8')">8</button>
-              <button class="calc-key" onclick="calcIn('9')">9</button>
-              <button class="calc-key op" onclick="calcIn('*')">×</button>
-              <button class="calc-key" onclick="calcIn('4')">4</button>
-              <button class="calc-key" onclick="calcIn('5')">5</button>
-              <button class="calc-key" onclick="calcIn('6')">6</button>
-              <button class="calc-key op" onclick="calcIn('-')">−</button>
-              <button class="calc-key" onclick="calcIn('1')">1</button>
-              <button class="calc-key" onclick="calcIn('2')">2</button>
-              <button class="calc-key" onclick="calcIn('3')">3</button>
-              <button class="calc-key op" onclick="calcIn('+')">+</button>
-              <button class="calc-key" onclick="calcIn('0')">0</button>
-              <button class="calc-key" onclick="calcIn('.')">.</button>
-              <button class="calc-key" onclick="calcDel()">⌫</button>
-              <button class="calc-key eq" onclick="calcEq()">=</button>
-            </div>
-          </div>
-        </div>
-
         <!-- Timer -->
         <div class="tool-display hidden" id="timer-tool">
           <div style="width:100%">
@@ -5206,7 +5021,6 @@
         </div>
 
         <div class="tools-grid" id="tools-default">
-          <button class="tool-btn" onclick="showTool('calc')" data-i18n="btnCompute">COMPUTE</button>
           <button class="tool-btn" onclick="showTool('timer')" data-i18n="btnChrono">CHRONOMETER</button>
           <button class="tool-btn" onclick="speakStatus()" data-i18n="btnHail">VOCAL HAIL</button>
           <button class="tool-btn" onclick="randomQuote()" data-i18n="btnCounsel">SHIP'S COUNSEL</button>
@@ -5219,6 +5033,7 @@
 
     </div>
 
+    </details>
     </section>
     <!-- ===== END PAGE: MAIN ===== -->
 
@@ -5427,10 +5242,6 @@
 
       <!-- Observatory sub-tab bar -->
       <div class="obs-subtab-bar">
-        <button class="obs-subtab-btn active" data-subtab="weather"
-                onclick="setObsSubtab('weather')" data-i18n="obsTabWeather">WEATHER</button>
-        <button class="obs-subtab-btn" data-subtab="space"
-                onclick="setObsSubtab('space')" data-i18n="obsTabSpace">SPACE</button>
 
         <!-- City/district selectors — right side of tab bar, only visible on WEATHER tab -->
         <div class="obs-subtab-selectors" id="obs-selectors">
@@ -5507,69 +5318,6 @@
 
       </div><!-- /obs-subtab-panel weather -->
 
-      <!-- ── SPACE sub-tab ── -->
-      <div class="obs-subtab-panel" data-subtab-panel="space" hidden>
-
-        <!-- Row 1: APOD -->
-        <div class="panel sp-apod-panel" id="sp-apod-wrap">
-          <div class="panel-title">ASTRONOMY PICTURE OF THE DAY</div>
-          <div class="sp-apod-body">
-            <div class="sp-apod-img-wrap">
-              <a id="sp-apod-link" href="#" target="_blank" rel="noopener">
-                <img id="sp-apod-img" src="" alt="" hidden />
-              </a>
-              <div class="sp-apod-placeholder" id="sp-apod-placeholder">
-                <span class="sp-loading-dot"></span>
-              </div>
-            </div>
-            <div class="sp-apod-text">
-              <div class="sp-apod-title" id="sp-apod-title">—</div>
-              <div class="sp-apod-date"  id="sp-apod-date">—</div>
-              <div class="sp-apod-desc"  id="sp-apod-desc"></div>
-              <div class="sp-credit">SOURCE: NASA APOD · api.nasa.gov</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Row 2: 太陽系行星軌道俯視圖 + Voyager -->
-        <div class="panel sp-orbit-panel">
-          <div class="panel-title">
-            SOLAR SYSTEM · HELIOCENTRIC VIEW
-            <span class="sp-orbit-note">行星即時位置 · Voyager 1/2 標示距離</span>
-          </div>
-          <div class="sp-orbit-wrap" id="sp-orbit-wrap">
-            <canvas id="sp-orbit-canvas" class="sp-orbit-canvas"></canvas>
-            <!-- HUD overlay -->
-            <div class="sp-orbit-hud">
-              <div class="sp-orbit-angles">
-                <span class="sp-orbit-angle-label">AZI</span>
-                <span class="sp-orbit-angle-val" id="sp-orbit-azi">0°</span>
-                <span class="sp-orbit-angle-label">TILT</span>
-                <span class="sp-orbit-angle-val" id="sp-orbit-tilt">90°</span>
-                <span class="sp-orbit-angle-label">ZOOM</span>
-                <span class="sp-orbit-angle-val" id="sp-orbit-zoom">1.0×</span>
-              </div>
-              <button class="sp-orbit-reset" id="sp-orbit-reset" title="Reset view">RESET</button>
-            </div>
-            <div class="sp-orbit-hint">DRAG · SCROLL TO ZOOM</div>
-          </div>
-          <div class="sp-voyager-row">
-            <div class="sp-voy-item">
-              <span class="sp-voy-dot" style="background:#ff9966"></span>
-              <span class="sp-voy-name">VOYAGER 1</span>
-              <span class="sp-voy-au" id="sp-voy1-au">~164 AU</span>
-            </div>
-            <div class="sp-voy-item">
-              <span class="sp-voy-dot" style="background:#9977bb"></span>
-              <span class="sp-voy-name">VOYAGER 2</span>
-              <span class="sp-voy-au" id="sp-voy2-au">~137 AU</span>
-            </div>
-            <div class="sp-credit" style="margin-left:auto">SOURCE: astronomy-engine · NASA JPL Horizons</div>
-          </div>
-        </div>
-
-      </div><!-- /obs-subtab-panel space -->
-
     </section>
     <!-- ===== END PAGE: WEATHER / OBSERVATORY ===== -->
 
@@ -5599,16 +5347,15 @@
 
 <script src="js/finance.js"></script>
 <script src="js/scores.js"></script>
-<script src="js/notes.js"></script>
-<script src="js/library.js"></script>
-<script src="js/films.js"></script>
-<script src="js/reading.js"></script>
+<script src="js/notes.js?v=search-focus-20261021"></script>
+<script src="js/library.js?v=search-focus-20261021"></script>
+<script src="js/films.js?v=search-focus-20261021"></script>
+<script src="js/reading.js?v=search-focus-20261021"></script>
 <script src="js/attendance.js"></script>
 <script src="js/project.js"></script>
 <script src="js/weather.js"></script>
-<script src="js/space.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="js/core.js"></script>
+<script src="js/briefing.js?v=search-focus-20261021"></script>
 
 <div id="treemap-tooltip" class="treemap-tooltip">
   <span id="treemap-tooltip-code"></span>
