@@ -384,8 +384,6 @@
       actions.appendChild(rewatchBtn);
     }
 
-    const spacer = document.createElement('div');
-    spacer.style.flex = '1';
 
     const moreBtn = document.createElement('button');
     moreBtn.className = 'series-btn icon-btn';
@@ -396,14 +394,14 @@
       showFilmEditForm(f);
     });
 
-    actions.appendChild(spacer);
-    actions.appendChild(moreBtn);
+    moreBtn.classList.add('media-more-corner');
+    card.appendChild(moreBtn);
 
     body.appendChild(head);
     body.appendChild(meta);
     body.appendChild(info);
     body.appendChild(stars);
-    body.appendChild(actions);
+    if (actions.childElementCount) body.appendChild(actions);
 
     card.appendChild(poster);
     card.appendChild(body);
@@ -576,12 +574,12 @@
       overlay.className = 'alert-overlay';
       overlay.style.zIndex = 10000;
       const stack = document.createElement('div');
-      stack.className = 'alert-stack';
+      stack.className = 'alert-stack media-form-stack';
       stack.style.maxWidth = '640px';
       overlay.appendChild(stack);
 
       const card = document.createElement('div');
-      card.className = 'alert-card';
+      card.className = 'alert-card media-form-card';
       card.style.cssText = 'max-width:640px; width:100%;';
 
       const head = document.createElement('div');
@@ -593,7 +591,7 @@
 
       const body = document.createElement('div');
       body.className = 'alert-body';
-      body.style.cssText = 'padding:20px 24px; max-height:none; overflow:visible;';
+      body.style.padding = '20px 24px';
       body.innerHTML = buildFilmFormBody(f);
 
       const footer = document.createElement('div');

@@ -482,16 +482,20 @@
       finPortfolioPrice:  'Price',
       finPortfolioValue:  'Value',
       finPortfolioPnl:    'P&L',
-      finPortfolioAlloc: 'ALLOC%',
       finPortfolioRet:    'Return',
       finPortfolioTotal:  'TOTAL',
-      finPortfolioAlloc:  'ALLOCATION (TWD)',
+      finPortfolioAlloc:  'Allocation',
       finPortfolioNoData: 'Set up holdings to see your portfolio.',
       finPortfolioNoPrices:'Price data unavailable — refresh Watchlist first.',
       finPortfolioSummary: 'SUMMARY',
       finPortfolioTwdVal:  'TWD HOLDINGS',
       finPortfolioUsdVal:  'USD HOLDINGS',
       finPortfolioTotalTwd:'TOTAL (TWD)',
+      finPortfolioShare: 'Share',
+      finPortfolioApproxTwd: 'Approx. TWD',
+      finPortfolioOther: 'Other',
+      finPortfolioByAsset: 'Holdings allocation',
+      finPortfolioByCurrency: 'Currency allocation',
       btnRefresh:   'REFRESH',
       loadingMsg:   'LOADING…',
       updatedAt:    'updated',
@@ -1006,16 +1010,20 @@
       finPortfolioPrice:  '股價',
       finPortfolioValue:  '現值',
       finPortfolioPnl:    '損益',
-      finPortfolioAlloc: 'ALLOC%',
       finPortfolioRet:    '報酬率',
       finPortfolioTotal:  '合計',
-      finPortfolioAlloc:  '配置比例（台幣）',
+      finPortfolioAlloc:  '配置比例',
       finPortfolioNoData: '請點選編輯按鈕設定持倉。',
       finPortfolioNoPrices:'股價資料不可用，請先在 WATCHLIST 重新整理。',
       finPortfolioSummary: '總覽',
       finPortfolioTwdVal:  '台股現值',
       finPortfolioUsdVal:  '美股現值',
       finPortfolioTotalTwd:'總資產（台幣）',
+      finPortfolioShare: '比例',
+      finPortfolioApproxTwd: '約當臺幣',
+      finPortfolioOther: '其他',
+      finPortfolioByAsset: '標的配置',
+      finPortfolioByCurrency: '幣別配置',
       btnRefresh:   '重新整理',
       loadingMsg:   '載入中…',
       updatedAt:    '更新於',
@@ -1490,7 +1498,7 @@
 
   /* ----------------------------------------------------------------
      PAGE ACTION BUTTON — the contextual "+ ADD …" / etc. button
-     in the top header. Currently used only by LIBRARY, but designed
+     in the Library tab row. Currently used only by LIBRARY, but designed
      to be reusable: each page can register a label key + handler.
      ---------------------------------------------------------------- */
   // page-name → { labelKey, handler() } | null
@@ -1519,8 +1527,10 @@
       return;
     }
     btn.hidden = false;
-    btn.setAttribute('data-i18n', action.labelKey);
-    btn.textContent = t(action.labelKey);
+    btn.removeAttribute('data-i18n');
+    btn.setAttribute('data-i18n-title', action.labelKey);
+    btn.title = t(action.labelKey);
+    btn.setAttribute('aria-label', t(action.labelKey));
   }
 
   function pageActionBtnClick() {

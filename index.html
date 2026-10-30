@@ -594,16 +594,6 @@
     gap: 6px;
     flex-shrink: 0;
   }
-  /* Finance external-link button — parked tight to the card's top-right
-     corner, matching the Scores game-card treatment. */
-  .ticker-link-btn {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 22px;
-    height: 22px;
-  }
-  .ticker-head { padding-right: 24px; }
   .ticker-sym {
     font-family: 'Oxanium', sans-serif;
     font-weight: 600;
@@ -4142,14 +4132,18 @@
   /* ccy-badge used in holdings table */
   .ccy-badge {
     display: inline-block;
-    font-family: 'Antonio', sans-serif;
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    padding: 1px 5px;
+    box-sizing: border-box;
+    width: 46px;
+    text-align: center;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0;
+    padding: 1px 0;
     border-radius: 2px;
   }
   .ccy-badge.twd { background: var(--lcars-orange); color: var(--lcars-bg); }
   .ccy-badge.usd { background: var(--lcars-blue);   color: var(--lcars-bg); }
+  .ccy-badge.jpy { background: #9b3d68; color: var(--lcars-bg); }
 
   /* ============================================================
      ALERT MODAL — fires when a note reminder elapses
@@ -4495,7 +4489,7 @@
   }
 </style>
 
-<link rel="stylesheet" href="css/redesign.css?v=search-focus-20261021">
+<link rel="stylesheet" href="css/redesign.css?v=watchlist-symbol-links-20261031">
 </head>
 <body>
 
@@ -4849,7 +4843,6 @@
       <div class="header-status">
         <span class="status-pill gold" id="shift-pill" data-shift>—</span>
         <button class="lang-toggle refresh-btn" id="refreshBtn" onclick="refreshCurrentPage()" hidden><span data-i18n="btnRefresh">REFRESH</span></button>
-        <button class="lang-toggle" id="pageActionBtn" onclick="pageActionBtnClick()" hidden></button>
 <button class="lang-toggle" id="langToggle" onclick="toggleLang()">CH</button>
       </div>
     <div class="sidebar-spacer"></div>
@@ -5084,7 +5077,7 @@
       <div id="finance-tab-panels">
         <div class="fin-subtab-panel" data-finance-tab-panel="watchlist">
           <!-- Taiwan Stocks -->
-          <div class="panel">
+          <div class="panel watchlist-card watchlist-card--tw">
             <div class="panel-title">
               <span data-i18n="finTW">TW MARKET</span>
             </div>
@@ -5096,7 +5089,7 @@
           </div>
 
           <!-- US Stocks -->
-          <div class="panel violet">
+          <div class="panel watchlist-card watchlist-card--us">
             <div class="panel-title">
               <span data-i18n="finUS">US MARKET</span>
             </div>
@@ -5109,7 +5102,7 @@
           </div>
 
           <!-- Funds -->
-          <div class="panel teal">
+          <div class="panel watchlist-card watchlist-card--fund">
             <div class="panel-title">
               <span data-i18n="finFund">FUND</span>
             </div>
@@ -5119,7 +5112,7 @@
           </div>
 
           <!-- FX Rates -->
-          <div class="panel gold">
+          <div class="panel watchlist-card watchlist-card--fx">
             <div class="panel-title">
               <span data-i18n="finFx">FX RATES</span>
             </div>
@@ -5198,6 +5191,7 @@
                 onclick="setLibSubtab('reading')" data-i18n="libSubtabReading">READING</button>
         <button class="lib-subtab-btn" data-subtab="collection"
                 onclick="setLibSubtab('collection')" data-i18n="libSubtabCollection">COLLECTION</button>
+        <button class="fin-tab-control" id="pageActionBtn" type="button" onclick="pageActionBtnClick()" hidden><svg class="icon icon-sm" aria-hidden="true"><use href="#i-plus"/></svg></button>
       </div>
 
       <!-- Sub-tab content: SERIES (the existing tracker) -->
@@ -5345,22 +5339,17 @@
 
 </div>
 
-<script src="js/finance.js"></script>
+<script src="js/finance.js?v=watchlist-symbol-links-20261031"></script>
 <script src="js/scores.js"></script>
 <script src="js/notes.js?v=search-focus-20261021"></script>
 <script src="js/library.js?v=search-focus-20261021"></script>
-<script src="js/films.js?v=search-focus-20261021"></script>
-<script src="js/reading.js?v=search-focus-20261021"></script>
+<script src="js/films.js?v=media-form-scroll-20261030"></script>
+<script src="js/reading.js?v=media-form-scroll-20261030"></script>
 <script src="js/attendance.js"></script>
 <script src="js/project.js"></script>
 <script src="js/weather.js"></script>
-<script src="js/core.js"></script>
+<script src="js/core.js?v=allocation-order-20261031"></script>
 <script src="js/briefing.js?v=search-focus-20261021"></script>
 
-<div id="treemap-tooltip" class="treemap-tooltip">
-  <span id="treemap-tooltip-code"></span>
-  <span id="treemap-tooltip-pct" class="treemap-tooltip-pct"></span>
-  <span id="treemap-tooltip-alloc" class="treemap-tooltip-alloc"></span>
-</div>
 </body>
 </html>

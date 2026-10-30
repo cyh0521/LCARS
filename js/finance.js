@@ -29,29 +29,6 @@
   const STOCKS_US = ['VT', 'VTI', 'VOO', 'BRK.B'];
 
   const STOCKS_CACHE_KEY = 'lcars_stocks_cache_v2';
-  // Stores buildTiles(pw) functions keyed by tab id, called after DOM paint
-  const _treemapBuilders = {};
-
-  function renderActiveTreemap() {
-    // Small delay lets the browser finish painting the newly-visible panel
-    // before we measure its width.
-    setTimeout(() => {
-      const builder = _treemapBuilders[currentFinanceTab];
-      if (!builder) return;
-      const wrap = document.getElementById('treemap-wrap-' + currentFinanceTab);
-      if (!wrap) return;
-      const realW = Math.round(wrap.getBoundingClientRect().width);
-      if (realW > 50) {
-        wrap.innerHTML = builder(realW);
-      } else {
-        // Width still 0 — try once more after a longer delay
-        setTimeout(() => {
-          const w2 = Math.round(wrap.getBoundingClientRect().width);
-          if (w2 > 50) wrap.innerHTML = builder(w2);
-        }, 150);
-      }
-    }, 30);
-  }
   const FUND_CACHE_KEY   = 'lcars_fund_cache_v1';
   const FX_CACHE_KEY     = 'lcars_fx_cache';
 
@@ -464,17 +441,14 @@
       const detailUrl = stockDetailUrl(s.code);
       row.innerHTML = `
         <div class="ticker-head">
-          <span class="ticker-sym">${escapeHtml(s.code)}</span>
+          <a class="ticker-sym ticker-sym-link"
+             href="${escapeAttr(detailUrl)}"
+             target="_blank"
+             rel="noopener"
+             title="${escapeAttr(t('finOpenDetail'))}"
+             aria-label="${escapeAttr(s.code + ' — ' + t('finOpenDetail'))}">${escapeHtml(s.code)}</a>
           <span class="ticker-actions">
             <span class="ticker-change ${dir}">${arrow} ${pctStr}</span>
-            <a class="pin-btn ticker-link-btn"
-               href="${escapeAttr(detailUrl)}"
-               target="_blank"
-               rel="noopener"
-               title="${escapeAttr(t('finOpenDetail'))}"
-               aria-label="${escapeAttr(t('finOpenDetail'))}">
-              <svg class="icon icon-sm"><use href="#i-external"/></svg>
-            </a>
           </span>
         </div>
         <span class="ticker-price">${formatPrice(s.price)}</span>
@@ -695,8 +669,6 @@
       panel.hidden = panel.getAttribute('data-finance-tab-panel') !== currentFinanceTab;
     });
 
-    // Paint the active tab's treemap now that its panel is visible
-    renderActiveTreemap();
 
     bar.querySelectorAll('[data-finance-tab]').forEach(btn => {
       attachFinanceTabDragHandlers(btn);
@@ -953,7 +925,6 @@
     ];
     // Filter to codes that have holdings, preserving Sheet order
     const codes = allCodes.filter(c => (holdings[c]?.shares || 0) > 0);
-    const usdRate = getUsdToTwd();
 
     if (!codes.length) {
       return `<div class="fin-tab-empty">
@@ -971,7 +942,7 @@
     }
 
     // Build data rows
-    let totalTwd = 0, totalTwdStocks = 0, totalUsdValue = 0;
+    let totalTwd = 0;
     const rows = codes.map((code, i) => {
       const h        = holdings[code];
       const shares   = Number(h.shares) || 0;
@@ -996,8 +967,6 @@
         }
         if (valueTwd != null) {
           totalTwd += valueTwd;
-          if (tw) totalTwdStocks += valueTwd;
-          else    totalUsdValue  += value;
         }
       }
       return { code, currency, tw, dec, shares, cost, price, pct, value, pnl, ret, dir, sign, valueTwd,
@@ -1009,63 +978,14 @@
       r.allocPct = (r.valueTwd != null && totalTwd > 0) ? (r.valueTwd / totalTwd * 100) : null;
     });
 
-    // ── Summary cards ──
-    const foreignInTwd = totalTwd - totalTwdStocks;  // all non-TWD converted
-    const sumTwd   = fmtNum(totalTwdStocks, 0);
-    const sumUsd   = fmtNum(totalUsdValue, 2);
+    // Total remains visible in the allocation donut.
     const sumAll   = totalTwd > 0 ? fmtNum(totalTwd, 0) : '—';
-    const usdLabel = usdRate ? '≈ NT$' + fmtNum(totalUsdValue * usdRate, 0) : '';
-
-    // ── Summary cards — one per currency found in holdings, plus total ──
-    // Collect totals per currency
-    const ccyTotals = {};
-    rows.forEach(r => {
-      if (r.value == null) return;
-      const ccy = r.currency || 'USD';
-      ccyTotals[ccy] = (ccyTotals[ccy] || 0) + r.value;
-    });
-
-    const CCY_SYMBOLS = { TWD: 'NT$', USD: '$', JPY: '¥', EUR: '€', GBP: '£', HKD: 'HK$' };
-
-    const ccyCards = Object.entries(ccyTotals).map(([ccy, total]) => {
-      const sym  = CCY_SYMBOLS[ccy] || ccy + ' ';
-      const dec  = ccy === 'TWD' || ccy === 'JPY' ? 0 : 2;
-      const fxRate = getFxRateToTwd(ccy);
-      const subLabel = (ccy !== 'TWD' && fxRate)
-        ? '≈ NT$' + fmtNum(total * fxRate, 0)
-        : '';
-      return `
-        <div class="portfolio-summary-card">
-          <div class="portfolio-summary-label">${escapeHtml(ccy)}</div>
-          <div class="portfolio-summary-value">${escapeHtml(sym)}${fmtNum(total, dec)}</div>
-          ${subLabel ? `<div class="portfolio-summary-sub">${escapeHtml(subLabel)}</div>` : ''}
-        </div>`;
-    }).join('');
-
-    const totalCard = `
-        <div class="portfolio-summary-card portfolio-summary-card--total">
-          <div class="portfolio-summary-label">${escapeHtml(t('finPortfolioTotalTwd'))}</div>
-          <div class="portfolio-summary-value">NT$ ${sumAll}</div>
-        </div>`;
-
-    const ccyCount  = Object.keys(ccyTotals).length;
-    const cardCount = ccyCount + 1; // +1 for total card
-    const cols      = Math.min(cardCount, 4);
-
-    const summaryPanel = `
-      <div class="portfolio-panel">
-        <div class="panel-title"><span>${escapeHtml(t('finPortfolioSummary'))}</span></div>
-        <div class="portfolio-summary-grid" style="grid-template-columns:repeat(${cols},1fr)">
-          ${ccyCards}
-          ${totalCard}
-        </div>
-      </div>`;
 
     // ── Holdings table ──
     const tableRows = rows.map(r => `
       <tr>
-        <td>${escapeHtml(r.code)}</td>
-        <td><span class="ccy-badge ${r.tw ? 'twd' : 'usd'}">${escapeHtml(r.currency)}</span></td>
+        <td><span class="portfolio-code-mark">${escapeHtml(r.code)}</span></td>
+        <td><span class="ccy-badge ${String(r.currency).toUpperCase() === 'JPY' ? 'jpy' : (r.tw ? 'twd' : 'usd')}">${escapeHtml(r.currency)}</span></td>
         <td>${r.price != null ? fmtNum(r.price, 2) : '—'}</td>
         <td>${fmtNum(r.shares, r.tw ? 0 : 2)}</td>
         <td>${fmtNum(r.cost, r.dec)}</td>
@@ -1075,7 +995,7 @@
       </tr>`).join('');
 
     const holdingsPanel = `
-      <div class="portfolio-panel" style="margin-top:2px">
+      <div class="portfolio-panel">
         <div class="panel-title"><span>${escapeHtml(financeTabLabel(tab))}</span></div>
         <div class="portfolio-table-wrap">
           <table class="portfolio-table">
@@ -1094,181 +1014,122 @@
         </div>
       </div>`;
 
-    // ── Treemap ──
-    const treemapSegs = rows
+    // ── Allocation donut and full holdings list ──
+    const allocation = rows
       .filter(r => r.valueTwd != null && r.valueTwd > 0)
       .sort((a, b) => b.valueTwd - a.valueTwd);
 
     let chartPanel = '';
-    if (treemapSegs.length) {
-
-      // ---- Squarified Treemap ----
-      // PW is read from actual DOM after insertion so aspect ratio is correct.
-      const TREEMAP_H = 220;
-      const treemapData = treemapSegs.map(s => ({ ...s, v: s.valueTwd }));
-
-      // Squarified treemap — Bruls et al. algorithm
-      // Each node must have .v (value) and any other props passed through.
-      function squarifyPx(nodes, X, Y, W, H) {
-        if (!nodes.length || !W || !H) return [];
-        const results = [];
-        const totalV = nodes.reduce((s, n) => s + n.v, 0);
-
-        // aspect ratio of a tile: max(long/short)
-        function aspect(a, b) { return a > b ? a / b : b / a; }
-
-        // worst aspect ratio in a row laid along `side` with total row area `rowA`
-        function worst(row, rowA, side) {
-          let w = 0;
-          for (const n of row) {
-            // tile dims: side × (n.area / rowA)  ... wait, correct formula:
-            // if row height = rowA/side, tile width = n.area / (rowA/side) = n.area*side/rowA
-            const long = side;                   // the stripe dimension
-            const sht  = rowA / side;            // thickness of the stripe
-            const tileDim = (n.v / totalV) * W * H / sht; // tile extent along stripe
-            const r = aspect(tileDim, sht);
-            if (r > w) w = r;
-          }
-          return w;
-        }
-
-        function layout(items, x, y, w, h) {
-          if (!items.length) return;
-          if (items.length === 1) {
-            results.push({ item: items[0], x, y, w, h });
-            return;
-          }
-          // shorter side is where the new strip goes
-          const horiz = w >= h;
-          const side  = horiz ? w : h;
-
-          let row = [], rowV = 0, i = 0;
-          while (i < items.length) {
-            const next    = items[i];
-            const newRowV = rowV + next.v;
-            // Stripe thickness = newRowV/totalV * (full dim perpendicular to side)
-            const stripT  = (newRowV / totalV) * (horiz ? h : w);
-            if (!stripT) { row.push(next); rowV = newRowV; i++; continue; }
-
-            function worstInRow(r, rv) {
-              let wst = 0;
-              const st = (rv / totalV) * (horiz ? h : w);
-              if (!st) return Infinity;
-              for (const n of r) {
-                const tileLen = (n.v / rv) * (horiz ? w : h);
-                const r2 = aspect(tileLen, st);
-                if (r2 > wst) wst = r2;
-              }
-              return wst;
-            }
-
-            const wOld = row.length ? worstInRow(row, rowV) : Infinity;
-            const wNew = worstInRow([...row, next], newRowV);
-
-            if (!row.length || wNew <= wOld) {
-              row.push(next); rowV = newRowV; i++;
-            } else {
-              break;
-            }
-          }
-          if (!row.length) { row = [items[0]]; rowV = items[0].v; i = 1; }
-
-          // Place the row
-          const stripFrac = rowV / totalV;
-          const stripT    = (horiz ? h : w) * stripFrac;
-          let pos = horiz ? x : y;
-          for (const n of row) {
-            const tileLen = (n.v / rowV) * (horiz ? w : h);
-            if (horiz) {
-              results.push({ item: n, x: pos, y, w: tileLen, h: stripT });
-              pos += tileLen;
-            } else {
-              results.push({ item: n, x, y: pos, w: stripT, h: tileLen });
-              pos += tileLen;
-            }
-          }
-
-          // Recurse on remainder
-          const rem = items.slice(i);
-          if (horiz) layout(rem, x, y + stripT, w, h - stripT);
-          else       layout(rem, x + stripT, y, w - stripT, h);
-        }
-
-        layout(nodes, X, Y, W, H);
-        return results;
+    if (allocation.length) {
+      const colors = ['#a44d43', '#526c7a', '#79677d', '#866640', '#37654b', '#a65d64', '#4f7471'];
+      const otherColor = '#a49a92';
+      const total = allocation.reduce((sum, row) => sum + row.valueTwd, 0);
+      const slices = allocation.slice(0, 7).map((row, index) => ({
+        code: row.code, value: row.valueTwd, color: colors[index]
+      }));
+      if (allocation.length > 7) {
+        slices.push({
+          code: t('finPortfolioOther'),
+          value: allocation.slice(7).reduce((sum, row) => sum + row.valueTwd, 0),
+          color: otherColor
+        });
       }
 
-      function pctColor(pct) {
-        if (pct == null) return 'rgba(80,80,100,0.7)';
-        if (pct >=  3)   return '#2a6e3f';
-        if (pct >=  2)   return '#2f7d46';
-        if (pct >=  1)   return '#3a8f52';
-        if (pct >=  0)   return '#4a7a5a';
-        if (pct >= -1)   return '#7a4a52';
-        if (pct >= -2)   return '#8f3a44';
-        if (pct >= -3)   return '#9e2e38';
-        return                   '#b02030';
-      }
-
-      function buildTiles(pw) {
-        const GAP   = 2;
-        const tiles = squarifyPx(treemapData, 0, 0, pw, TREEMAP_H);
-        return tiles.map(({ item, x, y, w, h }) => {
-          const xp = ((x + GAP / 2) / pw * 100).toFixed(3);
-          const yp = ((y + GAP / 2) / TREEMAP_H * 100).toFixed(3);
-          const wp = Math.max(0, (w - GAP) / pw * 100).toFixed(3);
-          const hp = Math.max(0, (h - GAP) / TREEMAP_H * 100).toFixed(3);
-          const bg = pctColor(item.pct);
-          const pctStr = item.pct != null
-            ? (item.pct > 0 ? '▲' : item.pct < 0 ? '▼' : '') + Math.abs(item.pct).toFixed(2) + '%' : '—';
-          const showCode  = w > 55  && h > 30;
-          const showPct   = w > 55  && h > 55;
-          const showAlloc = w > 55  && h > 75;
-          const showAttr  = showCode && showPct ? 'full' : showCode ? 'code' : 'none';
-          const fontSize  = w > 220 ? '15px' : w > 120 ? '13px' : '11px';
-          const allocStr  = item.allocPct != null ? item.allocPct.toFixed(1) + '%' : '';
-          const allocStr2 = item.allocPct != null ? item.allocPct.toFixed(1) + '%' : '';
-          return `<div class="treemap-tile has-tooltip"
-            style="left:${xp}%;top:${yp}%;width:${wp}%;height:${hp}%;background:${bg}"
-            data-code="${escapeAttr(item.code)}"
-            data-pct="${escapeAttr(pctStr)}"
-            data-alloc="${escapeAttr(allocStr2)}"
-            data-show="${showAttr}">
-            ${showCode  ? `<span class="treemap-code" style="font-size:${fontSize}">${escapeHtml(item.code)}</span>` : ''}
-            ${showPct   ? `<span class="treemap-pct">${escapeHtml(pctStr)}</span>` : ''}
-            ${showAlloc && allocStr ? `<span class="treemap-alloc">${escapeHtml(allocStr)}</span>` : ''}
-          </div>`;
+      const circumference = 2 * Math.PI * 78;
+      function buildArcs(items) {
+        let offset = 0;
+        return items.map(slice => {
+          const length = slice.value / total * circumference;
+          const label = `${slice.code} ${(slice.value / total * 100).toFixed(1)}%`;
+          const arc = `<circle cx="110" cy="110" r="78" fill="none"
+            stroke="${slice.color}" stroke-width="26"
+            stroke-dasharray="${Math.max(0, length - 2).toFixed(3)} ${circumference.toFixed(3)}"
+            stroke-dashoffset="${(-offset).toFixed(3)}"
+            transform="rotate(-90 110 110)"><title>${escapeHtml(label)}</title></circle>`;
+          offset += length;
+          return arc;
         }).join('');
       }
+      const arcs = buildArcs(slices);
 
-      const legendStops = [
-        { label:'≤ -3%', color:'#b02030' }, { label:'-2%', color:'#9e2e38' },
-        { label:'-1%',   color:'#8f3a44' }, { label:'0',   color:'#4a7a5a' },
-        { label:'+1%',   color:'#3a8f52' }, { label:'+2%', color:'#2f7d46' },
-        { label:'≥ +3%', color:'#2a6e3f' },
-      ];
-      const legendEl = legendStops.map(s =>
-        `<div class="treemap-legend-item">
-          <div class="treemap-legend-swatch" style="background:${s.color}"></div>
-          <span>${escapeHtml(s.label)}</span>
-        </div>`).join('');
+      const currencyTotals = new Map();
+      allocation.forEach(row => {
+        const currency = String(row.currency || 'USD').toUpperCase();
+        currencyTotals.set(currency, (currencyTotals.get(currency) || 0) + row.valueTwd);
+      });
+      const currencyColors = { TWD:'#a44d43', USD:'#526c7a', JPY:'#9b3d68' };
+      const fallbackColors = ['#79677d', '#866640', '#37654b', '#4f7471'];
+      const currencies = [...currencyTotals].sort((a, b) => b[1] - a[1]).map(([code, value], index) => ({
+        code, value, color: currencyColors[code] || fallbackColors[index % fallbackColors.length]
+      }));
+      const currencyArcs = buildArcs(currencies);
+      const currencyListRows = currencies.map(item => `<div class="allocation-row">
+        <span class="allocation-swatch" style="background:${item.color}" aria-hidden="true"></span>
+        <span class="allocation-code">${escapeHtml(item.code)}</span>
+        <span class="allocation-value">${fmtNum(item.value, 0)}</span>
+        <span class="allocation-share">${(item.value / total * 100).toFixed(1)}%</span>
+      </div>`).join('');
 
-      const treemapWrapId = 'treemap-wrap-' + tab.id;
-      chartPanel = `
-        <div class="portfolio-panel" style="margin-top:2px">
-          <div class="panel-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
-            <span>${escapeHtml(t('finPortfolioAlloc'))}</span>
-            <div class="treemap-legend">${legendEl}</div>
-          </div>
-          <div class="treemap-wrap" id="${treemapWrapId}"></div>
+      const listRows = allocation.map((row, index) => {
+        const color = index < 7 ? colors[index] : otherColor;
+        return `<div class="allocation-row">
+          <span class="allocation-swatch" style="background:${color}" aria-hidden="true"></span>
+          <span class="allocation-code" title="${escapeAttr(row.code)}">${escapeHtml(row.code)}</span>
+          <span class="allocation-value">${fmtNum(row.valueTwd, 0)}</span>
+          <span class="allocation-share">${row.allocPct.toFixed(1)}%</span>
         </div>`;
+      }).join('');
 
-      // Store buildTiles fn keyed by tab id so renderTreemaps() can call it
-      _treemapBuilders[tab.id] = buildTiles;
+      chartPanel = `<div class="portfolio-panel">
+        <div class="panel-title"><span>${escapeHtml(t('finPortfolioAlloc'))}</span></div>
+        <div class="allocation-panels">
+          <div class="allocation-section">
+            <h3>${escapeHtml(t('finPortfolioByAsset'))}</h3>
+            <div class="allocation-donut">
+              <svg viewBox="0 0 220 220" role="img" aria-label="${escapeAttr(t('finPortfolioByAsset'))}">
+                <circle cx="110" cy="110" r="78" fill="none" stroke="var(--lcars-frame)" stroke-width="26"></circle>
+                ${arcs}
+              </svg>
+              <div class="allocation-center">
+                <span>${escapeHtml(t('finPortfolioTotalTwd'))}</span>
+                <strong>${sumAll}</strong>
+              </div>
+            </div>
+            <div class="allocation-list">
+              <div class="allocation-list-head">
+                <span>${escapeHtml(t('finPortfolioCode'))}</span>
+                <span>${escapeHtml(t('finPortfolioApproxTwd'))}</span>
+                <span>${escapeHtml(t('finPortfolioShare'))}</span>
+              </div>
+              ${listRows}
+            </div>
+          </div>
+          <div class="allocation-section">
+            <h3>${escapeHtml(t('finPortfolioByCurrency'))}</h3>
+            <div class="allocation-donut">
+              <svg viewBox="0 0 220 220" role="img" aria-label="${escapeAttr(t('finPortfolioByCurrency'))}">
+                <circle cx="110" cy="110" r="78" fill="none" stroke="var(--lcars-frame)" stroke-width="26"></circle>
+                ${currencyArcs}
+              </svg>
+              <div class="allocation-center">
+                <span>${escapeHtml(t('finPortfolioByCurrency'))}</span>
+                <strong>100%</strong>
+              </div>
+            </div>
+            <div class="allocation-list allocation-currency-list">
+              <div class="allocation-list-head">
+                <span>${escapeHtml(t('finPortfolioCcy'))}</span>
+                <span>${escapeHtml(t('finPortfolioApproxTwd'))}</span>
+                <span>${escapeHtml(t('finPortfolioShare'))}</span>
+              </div>
+              ${currencyListRows}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
 
-    return `<div class="portfolio-wrap">${summaryPanel}${holdingsPanel}${chartPanel}</div>`;
-  }
-
+    return `<div class="portfolio-wrap">${holdingsPanel}${chartPanel}</div>`;
   }
 
   /* ============================================================
@@ -1475,34 +1336,5 @@
     window.setFinanceTab = setFinanceTab;
     window.financeAddTab = financeAddTab;
 
-    // Treemap tooltip — event delegation on document
-    // Use lazy lookup so it works even if tooltip div renders after init
-    document.addEventListener('mousemove', e => {
-      const tile = e.target.closest('.has-tooltip');
-      const tooltip = document.getElementById('treemap-tooltip');
-      if (!tooltip) return;
-      if (tile && tile.dataset.show !== 'full') {
-        document.getElementById('treemap-tooltip-code').textContent  = tile.dataset.code  || '';
-        document.getElementById('treemap-tooltip-pct').textContent   = tile.dataset.pct   || '';
-        const allocEl = document.getElementById('treemap-tooltip-alloc');
-        if (allocEl) allocEl.textContent = tile.dataset.alloc ? tile.dataset.alloc : '';
-        tooltip.classList.add('visible');
-        const pad = 14;
-        let tx = e.clientX + pad;
-        let ty = e.clientY + pad;
-        const tw = tooltip.offsetWidth  || 120;
-        const th = tooltip.offsetHeight || 32;
-        if (tx + tw > window.innerWidth)  tx = e.clientX - tw - pad;
-        if (ty + th > window.innerHeight) ty = e.clientY - th - pad;
-        tooltip.style.left = tx + 'px';
-        tooltip.style.top  = ty + 'px';
-      } else {
-        tooltip.classList.remove('visible');
-      }
-    });
-    document.addEventListener('mouseleave', () => {
-      const tooltip = document.getElementById('treemap-tooltip');
-      if (tooltip) tooltip.classList.remove('visible');
-    });
   }
 
