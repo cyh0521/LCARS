@@ -189,6 +189,10 @@
 
   // ── Filter bar (counts folded in + search box on the right) ───────────────
 
+  function seriesStatusFormLabel(status) {
+    return currentLang === 'zh' ? ({ WATCHING: '觀看中', PLANNED: '待看', COMPLETE: '已看', PAUSED: '暫停', DROPPED: '放棄' })[status] || status : status;
+  }
+
   function renderLibFilters() {
     const bar = document.getElementById('lib-filter-bar');
     if (!bar) return;
@@ -231,7 +235,8 @@
                 aria-label="Clear">✕</button>
       </div>`;
 
-    bar.innerHTML = filterButtons + searchBox;
+    bar.innerHTML = filterButtons;
+    document.querySelector('[data-search-subtab="series"]').innerHTML = searchToggleMarkup() + searchBox;
   }
 
   // ── Grid render ─────────────────────────────────────────────────────────────
@@ -264,7 +269,7 @@
     grid.innerHTML = '';
 
     // SEARCH MODE — flat grid (search results have their own series-clustered
-    // sort order; month grouping would fight that and add no value).
+    // sort order; year grouping would fight that and add no value).
     if (libSearch) {
       const flatGrid = document.createElement('div');
       flatGrid.className = 'lib-grid-inner';
@@ -282,10 +287,9 @@
       return;
     }
 
-    // GROUPED MODE — bucket by latest watch date's month (or "WANT TO WATCH"
-    // when no logs exist yet).
-    const groups = groupSeasonsByMonth(list, episodesBySeason);
-    // Cycle through LCARS hues so consecutive months are visually distinct.
+    // GROUPED MODE — bucket by latest watch date's year, with undated seasons last.
+    const groups = groupSeasonsByYear(list, episodesBySeason);
+    // Cycle through LCARS hues so consecutive years are visually distinct.
     // The CSS var --month-color is read by both the left border and the
     // tag dot in the header.
     const MONTH_PALETTE = [
@@ -306,7 +310,7 @@
       header.innerHTML = `
         <span class="lib-month-tag"></span>
         <span class="lib-month-title">${escapeHtml(group.label)}</span>
-        <span class="lib-month-count">${group.seasons.length}</span>`;
+        <span class="lib-month-count">共 ${group.seasons.length} 部</span>`;
       groupEl.appendChild(header);
 
       const innerGrid = document.createElement('div');
@@ -339,13 +343,12 @@
     return latest;
   }
 
-  // Bucket seasons into month groups.
+  // Bucket seasons into year groups.
   // Returns: [{ key, label, sortKey, seasons: [...] }, ...]
-  // - WANT TO WATCH bucket comes first (key='want', sortKey=Infinity)
-  // - Then real months sorted newest-first
-  function groupSeasonsByMonth(seasons, episodesBySeason) {
+  // - Dated years sort newest-first, then undated seasons.
+  function groupSeasonsByYear(seasons, episodesBySeason) {
     const buckets = new Map();   // sortKey → { key, label, sortKey, seasons }
-    const WANT_KEY = 'want';
+    const WANT_KEY = 'undated';
 
     const ensureBucket = (sortKey, key, label) => {
       if (!buckets.has(sortKey)) {
@@ -358,20 +361,15 @@
       const eps = episodesBySeason[se.season_id] || [];
       const latest = latestWatchDate(eps);
       if (!latest) {
-        // No logs → "WANT TO WATCH" bucket. Use Infinity so it sorts to top.
-        ensureBucket(Infinity, WANT_KEY, t('libGroupWantToWatch')).seasons.push(se);
+        // Seasons without watch logs belong in the undated group.
+        ensureBucket(-Infinity, WANT_KEY, t('filmYearNone')).seasons.push(se);
         return;
       }
       const yr = latest.getFullYear();
-      const mo = latest.getMonth();   // 0-11
-      // Numeric sort key encodes year+month so newest dates win
-      const sortKey = yr * 100 + mo;
-      const monthName = t('mon' + mo);   // mon0..mon11
-      const label = `${yr} · ${monthName}`;
-      ensureBucket(sortKey, `${yr}-${mo}`, label).seasons.push(se);
+      ensureBucket(yr, String(yr), String(yr)).seasons.push(se);
     });
 
-    // Sort: WANT TO WATCH first (Infinity), then real months newest-first
+    // Sort dated years newest-first, then undated seasons.
     const out = Array.from(buckets.values());
     out.sort((a, b) => b.sortKey - a.sortKey);
 
@@ -1098,7 +1096,7 @@
       `<option value="${st}" ${
         (se && String(se.status).toUpperCase() === st) ? 'selected' :
         (!se && st === 'PLANNED') ? 'selected' : ''
-      }>${st}</option>`
+      }>${seriesStatusFormLabel(st)}</option>`
     ).join('');
 
     const totalEpVal     = se ? (se.total_episodes || '') : '';
@@ -1366,7 +1364,7 @@
       body.style.overflow = 'visible';
 
       const statusOpts = STATUSES.map(st =>
-        `<option value="${st}" ${st === 'PLANNED' ? 'selected' : ''}>${st}</option>`
+        `<option value="${st}" ${st === 'PLANNED' ? 'selected' : ''}>${seriesStatusFormLabel(st)}</option>`
       ).join('');
       const platformOpts = ['', ...PLATFORMS].map(p =>
         `<option value="${p}">${p || '—'}</option>`
@@ -1468,11 +1466,20 @@
   const LIB_SUBTABS = {
     series:     { sub: 'libSubSeries',     add: 'libAddSeries', handler: () => showLibraryAddForm() },
     films:      { sub: 'libSubFilms',      add: 'libAddFilm',   handler: () => showFilmAddForm() },
-    reading:    { sub: 'libSubReading',    add: 'libAddBook',   handler: () => showBookAddForm() },
-    collection: { sub: 'libSubCollection', add: 'libAddItem',   handler: null }
+    reading:    { sub: 'libSubReading',    add: 'libAddBook',   handler: () => showBookAddForm() }
   };
 
   let currentLibSubtab = 'series';
+  function searchToggleMarkup() {
+    return '<button class="lib-search-toggle" type="button" onclick="toggleLibrarySearch(this)" aria-label="搜尋" title="搜尋"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></button>';
+  }
+  function toggleLibrarySearch(button) {
+    const header = button.closest('.lib-header-search');
+    header.classList.toggle('expanded');
+    button.setAttribute('aria-expanded', String(header.classList.contains('expanded')));
+    if (header.classList.contains('expanded')) header.querySelector('input').focus();
+  }
+  window.toggleLibrarySearch = toggleLibrarySearch;
   try {
     const saved = sessionStorage.getItem('lcars_lib_subtab');
     if (saved && LIB_SUBTABS[saved]) currentLibSubtab = saved;
@@ -1488,6 +1495,9 @@
     });
     document.querySelectorAll('.lib-subtab-panel').forEach(p => {
       p.hidden = p.getAttribute('data-subtab-panel') !== name;
+    });
+    document.querySelectorAll('.lib-header-search').forEach(el => {
+      el.hidden = el.getAttribute('data-search-subtab') !== name;
     });
 
     // Lazy-load each sub-tab's data on first switch

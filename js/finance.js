@@ -56,8 +56,8 @@
     if (!el) return;
     if (!ts) { el.textContent = ''; return; }
     const date = new Date(ts);
-    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    el.textContent = ' · ' + t('updatedAt') + ' ' + time;
+    const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    el.textContent = ' · updated ' + time;
   }
 
   /* JSONP loader: dynamically inject a <script> tag, Google calls our
@@ -995,8 +995,8 @@
       </tr>`).join('');
 
     const holdingsPanel = `
-      <div class="portfolio-panel">
-        <div class="panel-title"><span>${escapeHtml(financeTabLabel(tab))}</span></div>
+      <div class="portfolio-group">
+        <div class="panel-title"><span>${escapeHtml(t('finPortfolioDetails'))}</span></div>
         <div class="portfolio-table-wrap">
           <table class="portfolio-table">
             <thead><tr>
@@ -1057,7 +1057,7 @@
         const currency = String(row.currency || 'USD').toUpperCase();
         currencyTotals.set(currency, (currencyTotals.get(currency) || 0) + row.valueTwd);
       });
-      const currencyColors = { TWD:'#a44d43', USD:'#526c7a', JPY:'#9b3d68' };
+      const currencyColors = { TWD:'#a44d43', USD:'#526c7a', JPY:'#68429a' };
       const fallbackColors = ['#79677d', '#866640', '#37654b', '#4f7471'];
       const currencies = [...currencyTotals].sort((a, b) => b[1] - a[1]).map(([code, value], index) => ({
         code, value, color: currencyColors[code] || fallbackColors[index % fallbackColors.length]
@@ -1080,7 +1080,7 @@
         </div>`;
       }).join('');
 
-      chartPanel = `<div class="portfolio-panel">
+      chartPanel = `<div class="portfolio-group">
         <div class="panel-title"><span>${escapeHtml(t('finPortfolioAlloc'))}</span></div>
         <div class="allocation-panels">
           <div class="allocation-section">
@@ -1129,7 +1129,7 @@
       </div>`;
     }
 
-    return `<div class="portfolio-wrap">${holdingsPanel}${chartPanel}</div>`;
+    return `<div class="portfolio-wrap portfolio-panel">${holdingsPanel}${chartPanel}</div>`;
   }
 
   /* ============================================================
@@ -1333,6 +1333,15 @@
     bind('finance-tab-add', financeAddTab);
     bind('finance-tab-rename', financeEditTab);
     bind('finance-tab-delete', financeDeleteTab);
+    const tabMenu = document.getElementById('finance-tab-menu');
+    if (tabMenu) {
+      tabMenu.querySelector('.fin-tab-menu-items').addEventListener('click', event => {
+        if (event.target.closest('button')) tabMenu.open = false;
+      });
+      document.addEventListener('click', event => {
+        if (!tabMenu.contains(event.target)) tabMenu.open = false;
+      });
+    }
     window.setFinanceTab = setFinanceTab;
     window.financeAddTab = financeAddTab;
 

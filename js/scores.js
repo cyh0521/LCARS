@@ -18,13 +18,18 @@
     return true;
   }
 
-  function updateScoresTimestamp(ts) {
+  const scoresUpdatedTimes = { scores: null, standings: null };
+  function renderScoresUpdatedTime() {
     const el = document.getElementById('scores-updated');
     if (!el) return;
-    if (!ts) { el.textContent = ''; return; }
-    const date = new Date(ts);
-    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    el.textContent = ' · ' + t('updatedAt') + ' ' + time;
+    const times = Object.values(scoresUpdatedTimes).map(value => new Date(value).getTime()).filter(value => Number.isFinite(value) && value > 0);
+    if (!times.length) { el.textContent = ''; return; }
+    const time = new Date(Math.max(...times)).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', hour12:false });
+    el.textContent = ' · updated ' + time;
+  }
+  function updateScoresTimestamp(ts) {
+    scoresUpdatedTimes.scores = ts;
+    renderScoresUpdatedTime();
   }
 
   async function fetchScores() {
@@ -539,8 +544,7 @@
     const isSuspended = statusName === 'STATUS_SUSPENDED';
     const isTrueFinal = stateType === 'post' && isCompleted && !isPostponed && !isSuspended;
 
-    // Card is a div now — clicking the body pins the game.
-    // The top-right button is the ESPN external link.
+    // Clicking the card opens ESPN; the top-right button pins the game.
     const card = document.createElement('div');
     card.className = 'game-card';
     if (featured) card.classList.add('featured');
@@ -550,18 +554,20 @@
     if (isPostponed) card.classList.add('postponed');
     if (isCurrentFeatured) card.classList.add('is-pinned');
 
-    // Clicking a non-featured card pins it. The featured card itself
-    // doesn't pin itself — clicking does nothing meaningful there.
+    // Only all-games cards open ESPN from the card body.
+    const espnUrl = `https://www.espn.com/mlb/game/_/gameId/${event.id}`;
     if (!featured) {
       card.style.cursor = 'pointer';
-      card.setAttribute('role', 'button');
+      card.setAttribute('role', 'link');
       card.setAttribute('tabindex', '0');
-      card.setAttribute('aria-label', t('pinToTop'));
-      card.addEventListener('click', () => pinFeaturedEvent(event.id));
+      card.setAttribute('aria-label', t('openOnEspn'));
+      card.title = t('openOnEspn');
+      card.addEventListener('click', () => window.open(espnUrl, '_blank', 'noopener'));
       card.addEventListener('keydown', (ev) => {
+        if (ev.target !== card) return;
         if (ev.key === 'Enter' || ev.key === ' ') {
           ev.preventDefault();
-          pinFeaturedEvent(event.id);
+          window.open(espnUrl, '_blank', 'noopener');
         }
       });
     }
@@ -595,19 +601,14 @@
       const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       statusInner = `${timeStr} · ${t('scoreScheduled')}`;
     }
-    // ESPN external-link button — opens game page in a new tab.
-    // Stop propagation so clicking it doesn't also pin the card.
-    const espnUrl = `https://www.espn.com/mlb/game/_/gameId/${event.id}`;
+    // Pin button stays independent from the card's ESPN link.
     const linkBtnHtml = (!featured)
-      ? `<a class="pin-btn score-link-btn"
-            href="${espnUrl}"
-            target="_blank"
-            rel="noopener"
-            onclick="event.stopPropagation();"
-            title="${escapeAttr(t('openOnEspn'))}"
-            aria-label="${escapeAttr(t('openOnEspn'))}">
-          <svg class="icon icon-sm"><use href="#i-external"/></svg>
-        </a>`
+      ? `<button type="button" class="pin-btn score-link-btn${isCurrentFeatured ? ' active' : ''}"
+            title="${escapeAttr(t('pinToTop'))}"
+            aria-label="${escapeAttr(t('pinToTop'))}"
+            aria-pressed="${!!isCurrentFeatured}">
+          <svg class="icon icon-sm"><use href="#i-pin"/></svg>
+        </button>`
       : '';
     // Featured card: status shown in linescore header, only need link button.
     // Non-featured small cards: show full status row.
@@ -625,6 +626,12 @@
         ${teamRowHtml(away, showScore, awayScore)}
         ${teamRowHtml(home, showScore, homeScore)}
       </div>`;
+    if (!featured) {
+      card.querySelector('.pin-btn').addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        pinFeaturedEvent(event.id);
+      });
+    }
     return card;
   }
 
@@ -804,12 +811,8 @@
   }
 
   function updateStandingsTimestamp(ts) {
-    const el = document.getElementById('standings-updated');
-    if (!el) return;
-    if (!ts) { el.textContent = ''; return; }
-    const date = new Date(ts);
-    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    el.textContent = ' · ' + t('updatedAt') + ' ' + time;
+    scoresUpdatedTimes.standings = ts;
+    renderScoresUpdatedTime();
   }
 
   function renderStandings(records) {

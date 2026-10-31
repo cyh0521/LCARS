@@ -818,7 +818,7 @@
      Replaces the standard scoreboard card structure. */
   #orioles-feature .game-card {
     border-left-width: 6px;
-    padding: 14px 18px 18px;
+    padding: 14px 18px;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -2006,14 +2006,9 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    border-top: 3px solid var(--lcars-frame);
+    border-top: 1px solid var(--lcars-frame);
     overflow: hidden;
   }
-  .series-card.status-watching { border-top-color: var(--lcars-orange); }
-  .series-card.status-complete { border-top-color: var(--lcars-cream); }
-  .series-card.status-planned  { border-top-color: var(--lcars-blue); }
-  .series-card.status-paused   { border-top-color: var(--lcars-violet); }
-  .series-card.status-dropped  { border-top-color: var(--lcars-frame); }
 
   /* Films / Books: side-poster card.
      Poster is fixed width AND fixed height (2:3).
@@ -2022,7 +2017,7 @@
     display: flex;
     flex-direction: row;
     border-top: none;
-    border-left: 3px solid var(--lcars-frame);
+    border-left: 1px solid var(--lcars-frame);
     height: 200px;
   }
   .card-side-poster .series-poster {
@@ -4143,7 +4138,7 @@
   }
   .ccy-badge.twd { background: var(--lcars-orange); color: var(--lcars-bg); }
   .ccy-badge.usd { background: var(--lcars-blue);   color: var(--lcars-bg); }
-  .ccy-badge.jpy { background: #9b3d68; color: var(--lcars-bg); }
+  .ccy-badge.jpy { background: #68429a; color: #fff; }
 
   /* ============================================================
      ALERT MODAL — fires when a note reminder elapses
@@ -4489,7 +4484,7 @@
   }
 </style>
 
-<link rel="stylesheet" href="css/redesign.css?v=watchlist-symbol-links-20261031">
+<link rel="stylesheet" href="css/redesign.css?v=media-filter-bold-active-20261101">
 </head>
 <body>
 
@@ -4722,7 +4717,7 @@
 
     <!-- PIN to top / promote up arrow -->
     <symbol id="i-pin" viewBox="0 0 24 24">
-      <path d="M12 4 L18 11 H14 V20 H10 V11 H6 Z" fill="currentColor" fill-opacity="0.85" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M12 20 V4 M6 10 L12 4 L18 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
 
     <!-- EXTERNAL LINK / opens in new tab — box with arrow pointing out top-right -->
@@ -5061,68 +5056,62 @@
     <section class="page" data-page="finance" hidden>
       <div class="fin-subtab-row">
         <div class="fin-subtab-bar" id="finance-subtab-bar" aria-label="Finance tabs"></div>
-        <div class="fin-tab-controls" aria-label="Finance tab controls">
-          <button class="fin-tab-control" id="finance-tab-add" type="button" data-i18n-title="finTabAdd" title="Add tab" aria-label="Add tab">
-            <svg class="icon icon-sm"><use href="#i-plus"/></svg>
-          </button>
-          <button class="fin-tab-control" id="finance-tab-rename" type="button" data-i18n-title="finTabRename" title="Rename tab" aria-label="Rename tab">
-            <svg class="icon icon-sm"><use href="#i-pencil"/></svg>
-          </button>
-          <button class="fin-tab-control danger" id="finance-tab-delete" type="button" data-i18n-title="finTabDelete" title="Delete tab" aria-label="Delete tab">
-            <svg class="icon icon-sm"><use href="#i-x"/></svg>
-          </button>
-        </div>
+        <details class="fin-tab-controls" id="finance-tab-menu">
+          <summary class="fin-tab-control" aria-label="Finance tab options" title="Finance tab options"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-more"/></svg></summary>
+          <div class="fin-tab-menu-items">
+            <button id="finance-tab-add" type="button" data-i18n="finTabAdd">Add tab</button>
+            <button id="finance-tab-rename" type="button" data-i18n="finTabRename">Rename tab</button>
+            <button id="finance-tab-delete" type="button" data-i18n="finTabDelete">Delete tab</button>
+          </div>
+        </details>
       </div>
 
       <div id="finance-tab-panels">
         <div class="fin-subtab-panel" data-finance-tab-panel="watchlist">
+          <div class="panel watchlist-card">
           <!-- Taiwan Stocks -->
-          <div class="panel watchlist-card watchlist-card--tw">
-            <div class="panel-title">
-              <span data-i18n="finTW">TW MARKET</span>
-            </div>
-            <div class="ticker-list" id="stocks-tw">
+          <div class="watchlist-group">
+            <h3 class="panel-title">
+              <span data-i18n="finStocks">STOCKS</span>
+            </h3>
+            <div class="ticker-list watchlist-stocks">
+            <div id="stocks-tw">
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">0050.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">2330.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">2891.TW</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
             </div>
-          </div>
-
-          <!-- US Stocks -->
-          <div class="panel watchlist-card watchlist-card--us">
-            <div class="panel-title">
-              <span data-i18n="finUS">US MARKET</span>
-            </div>
-            <div class="ticker-list" id="stocks-us">
+            <div id="stocks-us">
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VT</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VTI</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">VOO</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">BRK-B</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
             </div>
+            </div>
           </div>
 
           <!-- Funds -->
-          <div class="panel watchlist-card watchlist-card--fund">
-            <div class="panel-title">
+          <div class="watchlist-group">
+            <h3 class="panel-title">
               <span data-i18n="finFund">FUND</span>
-            </div>
+            </h3>
             <div class="ticker-list" id="stocks-fund">
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">—</span></div><span class="ticker-name" data-i18n="loadingMsg">LOADING…</span><span class="ticker-price">—</span></div>
             </div>
           </div>
 
           <!-- FX Rates -->
-          <div class="panel watchlist-card watchlist-card--fx">
-            <div class="panel-title">
+          <div class="watchlist-group">
+            <h3 class="panel-title">
               <span data-i18n="finFx">FX RATES</span>
-            </div>
+            </h3>
             <div class="ticker-list" id="fx-rates">
               <div class="ticker-row loading"><div class="ticker-head"><span class="ticker-sym">—</span></div><span class="ticker-price" data-i18n="loadingMsg">LOADING…</span></div>
             </div>
           </div>
 
           <div class="data-source-note">
-            <span><span data-i18n="finFootnote">Data via Google Sheets.</span><span id="stocks-updated"></span></span>
+            <span><span data-i18n="finFootnote">Source: Google Sheets</span><span id="stocks-updated"></span></span>
+          </div>
           </div>
         </div>
         <div id="finance-dynamic-panels"></div>
@@ -5132,8 +5121,9 @@
 
     <!-- ===== PAGE: SCORES ===== -->
     <section class="page" data-page="scores" hidden>
+      <div class="panel scores-card">
       <!-- Orioles featured panel -->
-      <div class="panel gold">
+      <div class="scores-group">
         <div class="panel-title" style="display:flex; align-items:center; justify-content:space-between;">
           <span id="featured-game-title" data-i18n="orioles">BALTIMORE ORIOLES</span>
           <div class="scores-reload-bar" id="scoresReloadBar" hidden>
@@ -5151,7 +5141,7 @@
       </div>
 
       <!-- All games today -->
-      <div class="panel">
+      <div class="scores-group">
         <div class="panel-title">
           <span data-i18n="scoresAll">ALL GAMES · TODAY</span>
         </div>
@@ -5163,7 +5153,7 @@
       </div>
 
       <!-- Standings -->
-      <div class="panel">
+      <div class="scores-group">
         <div class="panel-title">
           <span data-i18n="standingsTitle">STANDINGS</span>
         </div>
@@ -5175,13 +5165,14 @@
       </div>
 
       <div class="data-source-note">
-        <span><span data-i18n="scoresFootnote">Data via ESPN.</span><span id="scores-updated"></span><span id="standings-updated"></span></span>
+        <span><span data-i18n="scoresFootnote">Source: ESPN</span><span id="scores-updated"></span></span>
+      </div>
       </div>
     </section>
 
     <!-- ===== PAGE: LIBRARY ===== -->
     <section class="page" data-page="library" hidden>
-      <!-- Sub-tab bar — switches between series/films/reading/collection -->
+      <!-- Sub-tab bar — switches between series/films/reading -->
       <div class="lib-subtab-bar">
         <button class="lib-subtab-btn active" data-subtab="series"
                 onclick="setLibSubtab('series')" data-i18n="libSubtabSeries">SERIES</button>
@@ -5189,9 +5180,13 @@
                 onclick="setLibSubtab('films')" data-i18n="libSubtabFilms">FILMS</button>
         <button class="lib-subtab-btn" data-subtab="reading"
                 onclick="setLibSubtab('reading')" data-i18n="libSubtabReading">READING</button>
-        <button class="lib-subtab-btn" data-subtab="collection"
-                onclick="setLibSubtab('collection')" data-i18n="libSubtabCollection">COLLECTION</button>
-        <button class="fin-tab-control" id="pageActionBtn" type="button" onclick="pageActionBtnClick()" hidden><svg class="icon icon-sm" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        <div class="lib-header-search" data-search-subtab="series"></div>
+        <div class="lib-header-search" data-search-subtab="films" hidden></div>
+        <div class="lib-header-search" data-search-subtab="reading" hidden></div>
+        <details class="fin-tab-controls lib-action-menu" id="pageActionMenu" hidden>
+          <summary class="fin-tab-control" aria-label="Options"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-more"/></svg></summary>
+          <div class="fin-tab-menu-items"><button id="pageActionBtn" type="button" onclick="pageActionBtnClick()"></button></div>
+        </details>
       </div>
 
       <!-- Sub-tab content: SERIES (the existing tracker) -->
@@ -5222,13 +5217,6 @@
       </div>
 
       <!-- Sub-tab content: COLLECTION (placeholder) -->
-      <div class="lib-subtab-panel" data-subtab-panel="collection" hidden>
-        <div class="lib-coming-soon">
-          <svg class="icon icon-lg"><use href="#i-library"/></svg>
-          <div class="lib-cs-title" data-i18n="libComingSoon">COMING SOON</div>
-          <div class="lib-cs-msg" data-i18n="libCsCollection">Personal collection subsystem reserved for future deployment.</div>
-        </div>
-      </div>
     </section>
 
     <!-- ===== PAGE: WEATHER / OBSERVATORY ===== -->
@@ -5247,10 +5235,10 @@
       </div>
 
       <!-- ── WEATHER sub-tab ── -->
-      <div class="obs-subtab-panel" data-subtab-panel="weather">
+      <div class="obs-subtab-panel panel weather-card" data-subtab-panel="weather">
 
         <!-- 頂部五格：即時天氣 -->
-        <div class="panel wx-realtime-panel">
+        <div class="weather-group wx-realtime-panel">
           <div class="panel-title">即時氣象</div>
           <div class="info-strip five">
 
@@ -5295,7 +5283,7 @@
         </div><!-- /wx-realtime-panel -->
 
         <!-- 日照軌跡 + 逐小時 -->
-        <div class="panel teal wx-mid-panel">
+        <div class="weather-group wx-mid-panel">
           <div class="panel-title">日照軌跡・逐時預報</div>
           <div class="wx-mid-body">
             <canvas id="wx-sun-arc" class="wx-sun-canvas"></canvas>
@@ -5304,7 +5292,7 @@
         </div>
 
         <!-- 七天預報：磚塊卡片 -->
-        <div class="panel">
+        <div class="weather-group">
           <div class="panel-title">七天預報</div>
           <div id="wx-daily" class="wx-daily-grid"></div>
           <div class="wx-credit">資料來源：<a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）</div>
@@ -5339,16 +5327,16 @@
 
 </div>
 
-<script src="js/finance.js?v=watchlist-symbol-links-20261031"></script>
-<script src="js/scores.js"></script>
+<script src="js/finance.js?v=finance-tab-menu-20261101"></script>
+<script src="js/scores.js?v=card-actions-20261031"></script>
 <script src="js/notes.js?v=search-focus-20261021"></script>
-<script src="js/library.js?v=search-focus-20261021"></script>
-<script src="js/films.js?v=media-form-scroll-20261030"></script>
-<script src="js/reading.js?v=media-form-scroll-20261030"></script>
+<script src="js/library.js?v=media-search-toggle-20261101"></script>
+<script src="js/films.js?v=media-search-toggle-20261101"></script>
+<script src="js/reading.js?v=media-search-toggle-20261101"></script>
 <script src="js/attendance.js"></script>
 <script src="js/project.js"></script>
 <script src="js/weather.js"></script>
-<script src="js/core.js?v=allocation-order-20261031"></script>
+<script src="js/core.js?v=media-search-clear-20261101"></script>
 <script src="js/briefing.js?v=search-focus-20261021"></script>
 
 </body>

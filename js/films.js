@@ -12,7 +12,7 @@
   // Reuse the same Apps Script as library.js — the sheet is 'films'
   const FILMS_API_URL = 'https://script.google.com/macros/s/AKfycbz95Pnc9LeWAMtVmPIQePNK45-7akEonTCry3jjtH3UUdNTf4rUtzCpkeelQED0orLA/exec';
 
-  const FILM_STATUSES    = ['WATCHED', 'WANT_TO_WATCH', 'REWATCHING'];
+  const FILM_STATUSES    = ['REWATCHING', 'WANT_TO_WATCH', 'WATCHED'];
   const FILM_STATUS_KEY  = {
     'WATCHED':       'watched',
     'WANT_TO_WATCH': 'want',
@@ -111,10 +111,9 @@
   function filteredFilms() {
     let list = filmsCache.slice();
     if (filmFilter !== 'all') {
-      const target = filmFilter.toUpperCase().replace('-', '_');
       list = list.filter(f => {
         const st = String(f.status || 'WANT_TO_WATCH').toUpperCase();
-        return st === target;
+        return FILM_STATUS_KEY[st] === filmFilter;
       });
     }
     if (filmSearch) {
@@ -152,9 +151,9 @@
 
     const filters = [
       ['all',        t('filmFilterAll')],
-      ['watched',    t('filmFilterWatched')],
-      ['want',       t('filmFilterWant')],
       ['rewatching', t('filmFilterRewatching')],
+      ['want',       t('filmFilterWant')],
+      ['watched',    t('filmFilterWatched')],
     ];
 
     const btns = filters.map(([key, label]) => `
@@ -175,7 +174,8 @@
                 aria-label="Clear">✕</button>
       </div>`;
 
-    bar.innerHTML = btns + search;
+    bar.innerHTML = btns;
+    document.querySelector('[data-search-subtab="films"]').innerHTML = searchToggleMarkup() + search;
   }
 
   /* ============================================================
@@ -239,7 +239,7 @@
       header.innerHTML = `
         <span class="lib-month-tag"></span>
         <span class="lib-month-title">${escapeHtml(yr === '__' ? t('filmYearNone') : yr)}</span>
-        <span class="lib-month-count">${films.length}</span>`;
+        <span class="lib-month-count">共 ${films.length} 部</span>`;
       groupEl.appendChild(header);
 
       const inner = document.createElement('div');
@@ -408,6 +408,10 @@
     return card;
   }
 
+  function filmStatusFormLabel(status) {
+    return ({'WATCHED': '已看', 'WANT_TO_WATCH': '待看', 'REWATCHING': '觀看中'})[status] || status;
+  }
+
   function filmStatusLabel(status) {
     const map = {
       'WATCHED':       t('filmStatusWatched'),
@@ -467,7 +471,7 @@
       `<option value="${L}" ${f && f.language === L ? 'selected' : ''}>${langLabel(L)}</option>`
     ).join('');
     const statusOpts = FILM_STATUSES.map(st =>
-      `<option value="${st}" ${f && String(f.status).toUpperCase() === st ? 'selected' : (!f && st === 'WANT_TO_WATCH' ? 'selected' : '')}>${filmStatusLabel(st)}</option>`
+      `<option value="${st}" ${f && String(f.status).toUpperCase() === st ? 'selected' : (!f && st === 'WANT_TO_WATCH' ? 'selected' : '')}>${currentLang === 'zh' ? filmStatusFormLabel(st) : filmStatusLabel(st)}</option>`
     ).join('');
 
     // Cinema note

@@ -205,7 +205,8 @@
                 aria-label="Clear">✕</button>
       </div>`;
 
-    bar.innerHTML = btns + search;
+    bar.innerHTML = btns;
+    document.querySelector('[data-search-subtab="reading"]').innerHTML = searchToggleMarkup() + search;
   }
 
   /* ============================================================
@@ -268,7 +269,7 @@
       header.innerHTML = `
         <span class="lib-month-tag"></span>
         <span class="lib-month-title">${escapeHtml(yr === '__' ? t('bookYearNone') : yr)}</span>
-        <span class="lib-month-count">${books.length}</span>`;
+        <span class="lib-month-count">共 ${books.length} 本</span>`;
       groupEl.appendChild(header);
 
       const inner = document.createElement('div');
@@ -352,7 +353,7 @@
     if (b.genre)      metaParts.push(genreLabel(b.genre));
     meta.textContent = metaParts.join(' · ');
 
-    // ISBN + edition + source + price
+    // ISBN + edition + source
     const info = document.createElement('div');
     info.className = 'series-ep-line';
     const infoParts = [];
@@ -360,7 +361,6 @@
     if (b.publisher) infoParts.push(b.publisher);
     if (b.isbn)      infoParts.push(`ISBN ${b.isbn}`);
     if (b.source)  infoParts.push(b.source);
-    if (b.price)   infoParts.push(b.price);
     info.textContent = infoParts.join('  ·  ');
 
     // Date info line
@@ -445,6 +445,10 @@
     card.appendChild(poster);
     card.appendChild(body);
     return card;
+  }
+
+  function bookStatusFormLabel(status) {
+    return ({'READING': '閱讀中', 'WANT_TO_READ': '待讀', 'COMPLETED': '已讀', 'PAUSED': '暫停', 'DROPPED': '放棄'})[status] || status;
   }
 
   function bookStatusLabel(status) {
@@ -609,7 +613,7 @@
       `<option value="${L}" ${b && b.language === L ? 'selected' : ''}>${langLabel(L)}</option>`
     ).join('');
     const statusOpts = BOOK_STATUSES.map(st =>
-      `<option value="${st}" ${b && String(b.status).toUpperCase() === st ? 'selected' : (!b && st === 'WANT_TO_READ' ? 'selected' : '')}>${bookStatusLabel(st)}</option>`
+      `<option value="${st}" ${b && String(b.status).toUpperCase() === st ? 'selected' : (!b && st === 'WANT_TO_READ' ? 'selected' : '')}>${currentLang === 'zh' ? bookStatusFormLabel(st) : bookStatusLabel(st)}</option>`
     ).join('');
     const genreOpts = ['', ...BOOK_GENRES].map(g =>
       `<option value="${g}" ${b && b.genre === g ? 'selected' : (!b && !g ? 'selected' : '')}>${g ? genreLabel(g) : '—'}</option>`

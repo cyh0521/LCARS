@@ -156,12 +156,12 @@
       libCsCollection:     'Personal collection subsystem reserved for future deployment.',
       // ── Films ──────────────────────────────────────────────────────────────
       filmFilterAll:        'ALL',
-      filmFilterWatched:    'WATCHED',
-      filmFilterWant:       'WANT TO WATCH',
-      filmFilterRewatching: 'REWATCHING',
-      filmStatusWatched:    'WATCHED',
-      filmStatusWant:       'WANT',
-      filmStatusRewatching: 'REWATCHING',
+      filmFilterWatched:    'COMPLETED',
+      filmFilterWant:       'PLANNED',
+      filmFilterRewatching: 'WATCHING',
+      filmStatusWatched:    'COMPLETED',
+      filmStatusWant:       'PLANNED',
+      filmStatusRewatching: 'WATCHING',
       filmSearchPH:         'SEARCH…',
       filmEmpty:            'NO FILMS LOGGED',
       filmNoMatch:          'NO MATCHING FILMS',
@@ -193,12 +193,12 @@
       // ── Reading ────────────────────────────────────────────────────────────
       bookFilterAll:        'ALL',
       bookFilterReading:    'READING',
-      bookFilterWant:       'WANT TO READ',
+      bookFilterWant:       'PLANNED',
       bookFilterCompleted:  'COMPLETED',
       bookFilterPaused:     'PAUSED',
       bookFilterDropped:    'DROPPED',
       bookStatusReading:    'READING',
-      bookStatusWant:       'WANT',
+      bookStatusWant:       'PLANNED',
       bookStatusCompleted:  'COMPLETED',
       bookStatusPaused:     'PAUSED',
       bookStatusDropped:    'DROPPED',
@@ -451,10 +451,11 @@
       scoresSub:       'MLB · GAMES OF THE DAY',
       // Finance
       finTW:        'TW MARKET',
+      finStocks:    'STOCKS',
       finUS:        'US MARKET',
       finFund:      'FUND',
       finFx:        'FX RATES',
-      finFootnote:  'Data via Google Sheets.',
+      finFootnote:  'Source: Google Sheets',
       finError:     'DATA UNAVAILABLE',
       finOpenDetail:'Open ticker details',
       finTabWatchlist:'WATCHLIST',
@@ -475,6 +476,7 @@
       finPortfolioEdit:   'Edit tab',
       finPortfolioTabName:'TAB NAME',
       finPortfolioHoldings:'HOLDINGS',
+      finPortfolioDetails:'HOLDINGS DETAILS',
       finPortfolioShares: 'Shares',
       finPortfolioCost:   'Cost',
       finPortfolioCode:   'Ticker',
@@ -502,7 +504,7 @@
       // Scores
       orioles:        'BALTIMORE ORIOLES',
       scoresAll:      'ALL GAMES · TODAY',
-      scoresFootnote: 'Data via ESPN.',
+      scoresFootnote: 'Source: ESPN',
       scoresError:    'SCOREBOARD UNAVAILABLE',
       scoresNoGames:  'NO GAMES SCHEDULED TODAY',
       scoresNoOrioles:'ORIOLES HAVE NO GAME TODAY',
@@ -796,12 +798,12 @@
       // ── Films（電影）──────────────────────────────────────────────────────
       filmFilterAll:        '全部',
       filmFilterWatched:    '已看',
-      filmFilterWant:       '想看',
-      filmFilterRewatching: '重看中',
-      filmStatusWatched:    '已看',
-      filmStatusWant:       '想看',
-      filmStatusRewatching: '重看中',
-      filmSearchPH:         '搜尋…',
+      filmFilterWant:       '待看',
+      filmFilterRewatching: '觀看中',
+      filmStatusWatched:    'COMPLETED',
+      filmStatusWant:       'PLANNED',
+      filmStatusRewatching: 'WATCHING',
+      filmSearchPH:         '搜尋劇名',
       filmEmpty:            '尚無電影紀錄',
       filmNoMatch:          '沒有符合的電影',
       filmYearNone:         '未標記日期',
@@ -832,16 +834,16 @@
       // ── Reading（閱讀）────────────────────────────────────────────────────
       bookFilterAll:        '全部',
       bookFilterReading:    '閱讀中',
-      bookFilterWant:       '想讀',
-      bookFilterCompleted:  '已完成',
+      bookFilterWant:       '待讀',
+      bookFilterCompleted:  '已讀',
       bookFilterPaused:     '暫停',
       bookFilterDropped:    '放棄',
-      bookStatusReading:    '閱讀中',
-      bookStatusWant:       '想讀',
-      bookStatusCompleted:  '已完成',
-      bookStatusPaused:     '暫停',
-      bookStatusDropped:    '放棄',
-      bookSearchPH:         '搜尋…',
+      bookStatusReading:    'READING',
+      bookStatusWant:       'PLANNED',
+      bookStatusCompleted:  'COMPLETED',
+      bookStatusPaused:     'PAUSED',
+      bookStatusDropped:    'DROPPED',
+      bookSearchPH:         '搜尋書名',
       bookEmpty:            '尚無閱讀紀錄',
       bookNoMatch:          '沒有符合的書籍',
       bookYearNone:         '未標記日期',
@@ -911,17 +913,17 @@
       libLangJpKr:        '日語 / 韓語',
       // Library — filters
       libFilterAll:       '全部',
-      libSearchPH:        '搜尋劇名…',
+      libSearchPH:        '搜尋劇名',
       libGroupWantToWatch: '想看清單',
       // Month names (used by the month-group headers, e.g. "2026 · 五月")
       mon0:  '一月',  mon1:  '二月',  mon2:  '三月',  mon3:  '四月',
       mon4:  '五月',  mon5:  '六月',  mon6:  '七月',  mon7:  '八月',
       mon8:  '九月',  mon9:  '十月',  mon10: '十一月', mon11: '十二月',
-      libFilterWatching:  '追劇中',
+      libFilterWatching:  '觀看中',
       libFilterPlanned:   '待看',
-      libFilterComplete:  '看完',
+      libFilterComplete:  '已看',
       libFilterPaused:    '暫停',
-      libFilterDropped:   '棄坑',
+      libFilterDropped:   '放棄',
       // Library — card
       libEp:              'EP',
       libOf:              '/',
@@ -979,10 +981,11 @@
       libRatingUnrated:   '尚未評分',
       // Finance
       finTW:        '台股',
+      finStocks:    '股票',
       finUS:        '美股',
       finFund:      '基金',
       finFx:        '匯率',
-      finFootnote:  '資料來源:Google Sheets。',
+      finFootnote:  'Source: Google Sheets',
       finError:     '資料暫時無法取得',
       finOpenDetail:'查閱個股詳細資訊',
       finTabWatchlist:'WATCHLIST',
@@ -1003,6 +1006,7 @@
       finPortfolioEdit:   '編輯標籤',
       finPortfolioTabName:'標籤名稱',
       finPortfolioHoldings:'持倉設定',
+      finPortfolioDetails:'持股明細',
       finPortfolioShares: '持有股數',
       finPortfolioCost:   '購入本金',
       finPortfolioCode:   '代號',
@@ -1030,7 +1034,7 @@
       // Scores
       orioles:        '巴爾的摩金鶯',
       scoresAll:      '所有比賽 · 今日',
-      scoresFootnote: '資料來源:ESPN。',
+      scoresFootnote: 'Source: ESPN',
       scoresError:    '記分板無法取得',
       scoresNoGames:  '今日無賽程',
       scoresNoOrioles:'金鶯今日無比賽',
@@ -1040,7 +1044,7 @@
       openOnEspn:     '在 ESPN 開啟',
       standingsTitle: '戰績排名',
       standingsError: '戰績資料無法取得',
-      standingsStrk:  '連勝負',
+      standingsStrk:  'STRK',
       detWin:    '勝投',
       detLoss:   '敗投',
       detSave:   '救援',
@@ -1401,6 +1405,18 @@
   } catch(e) {}
 
   function switchPage(name) {
+    if (currentPage === 'library' && name !== 'library') {
+      [['lib-search-input', setLibSearch], ['film-search-input', setFilmSearch], ['book-search-input', setBookSearch]].forEach(([id, clearSearch]) => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+        clearSearch('');
+      });
+      document.querySelectorAll('.lib-header-search').forEach(header => {
+        header.classList.remove('expanded');
+        const toggle = header.querySelector('.lib-search-toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
     document.querySelectorAll('.page').forEach(s => {
       s.hidden = (s.dataset.page !== name);
     });
@@ -1520,24 +1536,32 @@
 
   function updatePageActionButton() {
     const btn = document.getElementById('pageActionBtn');
+    const menu = document.getElementById('pageActionMenu');
     if (!btn) return;
     const action = getPageAction();
     if (!action || !action.handler) {
-      btn.hidden = true;
+      if (menu) { menu.hidden = true; menu.open = false; }
       return;
     }
-    btn.hidden = false;
+    if (menu) { menu.hidden = false; menu.open = false; }
     btn.removeAttribute('data-i18n');
     btn.setAttribute('data-i18n-title', action.labelKey);
     btn.title = t(action.labelKey);
     btn.setAttribute('aria-label', t(action.labelKey));
+    btn.textContent = t(action.labelKey);
   }
 
   function pageActionBtnClick() {
+    const menu = document.getElementById('pageActionMenu');
+    if (menu) menu.open = false;
     const action = getPageAction();
     if (action && action.handler) action.handler();
   }
   window.pageActionBtnClick = pageActionBtnClick;
+  document.addEventListener('click', event => {
+    const menu = document.getElementById('pageActionMenu');
+    if (menu && !menu.contains(event.target)) menu.open = false;
+  });
 
   function initPages() {
     // Apply initial active tab
