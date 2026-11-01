@@ -387,11 +387,11 @@
 
     const moreBtn = document.createElement('button');
     moreBtn.className = 'series-btn icon-btn';
-    moreBtn.setAttribute('aria-label', t('notesMoreTip'));
+    moreBtn.setAttribute('aria-label', t('filmBtnEdit'));
     moreBtn.innerHTML = '<svg class="more-dots-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
     moreBtn.addEventListener('click', e => {
       e.stopPropagation();
-      showFilmEditForm(f);
+      showFilmMenu(f, moreBtn);
     });
 
     moreBtn.classList.add('media-more-corner');
@@ -431,7 +431,9 @@
 
     const menu = document.createElement('div');
     menu.id = 'film-ctx-menu';
-    menu.className = 'lib-ctx-menu';
+    menu.className = 'note-menu lib-series-menu';
+    menu.style.width = '180px';
+    menu.addEventListener('mousedown', e => e.stopPropagation());
 
     const items = [
       { label: t('filmMenuEdit'),   fn: () => showFilmEditForm(f) },
@@ -439,18 +441,18 @@
     ];
     items.forEach(({ label, fn, danger }) => {
       const btn = document.createElement('button');
-      btn.className = 'lib-ctx-item' + (danger ? ' danger' : '');
+      btn.className = 'note-menu-delete' + (danger ? ' danger' : '');
+      btn.style.cssText = 'background:var(--lcars-frame);color:' + (danger ? 'var(--lcars-rust)' : 'var(--lcars-cream)') + ';margin:0';
       btn.textContent = label;
       btn.addEventListener('click', () => { menu.remove(); fn(); });
       menu.appendChild(btn);
     });
 
-    const rect = anchor.getBoundingClientRect();
-    menu.style.cssText = `position:fixed; top:${rect.bottom + 4}px; left:${rect.left}px; z-index:9999;`;
     document.body.appendChild(menu);
+    positionPopoverBelow(menu, anchor);
 
-    const dismiss = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', dismiss); } };
-    setTimeout(() => document.addEventListener('click', dismiss), 10);
+    const dismiss = e => { if (!menu.contains(e.target) && e.target !== anchor) { menu.remove(); document.removeEventListener('mousedown', dismiss); } };
+    setTimeout(() => document.addEventListener('mousedown', dismiss), 0);
     beep(560);
   }
 
@@ -610,20 +612,7 @@
       document.addEventListener('keydown', onKey);
       /* backdrop-close disabled */
 
-      // Edit mode: Delete button on the left
-      if (isEdit) {
-        const delBtn = document.createElement('button');
-        delBtn.className = 'alert-ok danger';
-        delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg); margin-right:auto;';
-        delBtn.textContent = t('libDelete');
-        delBtn.addEventListener('click', () => {
-          close(null);
-          confirmFilmDelete(f);
-        });
-        footer.appendChild(delBtn);
-      } else {
-        footer.appendChild(document.createElement('span'));
-      }
+      footer.appendChild(document.createElement('span'));
 
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'alert-ok';

@@ -1,4 +1,4 @@
-// Read-only briefings derived from the existing module state. No invented data or AI calls.
+// Local briefings with a separate read-only AI conversation pilot.
 (() => {
   const root = document.getElementById('briefing-home');
   if (!root) return;
@@ -60,8 +60,7 @@
   }
   function rows(items) { return `<ul class="briefing-items">${items.map(x => `<li>${x?.task ? `<strong>${safe(x.title)}</strong><small>${safe(x.date || copy('未設定期限','No deadline'))}${x.priority>=3?`<span class="task-priority">${copy('優先','Priority')}</span>`:''}</small>` : safe(x)}</li>`).join('')}</ul>`; }
   function card(index,category,title,body,items,page,explanation,visual='') {
-    const action={project:copy('查看工作','Open work'),finance:copy('查看財務','Open finances'),scores:copy('查看賽況','Open scores'),library:copy('查看影劇與閱讀','Open media & reading'),weather:copy('查看天氣','Open weather')}[page];
-    return `<article class="briefing-card" data-area="${page}" data-attention="${index===0}"><div class="briefing-card-top"><div class="dispatch-author">${avatar(index)}<span>${safe(advisorName(index))}</span></div><span class="briefing-category">${icon(page)}${safe(category)}</span></div><div class="briefing-card-body"><h3>${safe(title)}</h3><p>${safe(body)}</p>${items.length ? rows(items) : ''}<div class="briefing-actions"><button class="briefing-link" data-briefing-page="${page}">${action}${icon('arrow')}</button></div><details class="briefing-discussion" data-discussion="${page}"><summary><span>${copy('查閱資料與觀察','Data & observations')}</span></summary><div class="briefing-evidence">${visual}<p>${safe(explanation)}</p></div></details></div></article>`;
+    return `<article class="briefing-card" data-area="${page}" data-attention="${index===0}"><div class="briefing-card-top"><div class="dispatch-author">${avatar(index)}<span>${safe(advisorName(index))}</span></div><span class="briefing-category">${icon(page)}${safe(category)}</span></div><div class="briefing-card-body"><h3>${safe(title)}</h3><p>${safe(body)}</p>${items.length ? rows(items) : ''}${visual}</div></article>`;
   }
   let filter = 'all';
   root.innerHTML = '<div class="dispatch-layout"><nav class="advisor-rail" id="advisor-rail"></nav><div id="briefing-content"></div><aside class="dispatch-context" id="dispatch-context" aria-label="TO DO LIST"></aside></div>';
@@ -74,12 +73,6 @@
   conversation.hidden = true;
   workspace.append(conversation);
   const dialogModes = {};
-  conversation.addEventListener('click', e => {
-    const button = e.target.closest('[data-dialog-mode]');
-    if (!button) return;
-    dialogModes[currentPage] = button.dataset.dialogMode;
-    render(true);
-  });
   const notesPanel = document.getElementById('notes-panel');
   context.classList.add('home-notes','todo-panel');
   context.append(notesPanel);
@@ -117,14 +110,12 @@
     if (!force && lastSignature === signature) return;
     // Preserve open details and focused controls during automatic updates.
     if (!force && renderedLanguage === currentLang && root.contains(document.activeElement) && document.activeElement.matches('input,textarea,select,[contenteditable="true"]')) return;
-    const opened = new Set([...content.querySelectorAll('.briefing-discussion[open]')].map(d => d.dataset.discussion));
     const focused = workspace.contains(document.activeElement) ? document.activeElement : null;
     let restoreSelector = '';
     if (focused?.id === 'briefing-refresh') restoreSelector = '#briefing-refresh';
     else if (focused?.dataset.dispatchView) restoreSelector = `[data-dispatch-view="${focused.dataset.dispatchView}"]`;
     else if (focused?.dataset.briefingFilter) restoreSelector = `[data-briefing-filter="${focused.dataset.briefingFilter}"]`;
     else if (focused?.dataset.briefingPage) restoreSelector = `${focused.closest('.dispatch-context') ? '.dispatch-context ' : focused.closest('.briefing-card') ? `[data-area="${focused.closest('.briefing-card').dataset.area}"] ` : ''}[data-briefing-page="${focused.dataset.briefingPage}"]`;
-    else if (focused?.closest('.briefing-discussion')) restoreSelector = `[data-discussion="${focused.closest('.briefing-discussion').dataset.discussion}"] summary`;
     lastSignature = signature;
     renderedLanguage = currentLang;
     const today = new Date(); today.setHours(0,0,0,0);
@@ -161,7 +152,7 @@
       const options = [['status',copy('目前狀況','Status')],['advice',copy('給我建議','Advice')],['caution',copy('需要注意什麼','Watch for')]];
       const message = (messages[currentPage] || messages.project)[{status:0,advice:1,caution:2}[mode] || 0];
       conversation.setAttribute('aria-label',copy(`${advisorName(person)}的對話`,`${advisorName(person)}’s conversation`));
-      conversation.innerHTML = `<div class="advisor-dialog-person">${avatar(person)}<strong>${safe(advisorName(person))}</strong><span class="advisor-presence">${copy('一起商量','Let’s talk')}</span></div><div class="advisor-speech" aria-live="polite"><p>${safe(message)}</p></div><div class="advisor-prompts">${options.map(([key,label])=>`<button class="briefing-button" data-dialog-mode="${key}" aria-pressed="${mode===key}">${label}</button>`).join('')}</div><p class="advisor-disclaimer">${copy('依現有資料與固定規則整理，尚未接入 AI 對話。','Based on available data and preset guidance. AI chat is not connected.')}</p>`;
+      window.LcarsAdvisor.mount(conversation, { page:currentPage, name:advisorName(person), portrait:avatar(person), greeting:message, language:currentLang });
     }
 
     context.setAttribute('aria-label','TO DO LIST');
@@ -177,7 +168,6 @@
       card(3,copy('影劇與閱讀','Media & reading'),mediaEntries.length?copy(`${watching.length} 部影集、${reading.length} 本書正在進行中`,`${watching.length} shows and ${reading.length} books in progress`):copy('沒有可用的進行中紀錄','No active records available'),mediaEntries.length ? mediaEntries.slice(0,3).map(m=>m.title).join('、') : copy('在影劇與閱讀頁設定觀看或閱讀進度。','Set viewing or reading progress in the Library.'),[],'library',copy('依觀看中及閱讀中的紀錄整理。可在影劇與閱讀頁查看集數、評分和筆記。','Based on watching and reading records. Open the Library for episodes, ratings and notes.'),mediaVisual)+
       card(4,copy('天氣','Weather'),copy('出門前，一起看看天氣。','Let’s check before heading out.'),copy('確認目的地與外出時間，再看逐時氣溫和降雨。','Check your destination and outing time, then review hourly temperature and rain.'),[],'weather',copy('實際預報請到天氣頁選擇地區查看。','Open Weather and select an area for the forecast.'))+'</div><p class="briefing-filter-empty" hidden>'+copy('這個分類目前沒有需要顯示的簡報。','No briefings in this category.')+'</p></section></div><p class="dispatch-footnote">'+copy('呈報依現有資料在本機整理；人物名稱為暫定，尚未接入 AI 對話。','Reports are derived locally from existing data. Names are provisional; AI chat is not connected.')+'</p>';
     content.querySelector('[data-area="project"]').dataset.attention=String(overdue.length+upcoming.length>0);
-    content.querySelectorAll('.briefing-discussion').forEach(d => { d.open = opened.has(d.dataset.discussion); });
     applyFilter();
     if(restoreSelector) workspace.querySelector(restoreSelector)?.focus({preventScroll:true});
   }
@@ -192,8 +182,6 @@
     } finally { lastChecked=new Date(); loading=false; render(true); }
   }
   root.addEventListener('click',e => {
-    const button=e.target.closest('[data-briefing-page]');
-    if(button) switchPage(button.dataset.briefingPage);
     if(e.target.closest('#briefing-refresh')) refresh();
     const filterButton=e.target.closest('[data-briefing-filter]');
     if(filterButton) { filter=filter===filterButton.dataset.briefingFilter?'all':filterButton.dataset.briefingFilter; applyFilter(); }

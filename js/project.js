@@ -1,5 +1,5 @@
 // js/project.js — Mission Operations · Project / Milestone / Task Tracker
-// Three-tier model: Project → Milestone (章節) → Task
+// Three-tier model: Project → Milestone (項目) → Task
 // API mirrors library.js: Apps Script backend, action-based POST, local cache.
 
 /* ============================================================
@@ -139,421 +139,214 @@
       root.appendChild(banner);
     }
 
-    // Layout: left sidebar (project tree) + right panel (kanban)
-    const layout = el('div', 'proj-layout');
+    root.appendChild(renderProgressOverview());
+  }
 
-    // ── Left: project tree ────────────────────────────────────────────────
-    const sidebar = el('div', 'proj-sidebar');
+  let projProgressFilter = 'all';
+  let projDetailId = null;
+  let projSelectedItemId = null;
+  let projOverviewPosition = [];
+  let projOverviewFocusId = null;
 
-    // "All projects" header
-    const sideHead = el('div', 'proj-side-head');
-    const sideTitle = el('span', 'proj-side-title');
-    sideTitle.textContent = t('projMissionOps');
-    sideHead.appendChild(sideTitle);
-    const addProjBtn = el('button', 'proj-side-add-btn');
-    addProjBtn.textContent = '+';
-    addProjBtn.title = t('projAddProject');
-    addProjBtn.onclick = () => openProjectModal(null);
-    sideHead.appendChild(addProjBtn);
-    sidebar.appendChild(sideHead);
-
-    if (projProjects.length === 0) {
-      const empty = el('div', 'proj-side-empty');
-      empty.textContent = t('projNoProjects');
-      sidebar.appendChild(empty);
+  function navigateProjectDetail(id) {
+    if (id) {
+      projOverviewFocusId = id;
+      projOverviewPosition = [document.scrollingElement, ...document.querySelectorAll('main, .main, .workspace, .main-content')]
+        .filter(Boolean).map(node => [node, node.scrollTop]);
+    }
+    projDetailId = id;
+    renderProjPage();
+    if (id) {
+      document.querySelector('.progress-back')?.focus({preventScroll:true});
+      projOverviewPosition.forEach(([node]) => { node.scrollTop = 0; });
     } else {
-      projProjects.forEach(proj => {
-        sidebar.appendChild(renderProjSidebarItem(proj));
-      });
+      const target = Array.from(document.querySelectorAll('.progress-project-toggle'))
+        .find(button => button.dataset.projectId === String(projOverviewFocusId));
+      target?.focus({preventScroll:true});
+      projOverviewPosition.forEach(([node, top]) => { node.scrollTop = top; });
     }
-
-    layout.appendChild(sidebar);
-
-    // ── Drag resizer ──────────────────────────────────────────────────────
-    const resizer = el('div', 'proj-resizer');
-    layout.appendChild(resizer);
-    attachProjResizer(resizer, layout);
-
-    // ── Right: kanban panel ───────────────────────────────────────────────
-    const kanban = el('div', 'proj-kanban-area');
-    kanban.appendChild(renderKanbanArea());
-    layout.appendChild(kanban);
-
-    root.appendChild(layout);
   }
+  const projCopy = (zh, en) => currentLang === 'zh' ? zh : en;
 
-  // ── Sidebar project + milestones ──────────────────────────────────────────
-
-  function renderProjSidebarItem(proj) {
-    const isOpen = projActiveProjectId === proj.id;
-    const milestones = projMilestones.filter(m => m.project_id === proj.id);
-
-    const wrap = el('div', 'proj-proj-item' + (isOpen ? ' open' : ''));
-
-    // Project row
-    const projRow = el('div', 'proj-proj-row');
-    projRow.style.setProperty('--proj-color', proj.color || PROJ_COLORS[0]);
-
-    const chevron = el('span', 'proj-chevron');
-    chevron.textContent = isOpen ? '▾' : '▸';
-    projRow.appendChild(chevron);
-
-    const dot = el('span', 'proj-proj-dot');
-    projRow.appendChild(dot);
-
-    const label = el('span', 'proj-proj-label');
-    label.textContent = proj.title;
-    projRow.appendChild(label);
-
-    // task count badge
-    const taskCount = projTasks.filter(t => t.project_id === proj.id && t.status !== 'DONE').length;
-    if (taskCount > 0) {
-      const badge = el('span', 'proj-proj-badge');
-      badge.textContent = taskCount;
-      projRow.appendChild(badge);
-    }
-
-    const editBtn = el('button', 'proj-proj-edit-btn');
-    editBtn.textContent = '⋯';
-    editBtn.title = t('projEdit');
-    editBtn.onclick = e => { e.stopPropagation(); openProjectModal(proj); };
-    projRow.appendChild(editBtn);
-
-    projRow.onclick = () => {
-      if (projActiveProjectId === proj.id) {
-        projActiveProjectId   = null;
-        projActiveMilestoneId = null;
-      } else {
-        projActiveProjectId = proj.id;
-        // auto-select first milestone
-        projActiveMilestoneId = milestones.length > 0 ? milestones[0].id : null;
-      }
-      renderProjPage();
-    };
-    wrap.appendChild(projRow);
-
-    // Milestone list (only when project is open)
-    if (isOpen) {
-      const msList = el('div', 'proj-ms-list');
-
-      milestones.forEach(ms => {
-        const msRow = buildMilestoneRow(ms, proj);
-        msList.appendChild(msRow);
-      });
-
-      // Add milestone button
-      const addMsRow = el('div', 'proj-ms-add-row');
-      const addMsBtn = el('button', 'proj-ms-add-btn');
-      addMsBtn.textContent = t('projAddMilestone');
-      addMsBtn.onclick = () => openMilestoneModal(null, proj);
-      addMsRow.appendChild(addMsBtn);
-      msList.appendChild(addMsRow);
-
-      wrap.appendChild(msList);
-    }
-
-    return wrap;
-  }
-
-  function buildMilestoneRow(ms, proj) {
-    const isActive = projActiveMilestoneId === ms.id;
-    const tasks    = projTasks.filter(t => t.milestone_id === ms.id);
-    const done     = tasks.filter(t => t.status === 'DONE').length;
-    const total    = tasks.length;
-    const pct      = total > 0 ? Math.round(done / total * 100) : 0;
-
-    const msRow = el('div', 'proj-ms-row' + (isActive ? ' active' : ''));
-    msRow.style.setProperty('--proj-color', proj.color || PROJ_COLORS[0]);
-
-    const msLabel = el('span', 'proj-ms-label');
-    msLabel.textContent = ms.title;
-    msRow.appendChild(msLabel);
-
-    // progress pill
-    const prog = el('span', 'proj-ms-prog');
-    prog.textContent = total > 0 ? `${done}/${total}` : '—';
-    if (pct === 100) prog.classList.add('done');
-    msRow.appendChild(prog);
-
-    // edit button
-    const editBtn = el('button', 'proj-ms-edit-btn');
-    editBtn.textContent = '⋯';
-    editBtn.title = t('projEdit');
-    editBtn.onclick = e => { e.stopPropagation(); openMilestoneModal(ms, proj); };
-    msRow.appendChild(editBtn);
-
-    msRow.onclick = () => {
-      projActiveMilestoneId = ms.id;
-      projActiveProjectId   = proj.id;
-      renderProjPage();
-    };
-
-    // mini progress bar
-    if (total > 0) {
-      const bar = el('div', 'proj-ms-bar');
-      const fill = el('div', 'proj-ms-bar-fill');
-      fill.style.width = pct + '%';
-      fill.style.setProperty('--proj-color', proj.color || PROJ_COLORS[0]);
-      bar.appendChild(fill);
-      const barWrap = el('div', 'proj-ms-bar-wrap');
-      barWrap.appendChild(msRow);
-      barWrap.appendChild(bar);
-      return barWrap;
-    }
-
-    return msRow;
-  }
-
-  // ── Kanban area ───────────────────────────────────────────────────────────
-
-  function renderKanbanArea() {
-    const wrap = el('div');
-
-    // No project selected
-    if (!projActiveProjectId) {
-      // Show overview: all projects summary
-      return renderProjectsOverview();
-    }
-
-    const proj = projProjects.find(p => p.id === projActiveProjectId);
-    if (!proj) return wrap;
-
-    // No milestone selected (project has none yet)
-    const milestones = projMilestones.filter(m => m.project_id === proj.id);
-    if (!projActiveMilestoneId || !milestones.find(m => m.id === projActiveMilestoneId)) {
-      const hint = el('div', 'proj-kanban-hint');
-      hint.innerHTML = `<span style="opacity:0.4">${t('projSelectMilestone')}</span>`;
-      return hint;
-    }
-
-    const ms = projMilestones.find(m => m.id === projActiveMilestoneId);
-
-    // Kanban header
-    const header = el('div', 'proj-kanban-header');
-    header.style.setProperty('--proj-color', proj.color || PROJ_COLORS[0]);
-
-    const breadcrumb = el('div', 'proj-breadcrumb');
-    breadcrumb.innerHTML = `<span class="proj-bc-proj">${escHtml(proj.title)}</span><span class="proj-bc-sep">›</span><span class="proj-bc-ms">${escHtml(ms.title)}</span>`;
-    header.appendChild(breadcrumb);
-
-    const headerActions = el('div', 'proj-kanban-header-actions');
-
-    // Sort control
-    const sortWrap = el('div', 'proj-sort-row');
-    const sortLbl = el('span', 'proj-sort-label');
-    sortLbl.textContent = t('projSortBy');
-    sortWrap.appendChild(sortLbl);
-    [
-      { key: 'priority', label: t('projSortPriority') },
-      { key: 'due',      label: t('projSortDue')      },
-    ].forEach(({ key, label }) => {
-      const b = el('button', 'proj-sort-btn' + (projSortMode === key ? ' active' : ''));
-      b.textContent = label;
-      b.onclick = () => { projSortMode = key; renderProjPage(); };
-      sortWrap.appendChild(b);
-    });
-    headerActions.appendChild(sortWrap);
-
-    // Apply template button
-    if (projTemplates.length > 0) {
-      const tmplBtn = el('button', 'proj-tmpl-btn');
-      tmplBtn.textContent = t('projApplyTemplate');
-      tmplBtn.onclick = () => openTemplateModal(ms, proj);
-      headerActions.appendChild(tmplBtn);
-    }
-
-    // Add task button
-    const addBtn = el('button', 'proj-add-task-btn');
-    addBtn.textContent = t('projAddTask');
-    addBtn.onclick = () => openTaskModal(null, ms, proj);
-    headerActions.appendChild(addBtn);
-
-    header.appendChild(headerActions);
-    wrap.appendChild(header);
-
-    // Kanban columns
-    const board = el('div', 'proj-board');
-    Object.keys(STATUS_CFG).forEach(status => {
-      board.appendChild(renderKanbanColumn(status, ms, proj));
-    });
-    wrap.appendChild(board);
-
-    return wrap;
-  }
-
-  function renderProjectsOverview() {
-    const wrap = el('div', 'proj-overview');
-
-    if (projProjects.length === 0) {
-      const empty = el('div', 'proj-kanban-hint');
-      const msg = el('div', 'proj-overview-empty');
-      msg.innerHTML = `<svg class="icon icon-lg" style="opacity:0.25"><use href="#i-missions"/></svg><p>${t('projEmptyHint')}</p>`;
-      empty.appendChild(msg);
-      return empty;
-    }
-
-    projProjects.forEach(proj => {
-      const card = el('div', 'proj-overview-card');
-      card.style.setProperty('--proj-color', proj.color || PROJ_COLORS[0]);
-
-      const cardHead = el('div', 'proj-overview-head');
-      const dot = el('span', 'proj-overview-dot');
-      cardHead.appendChild(dot);
-      const title = el('span', 'proj-overview-title');
-      title.textContent = proj.title;
-      cardHead.appendChild(title);
-      card.appendChild(cardHead);
-
-      const milestones = projMilestones.filter(m => m.project_id === proj.id);
-      milestones.forEach(ms => {
-        const tasks = projTasks.filter(t => t.milestone_id === ms.id);
-        const done  = tasks.filter(t => t.status === 'DONE').length;
-        const total = tasks.length;
-        const pct   = total > 0 ? Math.round(done / total * 100) : 0;
-
-        const msRow = el('div', 'proj-overview-ms');
-        msRow.textContent = ms.title;
-
-        const prog = el('span', 'proj-overview-prog');
-        prog.textContent = total > 0 ? `${pct}%` : '—';
-        if (pct === 100) prog.classList.add('done');
-        msRow.appendChild(prog);
-
-        msRow.onclick = () => {
-          projActiveProjectId   = proj.id;
-          projActiveMilestoneId = ms.id;
-          renderProjPage();
-        };
-        card.appendChild(msRow);
-      });
-
-      wrap.appendChild(card);
-    });
-
-    return wrap;
-  }
-
-  // ── Kanban column ─────────────────────────────────────────────────────────
-
-  function renderKanbanColumn(status, ms, proj) {
-    const cfg = STATUS_CFG[status];
-
-    let tasks = projTasks.filter(t =>
-      t.milestone_id === ms.id && t.status === status
-    );
-
-    // Sort
-    tasks = [...tasks].sort((a,b) => {
-      if (projSortMode === 'due') {
-        const ad = a.due_date ? new Date(a.due_date) : new Date('9999-12-31');
-        const bd = b.due_date ? new Date(b.due_date) : new Date('9999-12-31');
-        return ad - bd;
-      }
-      return (b.priority||2) - (a.priority||2);
-    });
-
-    const col = el('div', 'proj-column');
-
-    const colHead = el('div', 'proj-col-head');
-    colHead.style.setProperty('--col-color', cfg.color);
-    const colIcon = el('span', 'proj-col-icon');
-    colIcon.textContent = cfg.icon;
-    colHead.appendChild(colIcon);
-    const colLabel = el('span', 'proj-col-label');
-    colLabel.textContent = t('projStatus_' + status.replace(' ','_')) || status;
-    colHead.appendChild(colLabel);
-    const colCount = el('span', 'proj-col-count');
-    colCount.textContent = tasks.length;
-    colHead.appendChild(colCount);
-    col.appendChild(colHead);
-
-    if (tasks.length === 0) {
-      const empty = el('div', 'proj-col-empty');
-      empty.textContent = t('projColEmpty');
-      col.appendChild(empty);
-    } else {
-      tasks.forEach(task => col.appendChild(renderTaskCard(task, ms, proj)));
-    }
-
-    return col;
-  }
-
-  // ── Task card ─────────────────────────────────────────────────────────────
-
-  function renderTaskCard(task, ms, proj) {
-    const pCfg  = PRIORITY_CFG[task.priority] || PRIORITY_CFG[2];
+  function projTaskStats(tasks) {
     const today = new Date(); today.setHours(0,0,0,0);
-    const due   = task.due_date ? new Date(task.due_date) : null;
-    const overdue  = due && due < today && task.status !== 'DONE';
-    const dueToday = due && due.getTime() === today.getTime();
+    const pending = tasks.filter(task => task.status !== 'DONE');
+    const dates = pending.map(task => task.due_date).filter(Boolean).sort();
+    return {
+      total: tasks.length,
+      done: tasks.length - pending.length,
+      active: pending.filter(task => task.status === 'IN PROGRESS').length,
+      overdue: pending.filter(task => task.due_date && new Date(task.due_date) < today).length,
+      next: dates[0],
+    };
+  }
 
-    const card = el('div', 'proj-task-card' + (overdue ? ' overdue' : '') + (dueToday ? ' due-today' : ''));
-    card.style.setProperty('--proj-color', proj.color || PROJ_COLORS[0]);
+  function projProgressButton(label, action, className = '') {
+    const button = el('button', 'progress-button ' + className);
+    button.type = 'button'; button.textContent = label; button.onclick = action;
+    return button;
+  }
 
-    // Priority badge
-    const badge = el('span', 'proj-task-badge');
-    badge.textContent = pCfg.dot;
-    badge.style.color = pCfg.color;
-    card.appendChild(badge);
+  function updateProjectAddButton() {
+    const button = document.querySelector('.project-add-control button');
+    if (!button) return;
+    const key = projDetailId ? 'projAddMilestone' : 'projAddProject';
+    button.setAttribute('data-i18n-title', key);
+    button.setAttribute('data-i18n-aria', key);
+    button.title = t(key);
+    button.setAttribute('aria-label', t(key));
+  }
 
-    // Title
-    const titleEl = el('div', 'proj-task-title');
-    titleEl.textContent = task.title;
-    card.appendChild(titleEl);
+  function projectAddClick() {
+    const project = projProjects.find(proj => proj.id === projDetailId);
+    if (project) openMilestoneModal(null, project);
+    else openProjectModal(null);
+  }
+  window.projectAddClick = projectAddClick;
 
-    // Due date
-    if (due) {
-      const duePill = el('span', 'proj-task-due' + (overdue ? ' overdue' : '') + (dueToday ? ' today' : ''));
-      duePill.textContent = formatProjDate(due);
-      card.appendChild(duePill);
-    }
+  function renderProgressOverview() {
+    if (projDetailId && !projProjects.some(proj => proj.id === projDetailId)) projDetailId = null;
+    const detail = projDetailId !== null;
+    updateProjectAddButton();
+    const wrap = el('div', 'progress-overview' + (detail ? ' progress-detail' : ''));
+    if (detail) wrap.appendChild(projProgressButton(projCopy('← 所有專案', '← All projects'), () => navigateProjectDetail(null), 'progress-back'));
+    const filters = el('div', 'lib-filter-bar progress-filters');
+    const options = [['all', projCopy('全部','All')], ['active',projCopy('進行中','In progress')], ['overdue',projCopy('逾期','Overdue')], ['done',projCopy('已完成','Completed')]];
+    options.forEach(([key,label]) => {
+      const button = el('button', 'lib-filter-btn' + (projProgressFilter === key ? ' active' : ''));
+      button.type = 'button';
+      button.textContent = label;
+      button.onclick = () => { projProgressFilter = key; renderProjPage(); };
+      button.setAttribute('aria-pressed', String(projProgressFilter === key));
+      filters.appendChild(button);
+    });
+    if (!detail) wrap.appendChild(filters);
+    const grid = el('div', detail ? 'progress-detail-content' : 'progress-card-grid');
+    wrap.appendChild(grid);
+    let visible = 0;
+    projProjects.forEach(proj => {
+      const tasks = projTasks.filter(task => task.project_id === proj.id);
+      const stats = projTaskStats(tasks);
+      const complete = stats.total > 0 && stats.done === stats.total;
+      if (detail && proj.id !== projDetailId) return;
+      if (!detail && projProgressFilter === 'active' && (!stats.total || complete)) return;
+      if (!detail && projProgressFilter === 'overdue' && !stats.overdue) return;
+      if (!detail && projProgressFilter === 'done' && !complete) return;
+      visible++;
+      const card = el('section', 'progress-project' + (detail ? '' : ' series-card progress-small-card'));
+      const head = el('div', 'progress-project-head');
+      const expanded = detail;
+      const toggle = detail ? el('h2', 'progress-detail-title') : projProgressButton(proj.title, () => navigateProjectDetail(proj.id), 'progress-project-toggle');
+      toggle.textContent = proj.title;
+      toggle.dataset.projectId = proj.id;
+      if (!detail) {
+        card.onclick = event => { if (!event.target.closest('button')) navigateProjectDetail(proj.id); };
+      }
+      const count = el('span', 'progress-count'); count.textContent = `${stats.done} / ${stats.total} ` + projCopy('項完成','completed');
+      head.append(toggle, count);
+      if (!detail) {
+        const editProject = projProgressButton('⋯', () => openProjectModal(proj));
+        editProject.setAttribute('aria-label', t('projEditProject'));
+        head.appendChild(editProject);
+      }
+      card.appendChild(head);
+      const pct = stats.total ? Math.round(stats.done / stats.total * 100) : 0;
+      const meter = el('div', 'progress-meter');
+      meter.setAttribute('role','progressbar'); meter.setAttribute('aria-label',proj.title + ' ' + projCopy('任務完成率','task completion'));
+      meter.setAttribute('aria-valuemin','0'); meter.setAttribute('aria-valuemax','100'); meter.setAttribute('aria-valuenow',String(pct));
+      const fill = el('span'); fill.style.width = pct + '%'; meter.appendChild(fill);
+      const progress = el('div','progress-meter-row');
+      const percent = el('span'); percent.textContent = projCopy('任務完成率 ','Task completion ') + (stats.total ? pct + '%' : '—');
+      progress.append(meter,percent); card.appendChild(progress);
+      const meta = el('div','progress-meta');
+      const active = el('span'); active.textContent = `${stats.active} ` + projCopy('項進行中','in progress');
+      const overdue = el('span', stats.overdue ? 'progress-overdue' : ''); overdue.textContent = `${stats.overdue} ` + projCopy('項逾期','overdue');
+      const due = el('span'); due.textContent = stats.next ? projCopy('最近期限 ','Next due ') + formatProjDate(new Date(stats.next)) : projCopy('無待辦期限','No pending due date');
+      meta.append(active,overdue,due); card.appendChild(meta);
+      if (expanded) {
+        const body = el('div','progress-project-body');
+        const milestones = projMilestones.filter(ms => ms.project_id === proj.id);
+        if (!milestones.some(ms => ms.id === projSelectedItemId)) projSelectedItemId = milestones[0]?.id || null;
+        if (!milestones.length) {
+          const empty = el('p','progress-empty'); empty.textContent = projCopy('尚無項目，請用右上加號新增。','No items yet. Use the plus button above.'); body.appendChild(empty);
+        } else {
+          const layout = el('div', 'progress-item-layout');
+          const nav = el('nav', 'progress-item-nav');
+          nav.setAttribute('aria-label', projCopy('項目目錄','Item list'));
+          const content = el('div', 'progress-item-content');
+          milestones.forEach(ms => {
+            const msTasks = tasks.filter(task => task.milestone_id === ms.id);
+            const msStats = projTaskStats(msTasks);
+            const link = projProgressButton(ms.title, () => { projSelectedItemId = ms.id; renderProjPage(); }, 'progress-item-link');
+            link.setAttribute('aria-current', ms.id === projSelectedItemId ? 'true' : 'false');
+            const count = el('span', 'progress-count'); count.textContent = `${msStats.done}/${msStats.total}`;
+            link.appendChild(count);
+            nav.appendChild(link);
+            if (ms.id !== projSelectedItemId) return;
+            const section = el('section','progress-milestone');
+            const msHead = el('div','progress-milestone-head');
+            const edit = projProgressButton('✎', () => openMilestoneModal(ms,proj), 'progress-milestone-edit');
+            edit.setAttribute('aria-label',t('projEdit') + ' ' + ms.title);
+            const addTask = projProgressButton('+', () => openTaskModal(null,ms,proj), 'progress-milestone-add');
+            addTask.setAttribute('aria-label', t('projAddTask'));
+            addTask.title = t('projAddTask');
+            msHead.append(edit,addTask);
+            if (projTemplates.length) msHead.appendChild(projProgressButton(t('projApplyTemplate'), () => openTemplateModal(ms,proj)));
+            section.appendChild(msHead);
+            const orderedTasks = [...msTasks].sort((a,b) => {
+              if (a.status === 'DONE' && b.status !== 'DONE') return 1;
+              if (b.status === 'DONE' && a.status !== 'DONE') return -1;
+              return (b.priority || 2) - (a.priority || 2);
+            });
+            orderedTasks.forEach(task => section.appendChild(renderProgressTask(task,ms,proj)));
+            if (!msTasks.length) { const empty = el('p','progress-empty'); empty.textContent = projCopy('尚無任務','No tasks yet'); section.appendChild(empty); }
+            content.appendChild(section);
+          });
+          layout.append(nav,content);
+          body.appendChild(layout);
+        }
+        card.appendChild(body);
+      }
+      grid.appendChild(card);
+    });
+    if (!visible) { const empty = el('p','progress-empty'); empty.textContent = projProjects.length ? projCopy('沒有符合條件的專案。','No matching projects.') : t('projNoProjects'); wrap.appendChild(empty); }
+    return wrap;
+  }
 
-    // Tags
-    if (task.tags && task.tags.trim()) {
-      const tagsEl = el('div', 'proj-task-tags');
-      task.tags.split(',').map(s=>s.trim()).filter(Boolean).forEach(tag => {
-        const span = el('span', 'proj-task-tag');
-        span.textContent = tag;
-        tagsEl.appendChild(span);
-      });
-      card.appendChild(tagsEl);
-    }
+  function renderProgressTask(task, ms, proj) {
+    const row = el('div','progress-task');
+    const status = renderProgressStatus(task);
+    const title = projProgressButton(task.title, () => openTaskModal(task,ms,proj),'progress-task-name');
+    const priority = el('span','progress-task-priority'); priority.textContent = t('projPriority' + (task.priority || 2));
+    const due = el('span','progress-task-date' + (projTaskStats([task]).overdue ? ' progress-overdue' : ''));
+    due.textContent = task.due_date ? String(task.due_date).slice(0,10) : '—';
+    row.append(title,priority,due,status);
+    return row;
+  }
 
-    // Notes snippet
-    if (task.notes && task.notes.trim()) {
-      const notesEl = el('div', 'proj-task-notes');
-      const txt = task.notes.trim();
-      notesEl.textContent = txt.length > 72 ? txt.slice(0,69)+'…' : txt;
-      card.appendChild(notesEl);
-    }
-
-    // Actions
-    const actions = el('div', 'proj-task-actions');
-
-    const editBtn = el('button', 'proj-task-btn');
-    editBtn.textContent = t('projEdit');
-    editBtn.onclick = e => { e.stopPropagation(); openTaskModal(task, ms, proj); };
-    actions.appendChild(editBtn);
-
-    const cfg = STATUS_CFG[task.status];
-    if (cfg && cfg.next) {
-      const nextCfg = STATUS_CFG[cfg.next];
-      const advBtn  = el('button', 'proj-task-btn advance');
-      advBtn.textContent = nextCfg.icon + ' ' + (t('projStatus_' + cfg.next.replace(' ','_')) || cfg.next);
-      advBtn.style.setProperty('--adv-color', nextCfg.color);
-      advBtn.onclick = e => { e.stopPropagation(); quickAdvance(task, cfg.next); };
-      actions.appendChild(advBtn);
-    } else if (task.status === 'DONE') {
-      const reopenBtn = el('button', 'proj-task-btn');
-      reopenBtn.textContent = t('projReopen');
-      reopenBtn.onclick = e => { e.stopPropagation(); quickAdvance(task, 'TODO'); };
-      actions.appendChild(reopenBtn);
-    }
-
-    card.appendChild(actions);
-    card.onclick = () => openTaskModal(task, ms, proj);
-
-    return card;
+  function renderProgressStatus(task) {
+    const picker = el('details', 'progress-status-picker');
+    const current = el('summary', 'progress-status-current');
+    current.dataset.status = task.status;
+    current.textContent = t('projStatus_' + task.status.replace(' ', '_'));
+    current.setAttribute('aria-label', task.title + ' ' + t('projFieldStatus') + ': ' + current.textContent);
+    picker.appendChild(current);
+    const choices = el('div', 'progress-status-choices');
+    Object.keys(STATUS_CFG).forEach(status => {
+      const button = el('button', 'progress-status-choice');
+      button.type = 'button';
+      button.textContent = t('projStatus_' + status.replace(' ', '_'));
+      button.dataset.status = status;
+      button.setAttribute('aria-pressed', String(task.status === status));
+      button.onclick = event => {
+        event.stopPropagation();
+        picker.open = false;
+        if (task.status !== status) quickAdvance(task, status);
+      };
+      choices.appendChild(button);
+    });
+    picker.appendChild(choices);
+    return picker;
   }
 
   function formatProjDate(date) {
@@ -603,6 +396,11 @@
   function openTaskModal(task, ms, proj) {
     const isNew = !task;
     const overlay = makeOverlay();
+    overlay.classList.add('progress-editor-overlay');
+    if (isNew) overlay.classList.add('progress-create-overlay');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', isNew ? t('projAddTask') : t('projEditTask'));
 
     const card = el('div', 'alert-card');
     card.style.borderColor = 'var(--lcars-cream)';
@@ -613,6 +411,10 @@
     card.appendChild(head);
 
     const body = el('div', 'alert-body proj-modal-body');
+    const context = el('p', 'progress-editor-context');
+    context.textContent = proj.title + ' › ' + ms.title;
+    body.appendChild(context);
+
 
     // Title
     body.appendChild(mField(t('projFieldTitle'),

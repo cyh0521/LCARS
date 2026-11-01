@@ -706,7 +706,7 @@
       projOffline:        '離線—顯示快取資料',
       projConfirmDelete:  '確認刪除此任務？',
       projConfirmDeleteTitle:     '刪除任務',
-      projConfirmDeleteMsTitle:   '刪除章節',
+      projConfirmDeleteMsTitle:   '刪除項目',
       projConfirmDeleteProjTitle: '刪除專案',
       projConfirmDeleteProject: '刪除此專案及其 {n} 個任務？',
       projConfirmDeleteProjectEmpty: '確認刪除此專案？',
@@ -717,16 +717,16 @@
       projMissionOps:    '任務作戰',
       projNoProjects:    '尚無專案 — 點 + 開始',
       projEmptyHint:     '從左側選擇專案，或建立新專案。',
-      projSelectMilestone: '請從左側選擇章節',
-      projAddMilestone:  '+ 新增章節',
-      projEditMilestone: '編輯章節',
-      projFieldMilestoneTitlePH: '章節名稱…',
-      projConfirmDeleteMs:      '刪除章節及其 {n} 個任務？',
-      projConfirmDeleteMsEmpty: '確認刪除此章節？',
-      projConfirmDeleteProj:    '刪除專案及其 {n} 個章節？',
+      projSelectMilestone: '請從左側選擇項目',
+      projAddMilestone:  '+ 新增項目',
+      projEditMilestone: '編輯項目',
+      projFieldMilestoneTitlePH: '項目名稱…',
+      projConfirmDeleteMs:      '刪除項目及其 {n} 個任務？',
+      projConfirmDeleteMsEmpty: '確認刪除此項目？',
+      projConfirmDeleteProj:    '刪除專案及其 {n} 個項目？',
       projConfirmDeleteProjEmpty: '確認刪除此專案？',
       projApplyTemplate:   '套用範本',
-      projTemplateHint:    '選擇範本，自動建立此章節的任務清單。',
+      projTemplateHint:    '選擇範本，自動建立此項目的任務清單。',
       projApply:           '套用',
       projTasks:           '項任務',
       projTemplateApplied: '範本已套用',
@@ -736,8 +736,8 @@
       // Workspace subtabs
       workspaceSubProject:    '專案追蹤',
       workspaceSubAttendance: '考勤紀錄',
-      wsTabProject:           '專案',
-      wsTabAttendance:        '考勤',
+      wsTabProject:           '專案進度',
+      wsTabAttendance:        '考勤紀錄',
       // Attendance
       attAddRecord:    '+ 新增紀錄',
       attLeaveAnnual:  '特休',
@@ -1182,6 +1182,9 @@
       const key = el.getAttribute('data-i18n-title');
       el.title = t(key);
     });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+      el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
+    });
     // Update lang toggle button to show the OTHER language
     const btn = document.getElementById('langToggle');
     if (btn) btn.textContent = t('langLabel');
@@ -1542,28 +1545,22 @@
     if (!btn) return;
     const action = getPageAction();
     if (!action || !action.handler) {
-      if (menu) { menu.hidden = true; menu.open = false; }
+      if (menu) menu.hidden = true;
       return;
     }
-    if (menu) { menu.hidden = false; menu.open = false; }
+    if (menu) menu.hidden = false;
     btn.removeAttribute('data-i18n');
     btn.setAttribute('data-i18n-title', action.labelKey);
     btn.title = t(action.labelKey);
     btn.setAttribute('aria-label', t(action.labelKey));
-    btn.textContent = t(action.labelKey);
+    btn.innerHTML = '<svg class="icon icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>';
   }
 
   function pageActionBtnClick() {
-    const menu = document.getElementById('pageActionMenu');
-    if (menu) menu.open = false;
     const action = getPageAction();
     if (action && action.handler) action.handler();
   }
   window.pageActionBtnClick = pageActionBtnClick;
-  document.addEventListener('click', event => {
-    const menu = document.getElementById('pageActionMenu');
-    if (menu && !menu.contains(event.target)) menu.open = false;
-  });
 
   function initPages() {
     // Apply initial active tab

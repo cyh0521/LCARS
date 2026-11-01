@@ -995,10 +995,10 @@
     menu.style.width = '180px';
     menu.addEventListener('mousedown', e => e.stopPropagation());
 
-    const makeItem = (label, fn) => {
+    const makeItem = (label, fn, danger = false) => {
       const btn = document.createElement('button');
-      btn.className = 'note-menu-delete';
-      btn.style.cssText = 'background:var(--lcars-frame);color:var(--lcars-cream);margin:0';
+      btn.className = 'note-menu-delete' + (danger ? ' danger' : '');
+      btn.style.cssText = 'background:var(--lcars-frame);color:' + (danger ? 'var(--lcars-rust)' : 'var(--lcars-cream)') + ';margin:0';
       btn.textContent = label;
       btn.addEventListener('click', () => { menu.remove(); fn(); });
       return btn;
@@ -1008,6 +1008,7 @@
     // else). Keep the menu focused on the two top-level actions.
     menu.appendChild(makeItem(t('libMenuEdit'), () => showLibraryEditForm(s, se)));
     menu.appendChild(makeItem(t('libMenuAddSeason'), () => showAddSeasonForm(s)));
+    menu.appendChild(makeItem(t('libDelete'), () => libDeleteSeason(s, se), true));
 
     document.body.appendChild(menu);
     positionPopoverBelow(menu, anchor);
@@ -1203,20 +1204,7 @@
       };
       const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close(null); } };
 
-      const isEdit = !!(s && se);
-      if (isEdit) {
-        const delBtn = document.createElement('button');
-        delBtn.className = 'alert-ok danger';
-        delBtn.style.cssText = 'background:var(--lcars-rust); color:var(--lcars-bg); margin-right:auto;';
-        delBtn.textContent = t('libDelete');
-        delBtn.addEventListener('click', () => {
-          close(null);
-          libDeleteSeason(s, se);
-        });
-        footer.appendChild(delBtn);
-      } else {
-        footer.appendChild(document.createElement('span'));
-      }
+      footer.appendChild(document.createElement('span'));
 
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'alert-ok';

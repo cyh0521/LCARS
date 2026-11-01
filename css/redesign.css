@@ -217,7 +217,7 @@ a,button,input,textarea,select,summary { outline-offset:3px; }
 .lang-toggle,.briefing-button,.notes-add-btn { border-color:var(--ui-line-strong); border-radius:var(--ui-radius-sm); font-size:14px; font-weight:500; transition:background .15s,border-color .15s; }
 .lang-toggle:hover,.briefing-button:hover,.notes-add-btn:hover { background:var(--ui-soft); border-color:var(--lcars-orange); }
 
-.panel,.info-card,.bay,.briefing-card,.retainer-panel,.context-block,.home-tasks { border:1px solid var(--ui-line); border-radius:var(--ui-radius); background:var(--lcars-panel); box-shadow:var(--ui-shadow); }
+.panel,.info-card,.bay,.briefing-card,.retainer-panel,.context-block,.home-tasks,.progress-project { border:1px solid var(--ui-line); border-radius:var(--ui-radius); background:var(--lcars-panel); box-shadow:var(--ui-shadow); }
 .panel { margin-bottom:24px; padding:24px; }
 .panel-title { padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid var(--ui-line); font-size:19px; line-height:1.5; font-weight:600; color:var(--lcars-text); }
 .page[data-page=finance] .panel-title,.page[data-page=scores] .panel-title,.page[data-page=weather] .panel-title { font-size:19px; }
@@ -496,6 +496,18 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 .advisor-prompts button { flex:1 0 100%; text-align:left; font-size:14px; min-height:44px; }
 .advisor-prompts button[aria-pressed=true] { border-color:var(--lcars-orange); color:var(--lcars-orange); background:var(--ui-nav-selected); }
 .advisor-disclaimer { margin:18px 0 0; font-size:12px; line-height:1.7; color:var(--lcars-dim); }
+.advisor-connection { margin-top:14px; font-size:12px; line-height:1.7; color:var(--lcars-dim); overflow-wrap:anywhere; }
+.advisor-chat-log { max-height:380px; overflow-y:auto; margin:16px 0; overscroll-behavior:contain; }
+.advisor-chat-message { padding:12px; margin-bottom:10px; background:var(--ui-soft); border:1px solid var(--ui-line); border-radius:10px; }
+.advisor-chat-message.user { border-left:3px solid var(--lcars-orange); }
+.advisor-chat-message small { display:block; color:var(--lcars-dim); font-size:12px; }
+.advisor-chat-message p { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8; font-size:14px; margin:4px 0; }
+.advisor-chat-form { display:grid; gap:8px; margin-top:18px; font-size:13px; }
+.advisor-chat-form textarea { width:100%; min-width:0; max-height:200px; resize:vertical; padding:10px; font:inherit; line-height:1.7; color:var(--lcars-text); background:var(--lcars-bg); border:1px solid var(--ui-line); border-radius:8px; }
+.advisor-chat-form textarea:focus-visible { outline:2px solid var(--lcars-orange); outline-offset:2px; }
+.advisor-chat-actions { display:flex; justify-content:space-between; gap:8px; }
+.advisor-dialog button:disabled { opacity:.5; cursor:not-allowed; }
+.advisor-chat-error { color:var(--lcars-rust); font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
 .main.has-advisor { display:grid; grid-template-columns:minmax(0,1fr) 280px; align-items:start; gap:24px; }
 .main.has-advisor>.page { grid-column:1; grid-row:1; }
 .advisor-dialog { grid-column:2; grid-row:1; position:sticky; top:20px; }
@@ -588,6 +600,7 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 /* Keep the menu at the card corner, outside the scrolling metadata. */
 #film-grid .card-side-poster,#book-grid .card-side-poster { position:relative; }
 .card-side-poster>.media-more-corner { position:absolute; right:12px; bottom:12px; z-index:1; }
+.page[data-page=library] .series-card .series-btn.icon-btn { border:0; }
 #film-grid .card-side-poster .series-card-body,
 #book-grid .card-side-poster .series-card-body { padding-bottom:58px; }
 
@@ -599,13 +612,13 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 .media-form-card .alert-footer { flex-wrap:wrap; background:var(--lcars-panel); border-top:1px solid var(--ui-line); }
 
 /* Compact, fully visible status tabs for series, films, and reading. */
-.page[data-page=library] .lib-subtab-bar { margin-bottom:0; }
-.page[data-page=library] .lib-filter-bar { display:flex; flex-wrap:nowrap; gap:4px; overflow-x:auto; scrollbar-width:thin; padding:0; margin-bottom:18px; border:0; }
-.page[data-page=library] .lib-filter-btn { position:relative; flex:none; min-width:0; min-height:34px; padding:5px 10px; border:0; border-radius:0; background:transparent; box-shadow:none; color:var(--lcars-dim); font-size:13px; font-weight:500; letter-spacing:0; opacity:1; white-space:nowrap; }
-.page[data-page=library] .lib-filter-btn:hover { color:var(--lcars-text); background:transparent; }
-.page[data-page=library] .lib-filter-btn.active { color:var(--lcars-orange); background:transparent; font-weight:700; }
-.page[data-page=library] .lib-filter-btn .count { color:var(--lcars-dim); font-size:12px; font-weight:400; }
-.page[data-page=library] .lib-filter-btn.active .count { color:var(--lcars-orange); }
+.page[data-page=library] .lib-subtab-bar,.page[data-page=project] .ws-subtab-bar { margin-bottom:0; }
+:is(.page[data-page=library],.page[data-page=project]) .lib-filter-bar { display:flex; flex-wrap:nowrap; gap:4px; overflow-x:auto; scrollbar-width:thin; padding:0; margin-bottom:18px; border:0; }
+:is(.page[data-page=library],.page[data-page=project]) .lib-filter-btn { position:relative; flex:none; min-width:0; min-height:34px; padding:5px 10px; border:0; border-radius:0; background:transparent; box-shadow:none; color:var(--lcars-dim); font-size:13px; font-weight:500; letter-spacing:0; opacity:1; white-space:nowrap; }
+:is(.page[data-page=library],.page[data-page=project]) .lib-filter-btn:hover { color:var(--lcars-text); background:transparent; }
+:is(.page[data-page=library],.page[data-page=project]) .lib-filter-btn.active { color:var(--lcars-orange); background:transparent; font-weight:700; }
+:is(.page[data-page=library],.page[data-page=project]) .lib-filter-btn .count { color:var(--lcars-dim); font-size:12px; font-weight:400; }
+:is(.page[data-page=library],.page[data-page=project]) .lib-filter-btn.active .count { color:var(--lcars-orange); }
 
 .page[data-page=scores] .scores-group .scores-all-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px 12px; min-height:36px; padding-bottom:8px; }
 .scores-all-heading > span { flex-shrink:0; }
@@ -651,3 +664,165 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
   #briefing-content { grid-column:1; }
   #briefing-home .dispatch-context.todo-panel { grid-column:1; }
 }
+
+#briefing-home .briefing-card-top { padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid var(--ui-line); }
+#briefing-home .briefing-card-body > .quote-snapshot, #briefing-home .briefing-card-body > .match-snapshot, #briefing-home .briefing-card-body > .media-snapshot { margin-top:18px; }
+/* Project progress: overview with expandable milestones. */
+.progress-overview { min-width:0; }
+.progress-toolbar,.progress-project-head,.progress-milestone-head,.progress-detail-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.progress-toolbar { justify-content:space-between; margin-bottom:20px; }
+.progress-toolbar h2 { margin:0 0 6px; font-size:20px; font-weight:600; letter-spacing:0; }
+.progress-toolbar p { margin:0; color:var(--lcars-dim); font-size:14px; }
+.progress-overview .progress-button { min-height:36px; padding:6px 10px; border:1px solid var(--ui-line); border-radius:var(--ui-radius-sm); background:var(--lcars-panel); color:var(--lcars-text); font:inherit; font-size:14px; cursor:pointer; letter-spacing:normal; text-align:left; }
+.progress-overview .progress-button:hover { background:var(--ui-soft); }
+.progress-overview .progress-button:focus-visible { outline:2px solid var(--lcars-orange); outline-offset:3px; }
+.progress-overview .progress-button.primary { background:var(--lcars-orange); color:white; border-color:var(--lcars-orange); }
+.progress-filters { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+.progress-filters .progress-button,.progress-detail-controls .progress-button { border-color:transparent; background:transparent; }
+.progress-overview .progress-button[aria-pressed=true] { background:var(--ui-soft); color:var(--lcars-orange); font-weight:600; }
+.progress-project { padding:24px; margin-bottom:20px; min-width:0; }
+.progress-project-head { flex-wrap:nowrap; }
+.progress-overview .progress-project-toggle { flex:1; min-width:0; padding:0; border:0; font-size:16px; font-weight:600; background:transparent; overflow-wrap:anywhere; }
+.progress-count { color:var(--lcars-dim); font-size:13px; white-space:nowrap; }
+.progress-meter-row { display:flex; align-items:center; gap:14px; margin:12px 0 10px; }
+.progress-meter { flex:1; height:6px; background:var(--ui-line); border-radius:4px; overflow:hidden; }
+.progress-meter > span { display:block; height:100%; background:var(--lcars-orange); border-radius:4px; }
+.progress-meter-row > span { color:var(--lcars-dim); font-size:12px; min-width:112px; text-align:right; }
+.progress-meta { display:flex; flex-wrap:wrap; gap:6px 20px; color:var(--lcars-dim); font-size:13px; }
+.progress-overdue { color:#b33b30; }
+.progress-project-body { margin-top:20px; padding:16px 0 0; border-top:1px solid var(--ui-line); min-width:0; }
+.progress-detail-controls { gap:6px; padding-bottom:12px; }
+.progress-milestone { padding:16px 0; border-top:1px solid var(--ui-line); min-width:0; }
+.progress-milestone:first-child { border-top:0; padding-top:0; }
+.progress-milestone-head { gap:8px; margin-bottom:10px; }
+.progress-milestone-head h3 { margin:0; min-width:0; font-size:15px; overflow-wrap:anywhere; }
+.progress-milestone-head .progress-milestone-edit { flex:none; min-width:32px; min-height:32px; padding:2px; border:0; background:transparent; font-size:18px; line-height:1; }
+.progress-milestone-head .progress-milestone-add { flex:none; min-width:36px; min-height:36px; padding:0; border:0; background:transparent; font-size:24px; line-height:1; text-align:center; }
+.progress-milestone-head .progress-count { margin-left:auto; }
+.progress-task { display:grid; grid-template-columns:36px minmax(0,1fr) 44px 90px; gap:8px; align-items:center; padding:6px 0; border-top:1px solid var(--ui-line); }
+.progress-overview .progress-task-name,.progress-overview .progress-task-status { background:transparent; border:0; padding:6px 0; }
+.progress-overview .progress-task-name { overflow-wrap:anywhere; }
+.progress-overview .progress-task-status { text-align:center; color:var(--lcars-orange); }
+.progress-task-priority,.progress-task-date { font-size:12px; color:var(--lcars-dim); }
+.progress-task-date { text-align:right; }
+.progress-task-date.progress-overdue { color:#b33b30; }
+.progress-completed summary { padding:12px 0; color:var(--lcars-dim); cursor:pointer; font-size:13px; }
+.progress-completed .progress-task-name { color:var(--lcars-dim); text-decoration:line-through; }
+.progress-empty { color:var(--lcars-dim); font-size:14px; padding:12px 0; }
+@media(max-width:600px) {
+  .progress-toolbar { align-items:flex-start; }
+  .progress-project { padding:16px; }
+  .progress-project-body { padding:12px 0 0; }
+  .progress-project-head { gap:8px; flex-wrap:wrap; }
+  .progress-overview .progress-project-toggle { flex-basis:65%; font-size:16px; }
+  .progress-count { font-size:12px; }
+  .progress-task { grid-template-columns:30px minmax(0,1fr) auto; gap:4px 8px; }
+  .progress-task-name { grid-column:2 / 4; }
+  .progress-task-priority { grid-column:2; }
+  .progress-task-date { grid-column:3; }
+  .progress-meter-row { gap:8px; }
+  .progress-milestone-head .progress-button { font-size:12px; }
+  .progress-project-body .proj-board { grid-template-columns:1fr; }
+}
+/* Project task creation and editor use the shared form/card tokens. */
+.progress-task { grid-template-columns:100px minmax(0,1fr) 44px 90px; }
+.progress-status-select { min-width:0; max-width:100%; min-height:36px; padding:6px; border:1px solid var(--ui-line); border-radius:var(--ui-radius-sm); color:var(--lcars-text); background:var(--lcars-panel); font:inherit; font-size:13px; cursor:pointer; }
+.progress-quick-add { display:flex; gap:8px; margin-top:12px; }
+.progress-quick-add input { flex:1; min-width:0; min-height:40px; border:1px solid var(--ui-line); border-radius:var(--ui-radius-sm); padding:8px 10px; background:var(--lcars-panel); color:var(--lcars-text); font:inherit; font-size:14px; }
+.progress-quick-add .progress-button { flex:none; }
+.progress-editor-context { margin:0 0 20px; color:var(--lcars-dim); font-size:13px; overflow-wrap:anywhere; }
+.alert-overlay.progress-editor-overlay { justify-content:flex-end; align-items:stretch; padding:0; }
+.progress-editor-overlay .alert-stack { width:min(520px,100%); max-width:520px !important; height:100dvh; max-height:100dvh; margin:0; border-radius:var(--ui-radius) 0 0 var(--ui-radius); display:flex; }
+.progress-editor-overlay .alert-card { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; max-height:100dvh; border-radius:inherit; }
+.progress-editor-overlay .alert-head,.progress-editor-overlay .alert-footer { flex-shrink:0; }
+.progress-editor-overlay .alert-body { flex:1; min-height:0; max-height:none; overflow-y:auto; }
+.progress-editor-overlay .alert-footer { flex-wrap:wrap; gap:12px; }
+@media(max-width:600px) {
+  .progress-task { grid-template-columns:92px minmax(0,1fr) auto; }
+  .progress-task .progress-task-name { grid-column:2 / 4; }
+  .progress-task-priority { grid-column:2; }
+  .progress-task-date { grid-column:3; }
+  .progress-editor-overlay .alert-stack { border-radius:0; }
+  .progress-editor-overlay .proj-modal-row { flex-wrap:wrap; }
+  .progress-editor-overlay .proj-modal-field { min-width:0; }
+}
+.ws-subtab-bar:has(.ws-subtab-btn[data-subtab=attendance].active) .project-add-control { display:none; }
+.ws-subtab-bar:has(.ws-subtab-btn[data-subtab=attendance].active) { margin-bottom:24px; }
+.project-add-control .fin-tab-control { display:inline-flex; align-items:center; justify-content:center; color:var(--lcars-text); }
+.project-add-control .fin-tab-control:hover { color:var(--lcars-orange); background:transparent; }
+/* Header add/search icons stay in place on hover. */
+.project-add-control .fin-tab-control:hover:not(:disabled),
+.lib-subtab-bar .fin-tab-control:hover:not(:disabled),
+.lib-subtab-bar .lib-search-toggle:hover { transform:none; box-shadow:none; background:transparent; }
+.lib-action-menu .fin-tab-control { display:inline-flex; align-items:center; justify-content:center; }
+/* Project overview follows the media card grid; detail occupies its own view. */
+.progress-card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr)); gap:20px; }
+.progress-card-grid .progress-small-card { position:relative; display:flex; flex-direction:column; min-height:205px; margin:0; padding:18px 18px 52px; box-shadow:none; cursor:pointer; transition:border-color .15s; }
+.progress-card-grid .progress-small-card:hover { border-color:var(--ui-line-strong); transform:none; }
+.progress-small-card .progress-project-head { display:flex; flex-wrap:wrap; gap:6px; }
+.progress-small-card .progress-project-toggle { flex-basis:100%; min-height:36px; font-size:17px; line-height:1.55; }
+.progress-small-card .progress-project-head > .progress-button:last-child { position:absolute; bottom:12px; right:12px; min-width:36px; border:0; background:transparent; }
+.progress-small-card .progress-meter-row { flex-wrap:wrap; gap:8px; margin:16px 0 12px; }
+.progress-small-card .progress-meter { flex-basis:100%; }
+.progress-small-card .progress-meter-row > span { min-width:0; text-align:left; }
+.progress-small-card .progress-meta { gap:6px 14px; }
+.progress-small-card .progress-meta > span:last-child { flex-basis:100%; }
+.progress-detail-title { flex:1; min-width:0; margin:0; font-size:20px; font-weight:600; overflow-wrap:anywhere; }
+.progress-detail .progress-back { margin:12px 0 18px; border:0; background:transparent; padding-left:0; color:var(--lcars-orange); }
+.progress-detail-content .progress-project { margin:0; }
+@media(max-width:600px) { .progress-card-grid { gap:16px; } .progress-card-grid .progress-small-card { padding:16px 16px 48px; min-height:190px; } }
+/* New tasks open in a centered dialog sized to the available viewport. */
+.alert-overlay.progress-create-overlay { justify-content:center; align-items:center; padding:20px; }
+.progress-create-overlay .alert-stack { width:min(520px,100%); height:auto; max-height:calc(100dvh - 40px); border-radius:var(--ui-radius); }
+.progress-create-overlay .alert-card { height:auto; max-height:calc(100dvh - 40px); }
+@media(max-width:600px) {
+  .alert-overlay.progress-create-overlay { padding:12px; }
+  .progress-create-overlay .alert-stack,.progress-create-overlay .alert-card { max-height:calc(100dvh - 24px); }
+}
+/* Quiet status label at the end of each task row. */
+.progress-task { display:grid; grid-template-columns:minmax(0,1fr) 44px 72px 78px; gap:8px; align-items:center; overflow:visible; }
+.progress-task .progress-task-name { grid-column:1; min-width:0; }
+.progress-task-priority { grid-column:2; }
+.progress-task-date { grid-column:3; }
+.progress-status-picker { grid-column:4; position:relative; min-width:0; }
+.progress-status-current { display:inline-flex; align-items:center; gap:3px; max-width:100%; min-height:28px; padding:3px 4px; border:0; border-radius:3px; background:transparent; font-size:12px; font-weight:600; line-height:1.3; cursor:pointer; white-space:nowrap; list-style:none; }
+.progress-status-current::-webkit-details-marker { display:none; }
+.progress-status-current::after { content:'⌄'; font-size:13px; opacity:.65; }
+.progress-status-current:hover { background:var(--ui-soft); }
+.progress-status-current[data-status=TODO] { color:#526e9a; }
+.progress-status-current[data-status="IN PROGRESS"] { color:#b35b39; }
+.progress-status-current[data-status=DONE] { color:#187f70; }
+.progress-status-current:focus-visible,.progress-status-choice:focus-visible { outline:2px solid var(--lcars-orange); outline-offset:2px; }
+.progress-status-choices { position:absolute; z-index:15; top:calc(100% + 4px); right:0; width:max-content; min-width:112px; padding:5px; border:1px solid var(--ui-line); border-radius:var(--ui-radius-sm); background:var(--lcars-panel); box-shadow:var(--ui-shadow); display:grid; gap:2px; }
+.progress-status-choice { min-height:34px; padding:6px 10px; border:0; border-radius:var(--ui-radius-sm); background:transparent; font:inherit; font-size:13px; text-align:left; cursor:pointer; white-space:nowrap; }
+.progress-status-choice:hover,.progress-status-choice[aria-pressed=true] { background:var(--ui-soft); font-weight:600; }
+.progress-status-choice[data-status=TODO] { color:#526e9a; }
+.progress-status-choice[data-status="IN PROGRESS"] { color:#b35b39; }
+.progress-status-choice[data-status=DONE] { color:#187f70; }
+@media(max-width:700px) {
+  .progress-task { grid-template-columns:minmax(0,1fr) auto; gap:3px 8px; }
+  .progress-task .progress-task-name { grid-column:1 / -1; grid-row:1; }
+  .progress-status-picker { grid-column:1; grid-row:2; }
+  .progress-task-priority { grid-column:2; grid-row:2; }
+  .progress-task-date { grid-column:2; grid-row:3; }
+}
+/* Item navigation and tasks share the project detail card. */
+.progress-item-layout { display:grid; grid-template-columns:minmax(180px,230px) minmax(0,1fr); gap:24px; min-width:0; }
+.progress-item-nav { display:flex; flex-direction:column; align-self:stretch; min-width:0; padding-right:16px; border-right:1px solid var(--ui-line); }
+.progress-overview .progress-item-link { display:flex; align-items:center; gap:8px; width:100%; min-height:40px; padding:8px 10px; border:0; border-radius:var(--ui-radius-sm); background:transparent; text-align:left; overflow-wrap:anywhere; }
+.progress-item-link .progress-count { margin-left:auto; }
+.progress-overview .progress-item-link[aria-current=true] { background:var(--ui-soft); color:var(--lcars-orange); font-weight:700; }
+.progress-item-content { min-width:0; }
+.progress-item-content .progress-milestone { border:0; padding:0; }
+.progress-item-content .progress-milestone-head { padding-bottom:10px; border-bottom:0; }
+.progress-item-content .progress-milestone-add { margin-left:auto; }
+@media(max-width:700px) {
+  .progress-item-layout { grid-template-columns:minmax(0,1fr); gap:16px; }
+  .progress-item-nav { flex-direction:row; overflow-x:auto; gap:4px; padding:0 0 10px; border-right:0; border-bottom:1px solid var(--ui-line); }
+  .progress-overview .progress-item-link { flex:none; width:auto; max-width:220px; }
+}
+/* Item actions replace the repeated heading above the task list. */
+.progress-item-content .progress-milestone-head { justify-content:flex-end; }
+.progress-item-content .progress-milestone-edit { margin-left:auto; }
+.progress-item-content .progress-milestone-add { margin-left:0; }
+.progress-item-content .progress-completed .progress-task-name { text-decoration:none; }
