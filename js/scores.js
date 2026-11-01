@@ -9,9 +9,44 @@
   const ENRICH_CACHE_KEY    = 'lcars_enrich_cache';
   const STANDINGS_CACHE_KEY = 'lcars_standings_cache';
 
+  function scoresToday() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  }
+  let selectedScoresDate = scoresToday();
+  let scoresRequestId = 0;
+  let findNearestScoresOnOpen = true;
+  function scoresCacheKey() { return `${SCORES_CACHE_KEY}_${selectedScoresDate}`; }
+  function syncScoresDateControls() {
+    const input = document.getElementById('scores-date');
+    if (input) input.value = selectedScoresDate;
+    const heading = document.getElementById('scores-all-title');
+    if (heading) heading.textContent = t('scoresAll').split('·')[0].trim();
+  }
+  function changeScoresDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+    findNearestScoresOnOpen = false;
+    selectedScoresDate = value;
+    featuredEventId = null;
+    lastEventsList = [];
+    syncScoresDateControls();
+    setFeaturedTitle(null);
+    if (!renderScoresFromCache()) {
+      const loading = `<div class="empty-state"><p>${t('loadingMsg')}</p></div>`;
+      document.getElementById('orioles-feature').innerHTML = loading;
+      document.getElementById('scores-all').innerHTML = loading;
+    }
+    fetchScores();
+  }
+  function shiftScoresDate(offset) {
+    const date = new Date(`${selectedScoresDate}T12:00:00`);
+    date.setDate(date.getDate() + offset);
+    changeScoresDate(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`);
+  }
+
   /* Render scores from cache instantly. Returns true if cache was used. */
   function renderScoresFromCache() {
-    const cached = cacheGet(SCORES_CACHE_KEY);
+    const cached = cacheGet(scoresCacheKey());
     if (!cached || !Array.isArray(cached.events)) return false;
     renderScores(cached.events, /* fromCache */ true);
     updateScoresTimestamp(cached.timestamp);
@@ -32,15 +67,60 @@
     renderScoresUpdatedTime();
   }
 
+  async function nearestScoresDate(data, requestId) {
+    const base = new Date(`${selectedScoresDate}T12:00:00`);
+    const calendar = data.leagues?.[0]?.calendar;
+    const days = data.leagues?.[0]?.calendarIsWhitelist === true && Array.isArray(calendar)
+      ? [...new Set(calendar.filter(day => typeof day === 'string').map(day => day.slice(0,10)))]
+          .filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day) && day !== selectedScoresDate)
+      : [];
+    if (!days.length) {
+      for (let offset = 1; offset <= 183; offset++) {
+        for (const direction of [-1, 1]) {
+          const date = new Date(base);
+          date.setDate(date.getDate() + offset * direction);
+          days.push(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`);
+        }
+      }
+    }
+    days.sort((a,b) => Math.abs(new Date(`${a}T12:00:00`) - base) - Math.abs(new Date(`${b}T12:00:00`) - base) || a.localeCompare(b));
+    for (const day of days) {
+      if (requestId !== scoresRequestId) return null;
+      const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${day.replaceAll('-', '')}`, { cache:'no-store' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const result = await response.json();
+      if (requestId !== scoresRequestId) return null;
+      if (result.events?.length) return { day, events:result.events };
+    }
+    return null;
+  }
+
   async function fetchScores() {
-    const url = 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard';
+    syncScoresDateControls();
+    const requestId = ++scoresRequestId;
+    let cacheKey = scoresCacheKey();
+    const findNearest = findNearestScoresOnOpen;
+    const url = `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${selectedScoresDate.replaceAll('-', '')}`;
     try {
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      const events = data?.events || [];
+      if (requestId !== scoresRequestId) return;
+      let events = data?.events || [];
+      if (findNearest && !events.length) {
+        const nearest = await nearestScoresDate(data, requestId);
+        if (requestId !== scoresRequestId) return;
+        if (nearest) {
+          selectedScoresDate = nearest.day;
+          featuredEventId = null;
+          events = nearest.events;
+          cacheKey = scoresCacheKey();
+          syncScoresDateControls();
+        }
+      }
+      findNearestScoresOnOpen = false;
       const timestamp = Date.now();
-      cacheSet(SCORES_CACHE_KEY, { events, timestamp });
+      cacheSet(cacheKey, { events, timestamp });
       renderScores(events, /* fromCache */ false);
       updateScoresTimestamp(timestamp);
       // Reset countdown after each successful fetch
@@ -48,8 +128,9 @@
         startScoresAutoReload();
       }
     } catch (err) {
+      if (requestId !== scoresRequestId) return;
       console.warn('ESPN MLB fetch failed:', err);
-      if (!cacheGet(SCORES_CACHE_KEY)) {
+      if (!cacheGet(scoresCacheKey())) {
         document.getElementById('orioles-feature').innerHTML =
           `<div class="empty-state"><p>${t('scoresError')}</p></div>`;
         document.getElementById('scores-all').innerHTML =
@@ -76,30 +157,7 @@
       return;
     }
 
-    // Pick which game to feature:
-    //  1. The user-pinned event if it still exists today
-    //  2. Otherwise the Orioles game if scheduled today
-    //  3. Otherwise nothing (show empty state)
-    let featured = null;
-    if (featuredEventId) {
-      featured = events.find(ev => String(ev.id) === String(featuredEventId));
-    }
-    if (!featured) {
-      featured = events.find(ev => {
-        const comp = ev.competitions?.[0];
-        if (!comp) return false;
-        return comp.competitors?.some(c => c.team?.abbreviation === ORIOLES_ABBR);
-      });
-      if (featured) featuredEventId = null;  // reset to default mode
-    }
-
-    renderFeaturedGame(featured);
-
-    // All games list — live games first, then pre, then post
-    const allContainer = document.getElementById('scores-all');
-    allContainer.innerHTML = '';
-    const list = document.createElement('div');
-    list.className = 'game-list';
+    // Use the same order for the list and the default featured game.
     const sortedEvents = [...events].sort((a, b) => {
       const stateOrder = { in: 0, pre: 1, post: 2 };
       const sa = stateOrder[a.status?.type?.state] ?? 1;
@@ -108,6 +166,21 @@
       // Within same state, sort by scheduled time
       return new Date(a.date) - new Date(b.date);
     });
+    let featured = featuredEventId
+      ? events.find(ev => String(ev.id) === String(featuredEventId))
+      : null;
+    if (!featured) {
+      featuredEventId = null;
+      featured = events.find(ev => ev.competitions?.[0]?.competitors
+        ?.some(c => c.team?.abbreviation === ORIOLES_ABBR)) || sortedEvents[0];
+    }
+
+    renderFeaturedGame(featured);
+
+    const allContainer = document.getElementById('scores-all');
+    allContainer.innerHTML = '';
+    const list = document.createElement('div');
+    list.className = 'game-list';
     sortedEvents.forEach(ev => {
       const isCurrentFeatured = featured && String(ev.id) === String(featured.id);
       list.appendChild(renderGameCard(ev, false, isCurrentFeatured));
@@ -139,8 +212,8 @@
     if (!titleSpan) return;
 
     if (!event) {
-      titleSpan.setAttribute('data-i18n', 'orioles');
-      titleSpan.textContent = t('orioles');
+      titleSpan.removeAttribute('data-i18n');
+      titleSpan.textContent = selectedScoresDate;
       return;
     }
 
@@ -151,7 +224,7 @@
     const awayName = away?.team?.name || away?.team?.abbreviation || '?';
     const homeName = home?.team?.name || home?.team?.abbreviation || '?';
     titleSpan.removeAttribute('data-i18n');
-    titleSpan.textContent = `${awayName.toUpperCase()} @ ${homeName.toUpperCase()}`;
+    titleSpan.textContent = `${awayName} @ ${homeName}`;
   }
 
   /* Pin a game from the all-games list to the featured slot */

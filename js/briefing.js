@@ -64,11 +64,9 @@
     return `<article class="briefing-card" data-area="${page}" data-attention="${index===0}"><div class="briefing-card-top"><div class="dispatch-author">${avatar(index)}<span>${safe(advisorName(index))}</span></div><span class="briefing-category">${icon(page)}${safe(category)}</span></div><div class="briefing-card-body"><h3>${safe(title)}</h3><p>${safe(body)}</p>${items.length ? rows(items) : ''}<div class="briefing-actions"><button class="briefing-link" data-briefing-page="${page}">${action}${icon('arrow')}</button></div><details class="briefing-discussion" data-discussion="${page}"><summary><span>${copy('查閱資料與觀察','Data & observations')}</span></summary><div class="briefing-evidence">${visual}<p>${safe(explanation)}</p></div></details></div></article>`;
   }
   let filter = 'all';
-  let selectedAdvisor = 'finance';
-  let currentView = 'reports';
-  root.innerHTML = '<div class="dispatch-layout"><aside class="retainer-panel"><div id="retainer-directory"></div></aside><div id="briefing-content"></div><aside class="dispatch-context" id="dispatch-context" aria-label="TO DO LIST"></aside></div>';
+  root.innerHTML = '<div class="dispatch-layout"><nav class="advisor-rail" id="advisor-rail"></nav><div id="briefing-content"></div><aside class="dispatch-context" id="dispatch-context" aria-label="TO DO LIST"></aside></div>';
   const content = document.getElementById('briefing-content');
-  const directory = document.getElementById('retainer-directory');
+  const advisorRail = document.getElementById('advisor-rail');
   const context = document.getElementById('dispatch-context');
   const workspace = document.querySelector('.main');
   const conversation = document.createElement('aside');
@@ -89,19 +87,12 @@
   document.querySelectorAll('.main>.page').forEach(page => pageObserver.observe(page,{attributes:true,attributeFilter:['hidden']}));
   function applyFilter() {
     content.querySelectorAll('.briefing-card').forEach(card => {
-      card.hidden = (selectedAdvisor && card.dataset.area!==selectedAdvisor) || !(filter==='all' || (filter==='attention' && card.dataset.attention==='true') || card.dataset.area===filter || (filter==='life' && ['library','scores','weather'].includes(card.dataset.area)));
+      card.hidden = !(filter==='all' || card.dataset.area===filter);
     });
-    root.querySelectorAll('[data-briefing-filter]').forEach(button => button.setAttribute('aria-pressed',String(!selectedAdvisor && button.dataset.briefingFilter===filter)));
-    root.querySelectorAll('[data-advisor]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.advisor===selectedAdvisor)));
-    content.querySelectorAll('[data-dispatch-view]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.dispatchView===currentView)));
-    const dispatch = content.querySelector('.daily-dispatch');
-    const agenda = content.querySelector('.home-tasks');
-    if (dispatch) dispatch.hidden = currentView==='tasks';
-    if (agenda) agenda.hidden = currentView!=='tasks';
-    const selected = advisors.find(a => a.page===selectedAdvisor);
+    root.querySelectorAll('[data-briefing-filter]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.briefingFilter===filter)));
+    const selected = advisors.find(a => a.page===filter);
     const title = content.querySelector('#briefing-list-title');
     if (title) title.textContent = selected ? copy(`${selected.name}的呈報`,`${selected.en}’s report`) : copy('今日呈報','Daily reports');
-    if (currentView==='evidence') content.querySelectorAll('.briefing-card:not([hidden]) .briefing-discussion').forEach(d => { d.open=true; });
     const empty=content.querySelector('.briefing-filter-empty');
     if(empty) empty.hidden=Boolean(content.querySelector('.briefing-card:not([hidden])'));
   }
@@ -127,17 +118,13 @@
     // Preserve open details and focused controls during automatic updates.
     if (!force && renderedLanguage === currentLang && root.contains(document.activeElement) && document.activeElement.matches('input,textarea,select,[contenteditable="true"]')) return;
     const opened = new Set([...content.querySelectorAll('.briefing-discussion[open]')].map(d => d.dataset.discussion));
-    const tasksExpanded=Boolean(content.querySelector('.more-tasks[open]'));
     const focused = workspace.contains(document.activeElement) ? document.activeElement : null;
     let restoreSelector = '';
     if (focused?.id === 'briefing-refresh') restoreSelector = '#briefing-refresh';
-    else if (focused?.dataset.advisor) restoreSelector = `[data-advisor="${focused.dataset.advisor}"]`;
     else if (focused?.dataset.dispatchView) restoreSelector = `[data-dispatch-view="${focused.dataset.dispatchView}"]`;
-    else if (focused?.dataset.contextView) restoreSelector = `[data-context-view="${focused.dataset.contextView}"]`;
     else if (focused?.dataset.briefingFilter) restoreSelector = `[data-briefing-filter="${focused.dataset.briefingFilter}"]`;
-    else if (focused?.dataset.briefingPage) restoreSelector = `${focused.closest('.dispatch-context') ? '.dispatch-context ' : focused.closest('.briefing-card') ? `[data-area="${focused.closest('.briefing-card').dataset.area}"] ` : '.home-tasks '}[data-briefing-page="${focused.dataset.briefingPage}"]`;
+    else if (focused?.dataset.briefingPage) restoreSelector = `${focused.closest('.dispatch-context') ? '.dispatch-context ' : focused.closest('.briefing-card') ? `[data-area="${focused.closest('.briefing-card').dataset.area}"] ` : ''}[data-briefing-page="${focused.dataset.briefingPage}"]`;
     else if (focused?.closest('.briefing-discussion')) restoreSelector = `[data-discussion="${focused.closest('.briefing-discussion').dataset.discussion}"] summary`;
-    else if (focused?.closest('.more-tasks')) restoreSelector = '.more-tasks summary';
     lastSignature = signature;
     renderedLanguage = currentLang;
     const today = new Date(); today.setHours(0,0,0,0);
@@ -156,8 +143,7 @@
       return {title:series?.title_zh || series?.title_original || copy('影集','Series'),meta:copy(`第 ${season.season_number} 季 · 觀看中`,`Season ${season.season_number} · Watching`),path:series?.id?`images/posters/series/${encodeURIComponent(series.id)}.jpg`:''};
     }).concat(reading.slice(0,2).map(book=>({title:book.title_zh || book.title,meta:copy('閱讀中','Reading'),path:book.id?`images/posters/books/${encodeURIComponent(book.id)}.jpg`:''})));
     const mediaVisual=mediaEntries.length ? `<div class="media-snapshot">${mediaEntries.map(m=>`<div class="media-snapshot-item"><div class="media-cover">${icon('library')}${m.path?`<img src="${safe(m.path)}" alt="" loading="lazy">`:''}</div><div><strong>${safe(m.title)}</strong><small>${safe(m.meta)}</small></div></div>`).join('')}</div>` : '';
-    const taskRows=tasks.map(x => ({task:true,title:x.title,date:x.due_date,priority:Number(x.priority)}));
-    const filters=[['all',copy('全部呈報','All reports')],['attention',copy('時程提醒','Deadlines')],['life',copy('生活','Life')]];
+
     updateDate();
     const isHome = currentPage === 'main';
     workspace.classList.toggle('has-advisor', !isHome);
@@ -179,15 +165,13 @@
     }
 
     context.setAttribute('aria-label','TO DO LIST');
-    const datedTasks=taskRows.filter(task=>task.date);
-    const recentTasks=(datedTasks.length?datedTasks:taskRows).slice(0,3);
 
-    directory.innerHTML = `<h2 class="retainer-heading">${copy('一起商量的人','Your council')}</h2><nav class="retainer-directory" aria-label="${copy('選擇呈報人物','Select a contributor')}">${advisors.map((a,i)=>`<button class="retainer-choice" data-advisor="${a.page}" aria-pressed="${a.page===selectedAdvisor}" aria-controls="briefing-content">${avatar(i)}<span>${safe(advisorName(i))}</span><span class="retainer-pointer" aria-hidden="true">›</span></button>`).join('')}</nav><nav class="briefing-filters" aria-label="${copy('呈報篩選','Report filters')}">${filters.map(([key,label])=>`<button class="briefing-button" data-briefing-filter="${key}" aria-pressed="${!selectedAdvisor && filter===key}">${label}</button>`).join('')}</nav>`;
-    content.innerHTML = `<nav class="dispatch-tabs" aria-label="${copy('呈報簿分頁','Dispatch views')}">${[['reports',copy('今日呈報','Reports')],['tasks',copy('交代的事','Tasks')],['evidence',copy('資料與觀察','Evidence')]].map(([key,label])=>`<button data-dispatch-view="${key}" aria-pressed="${currentView===key}">${label}</button>`).join('')}</nav><header class="briefing-heading"><div><p>${lastChecked?copy('上次檢查：','Last checked: ')+safe(lastChecked.toLocaleTimeString(zh()?'zh-TW':'en-US',{hour:'2-digit',minute:'2-digit'})):copy('正在取得各領域資料','Checking your sources')}</p></div><button class="briefing-button refresh-briefing" id="briefing-refresh" ${loading?'disabled':''}>${icon('refresh')}${loading?copy('更新中…','Updating…'):copy('更新呈報','Refresh')}</button></header>
+    advisorRail.setAttribute('aria-label',copy('顧問簡報','Advisor reports'));
+    advisorRail.innerHTML = advisors.map((a,i)=>`<button class="advisor-rail-button" data-briefing-filter="${a.page}" aria-pressed="${filter===a.page}" aria-controls="briefing-content" title="${safe(advisorName(i))}">${avatar(i)}<span>${safe(advisorName(i))}</span></button>`).join('');
+    content.innerHTML = `<header class="briefing-heading"><div><p>${lastChecked?copy('上次檢查：','Last checked: ')+safe(lastChecked.toLocaleTimeString(zh()?'zh-TW':'en-US',{hour:'2-digit',minute:'2-digit'})):copy('正在取得各領域資料','Checking your sources')}</p></div><button class="briefing-button refresh-briefing" id="briefing-refresh" ${loading?'disabled':''}>${icon('refresh')}${loading?copy('更新中…','Updating…'):copy('更新呈報','Refresh')}</button></header>
       ${status?`<p class="briefing-error" role="status">${safe(status)}</p>`:''}
-      <div class="home-workspace"><section class="home-tasks" aria-labelledby="home-task-title"><div class="home-section-heading"><h2 id="home-task-title">${copy('待辦事項','Tasks')} <span>${tasks.length}</span></h2><button class="briefing-link" data-briefing-page="project">${copy('查看全部工作','Open all work')}${icon('arrow')}</button></div>${tasks.length?rows(taskRows.slice(0,3)):`<p class="agenda-empty">${loading?copy('正在讀取任務…','Loading tasks…'):copy('目前沒有可顯示的未完成任務。','No open tasks available.')}</p>`}${tasks.length>3?`<details class="more-tasks" ${tasksExpanded?'open':''}><summary>${copy('其他','Show remaining')} ${tasks.length-3} ${copy('項待辦','tasks')}</summary>${rows(taskRows.slice(3))}</details>`:''}</section>
-      <section class="daily-dispatch" aria-labelledby="briefing-list-title"><div class="dispatch-heading"><h2 id="briefing-list-title">${copy('今日呈報','Daily reports')}</h2></div><div class="briefing-list">`+
-      card(0,copy('工作','Work'),copy('先確認範圍，再安排下一步。','Review the scope before the next step.'),projectText,[],'project',copy('以任務期限推算逾期與未來三天內到期的項目，不修改任務狀態。完整清單可在「交代的事」或工作頁查看。','Counts overdue and next-three-day tasks without changing their status. See Tasks or Work for the full list.'))+
+      <div class="home-workspace"><section class="daily-dispatch" aria-labelledby="briefing-list-title"><div class="dispatch-heading"><h2 id="briefing-list-title">${copy('今日呈報','Daily reports')}</h2></div><div class="briefing-list">`+
+      card(0,copy('工作','Work'),copy('先確認範圍，再安排下一步。','Review the scope before the next step.'),projectText,[],'project',copy('以任務期限推算逾期與未來三天內到期的項目，不修改任務狀態。完整清單可在「工作任務」或工作頁查看。','Counts overdue and next-three-day tasks without changing their status. See Tasks or Work for the full list.'))+
       card(1,copy('財務','Finance'),quotes.length?copy(`已取得 ${quotes.length} 筆追蹤報價`,`${quotes.length} tracked quotes available`):copy('尚無可用報價','No quotes available'),quotes.length ? copy(`追蹤標的包含 ${quotes.slice(0,3).map(q=>q.code).join('、')}。展開可查看最近取得的價格與漲跌。`,`Including ${quotes.slice(0,3).map(q=>q.code).join(', ')}. Expand to see available prices and changes.`) : copy('可更新簡報，或前往財務頁確認資料。','Refresh or open Finance to check the source.'),[],'finance',copy('報價來自最近一次成功載入的資料；報價日期及完整持倉請以財務頁為準。','Quotes reflect the latest successful fetch. Check quote dates and holdings in Finance.'),quoteVisual)+
       card(2,copy('賽事','Sports'),gameTitle,featured ? `${featured.status?.type?.detail || ''}${featured.date?' · '+new Date(featured.date).toLocaleDateString(zh()?'zh-TW':'en-US'):''}` : copy('可前往賽事頁確認當日賽程。','Open Sports to check today’s schedule.'),[],'scores',copy('優先顯示金鶯隊比賽；沒有金鶯賽事時顯示當日第一場。賽程、進行中與完賽狀態以資料來源為準。','Shows the Orioles game first, otherwise the first available event. Status and scores come from the source.'),scoreVisual)+
       card(3,copy('影劇與閱讀','Media & reading'),mediaEntries.length?copy(`${watching.length} 部影集、${reading.length} 本書正在進行中`,`${watching.length} shows and ${reading.length} books in progress`):copy('沒有可用的進行中紀錄','No active records available'),mediaEntries.length ? mediaEntries.slice(0,3).map(m=>m.title).join('、') : copy('在影劇與閱讀頁設定觀看或閱讀進度。','Set viewing or reading progress in the Library.'),[],'library',copy('依觀看中及閱讀中的紀錄整理。可在影劇與閱讀頁查看集數、評分和筆記。','Based on watching and reading records. Open the Library for episodes, ratings and notes.'),mediaVisual)+
@@ -212,22 +196,11 @@
     if(button) switchPage(button.dataset.briefingPage);
     if(e.target.closest('#briefing-refresh')) refresh();
     const filterButton=e.target.closest('[data-briefing-filter]');
-    if(filterButton) { selectedAdvisor=null; filter=filterButton.dataset.briefingFilter; currentView='reports'; applyFilter(); }
-    const advisorButton=e.target.closest('[data-advisor]');
-    if(advisorButton) { selectedAdvisor=advisorButton.dataset.advisor; filter='all'; if(currentView==='tasks') currentView='reports'; applyFilter(); }
-    const viewButton=e.target.closest('[data-dispatch-view]');
-    if(viewButton) { currentView=viewButton.dataset.dispatchView; applyFilter(); }
+    if(filterButton) { filter=filter===filterButton.dataset.briefingFilter?'all':filterButton.dataset.briefingFilter; applyFilter(); }
   });
   context.addEventListener('click',e => {
     const pageButton=e.target.closest('[data-briefing-page]');
     if(pageButton) switchPage(pageButton.dataset.briefingPage);
-    const viewButton=e.target.closest('[data-context-view]');
-    if(viewButton) {
-      currentView=viewButton.dataset.contextView;
-      if(currentPage!=='main') switchPage('main');
-      applyFilter();
-      content.querySelector('[data-dispatch-view="tasks"]')?.focus({preventScroll:true});
-    }
   });
   root.addEventListener('error',e => { if(e.target.matches('.media-cover img')) e.target.remove(); },true);
   // Existing page logic remains the source of truth; summaries never write business data.

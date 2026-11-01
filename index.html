@@ -772,10 +772,7 @@
     width: 28px;
     height: 28px;
     object-fit: contain;
-    /* White square chip — gives the PNG its native white-background context
-       so the anti-aliasing halo disappears. LCARS uses sharp corners for
-       general containers (no border-radius). */
-    background: #ffffff;
+    background: transparent;
     padding: 3px;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -895,7 +892,7 @@
   }
   .linescore .ls-logo {
     width: 22px; height: 22px;
-    background: #ffffff;
+    background: transparent;
     padding: 2px;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -1281,7 +1278,7 @@
     object-fit: contain;
     vertical-align: middle;
     margin-right: 4px;
-    background: #fff;
+    background: transparent;
     padding: 1px;
     box-sizing: border-box;
   }
@@ -1299,7 +1296,6 @@
   }
   .standings-table td.st-pct { color: var(--lcars-text); }
   .standings-table td.st-strk { color: var(--lcars-blue); font-size: 11px; }
-  .standings-table tr.st-leader .st-pct { color: var(--lcars-orange); }
   .standings-table tr.st-leader .st-name { color: var(--lcars-orange); }
   .st-team-col {
     display: flex;
@@ -2658,8 +2654,8 @@
   .ws-subtab-panel { display: flex; flex-direction: column; gap: var(--gap); }
   .ws-subtab-panel[hidden] { display: none; }
 
-  /* Attendance sub-tab 內縮，對齊 ws-subtab-bar 的左右邊距 */
-  #att-root { padding: 0 20px 20px; }
+  /* Align attendance cards with the scores page card edges. */
+  #att-root { padding: 0 0 20px; }
 
   /* ============================================================
      PROJECT PAGE — Mission Operations (三層: 專案→章節→任務)
@@ -3160,18 +3156,22 @@
   .att-months {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    overflow: hidden;
+    background: var(--lcars-panel);
+    padding: 24px;
   }
   .att-month-section {
-    background: var(--lcars-panel);
+    background: transparent;
   }
+  .att-month-section + .att-month-section { border-top: 1px solid var(--lcars-frame); }
   .att-month-header {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 10px 16px;
+    padding: 10px 0;
     border-bottom: 1px solid var(--lcars-frame);
   }
+  .att-month-section:first-child .att-month-header { padding-top: 0; }
   .att-month-label {
     font-family: 'Antonio', sans-serif;
     font-size: 16px;
@@ -3188,13 +3188,14 @@
     opacity: 0.65;
   }
   .att-month-empty {
-    padding: 12px 16px;
+    padding: 12px 0;
     font-size: 13px;
     color: var(--lcars-cream);
     opacity: 0.35;
     font-family: 'Antonio', sans-serif;
     letter-spacing: 0.1em;
   }
+  .att-month-section:last-child .att-month-empty { padding-bottom: 0; }
 
   /* ── Record rows ── */
   .att-record-list { display: flex; flex-direction: column; }
@@ -3202,11 +3203,12 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 9px 16px;
+    padding: 9px 0;
     border-bottom: 1px solid var(--lcars-frame);
     transition: background 0.12s;
   }
   .att-record-row:last-child { border-bottom: none; }
+  .att-month-section:last-child .att-record-row:last-child { padding-bottom: 0; }
   .att-record-row:hover { background: var(--lcars-frame); }
   .att-record-date {
     font-family: 'JetBrains Mono', monospace;
@@ -3238,7 +3240,8 @@
     font-size: 13px;
     color: var(--lcars-cream);
     opacity: 0.6;
-    flex: 1;
+    flex: 0 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -3294,23 +3297,47 @@
 
   /* ── Radial Gauges ── */
   .att-gauges {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: var(--gap);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 24px;
     margin-bottom: 16px;
   }
   .att-gauge-card {
+    position: relative;
+    flex: 1 1 110px;
+    min-width: 110px;
     background: var(--lcars-panel);
-    padding: 16px 10px 12px;
+    padding: 5px 10px 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    border-top: 3px solid var(--att-color, var(--lcars-orange));
+    border-radius: 0;
+    box-shadow: none;
   }
+  .att-gauge-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1px;
+    right: 1px;
+    height: 5px;
+    background: var(--att-color, var(--lcars-orange));
+  }
+  .att-gauge-quota {
+    flex-basis: 235px;
+    min-width: 235px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+  }
+  .att-gauge-copy { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .att-gauge-quota .att-gauge-detail { text-align: left; white-space: nowrap; }
   .att-gauge-svg {
     width: 120px;
     height: 120px;
+    flex-shrink: 0;
   }
   .att-gauge-track {
     fill: none;
@@ -3382,7 +3409,7 @@
   /* ── Timeline ── */
   .att-timeline {
     background: var(--lcars-panel);
-    padding: 16px;
+    padding: 24px;
     margin-bottom: 16px;
     overflow-x: auto;
   }
@@ -4484,7 +4511,7 @@
   }
 </style>
 
-<link rel="stylesheet" href="css/redesign.css?v=media-filter-bold-active-20261101">
+<link rel="stylesheet" href="css/redesign.css?v=overview-single-report-20261101">
 </head>
 <body>
 
@@ -5110,7 +5137,7 @@
           </div>
 
           <div class="data-source-note">
-            <span><span data-i18n="finFootnote">Source: Google Sheets</span><span id="stocks-updated"></span></span>
+            <span><span data-i18n="finFootnote">Source: Google Finance</span><span id="stocks-updated"></span></span>
           </div>
           </div>
         </div>
@@ -5142,8 +5169,14 @@
 
       <!-- All games today -->
       <div class="scores-group">
-        <div class="panel-title">
-          <span data-i18n="scoresAll">ALL GAMES · TODAY</span>
+        <div class="panel-title scores-all-heading">
+          <span id="scores-all-title">ALL GAMES</span>
+      <div class="scores-date-controls">
+        <button type="button" onclick="shiftScoresDate(-1)" aria-label="Previous day">‹</button>
+        <input type="date" id="scores-date" aria-label="Game date" onchange="changeScoresDate(this.value)">
+        <button type="button" onclick="shiftScoresDate(1)" aria-label="Next day">›</button>
+        <button type="button" onclick="changeScoresDate(scoresToday())" data-i18n="scoresToday">TODAY</button>
+      </div>
         </div>
         <div id="scores-all">
           <div class="empty-state">
@@ -5295,7 +5328,7 @@
         <div class="weather-group">
           <div class="panel-title">七天預報</div>
           <div id="wx-daily" class="wx-daily-grid"></div>
-          <div class="wx-credit">資料來源：<a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）</div>
+          <div class="wx-credit data-source-note">Source: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0)</div>
         </div>
 
       </div><!-- /obs-subtab-panel weather -->
@@ -5328,7 +5361,7 @@
 </div>
 
 <script src="js/finance.js?v=finance-tab-menu-20261101"></script>
-<script src="js/scores.js?v=card-actions-20261031"></script>
+<script src="js/scores.js?v=team-natural-case-20261101"></script>
 <script src="js/notes.js?v=search-focus-20261021"></script>
 <script src="js/library.js?v=media-search-toggle-20261101"></script>
 <script src="js/films.js?v=media-search-toggle-20261101"></script>
@@ -5336,8 +5369,8 @@
 <script src="js/attendance.js"></script>
 <script src="js/project.js"></script>
 <script src="js/weather.js"></script>
-<script src="js/core.js?v=media-search-clear-20261101"></script>
-<script src="js/briefing.js?v=search-focus-20261021"></script>
+<script src="js/core.js?v=google-finance-source-20261101"></script>
+<script src="js/briefing.js?v=overview-single-report-20261101"></script>
 
 </body>
 </html>

@@ -5,6 +5,7 @@
      ============================================================ */
   const NOTES_KEY = 'lcars_notes_v1';
   let notesCache = [];
+  const todoCopy = (zh, en) => currentLang === 'zh' ? zh : en;
 
   function loadNotes() {
     try {
@@ -37,7 +38,7 @@
 
   function updateNotesCount() {
     const el = document.getElementById('notes-count');
-    if (el) el.textContent = String(notesCache.length).padStart(2, '0');
+    if (el) el.textContent = String(notesCache.filter(n => !n.completed).length).padStart(2, '0');
   }
 
   // Available color slots — keys must match the .color-* CSS classes
@@ -697,6 +698,33 @@
     if (!list) return;
     list.innerHTML = '';
     closeAllPopovers();
+    let completedList = null;
+    const completed = notesCache.filter(n => n.completed);
+    if (completed.length) {
+      const details = document.createElement('details');
+      details.className = 'todo-completed';
+      details.open = renderNotes.completedOpen || false;
+      details.addEventListener('toggle', () => {
+        if (!details.isConnected) return;
+        renderNotes.completedOpen = details.open;
+        if (details.open) details.querySelectorAll('.note-text').forEach(autoGrow);
+      });
+      const summary = document.createElement('summary');
+      summary.textContent = todoCopy('已完成', 'Completed') + ' · ' + completed.length;
+      const clear = document.createElement('button');
+      clear.className = 'todo-clear';
+      clear.textContent = todoCopy('清除已完成', 'Clear completed');
+      clear.addEventListener('click', async () => {
+        const ok = await lcarsConfirm({title: todoCopy('清除已完成', 'Clear completed'), body: todoCopy('確定移除所有已完成的日常待辦？', 'Remove all completed personal tasks?'), okLabel: t('notesConfirmYes'), cancelLabel: t('notesConfirmNo'), danger: true});
+        if (!ok) return;
+        notesCache = notesCache.filter(n => !n.completed);
+        saveNotes(); renderNotes();
+      });
+      completedList = document.createElement('div');
+      completedList.className = 'todo-completed-list';
+      details.append(summary, clear, completedList);
+      list.append(details);
+    }
 
     if (notesCache.length === 0) {
       const empty = document.createElement('div');
@@ -852,13 +880,15 @@
       complete.setAttribute('aria-label', currentLang === 'zh' ? '標記完成' : 'Mark complete');
       complete.addEventListener('change', () => {
         note.completed = complete.checked;
-        card.classList.toggle('is-complete', note.completed);
         saveNotes();
+        renderNotes();
+        document.querySelector('.todo-quick-input')?.focus();
       });
       ta.setAttribute('aria-label', currentLang === 'zh' ? '待辦與備忘內容' : 'Task and note');
       body.append(complete, ta);
       card.appendChild(body);
-      list.appendChild(card);
+      if (note.completed) completedList.appendChild(card);
+      else list.insertBefore(card, list.querySelector('.todo-completed'));
 
       // Size after insertion (scrollHeight needs the element to be in the DOM)
       autoGrow(ta);
@@ -867,7 +897,7 @@
     updateNotesCount();
   }
 
-  function addNote() {
+  function addNote(text = '') {
     // Place new notes at the top → highest order so far +1000
     const maxOrder = notesCache.reduce((m, n) => Math.max(m, n.order || 0), 0);
     // Cycle through the LCARS palette so consecutive notes don't all look
@@ -881,7 +911,7 @@
     }
     const newNote = {
       id: 'n' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-      text: '',
+      text,
       completed: false,
       created: Date.now(),
       color: nextColor,
@@ -895,6 +925,7 @@
     beep(620);
 
     // Focus the new note's textarea (it'll be at the top — highest order first)
+    if (text) return;
     requestAnimationFrame(() => {
       const list = document.getElementById('notes-list');
       const first = list && list.querySelector('.note-card .note-text');
@@ -907,7 +938,35 @@
     migrateNotes();
     renderNotes();
     const addBtn = document.getElementById('notes-add');
-    if (addBtn) addBtn.addEventListener('click', addNote);
+    if (addBtn) addBtn.hidden = true;
+    const form = document.createElement('form');
+    form.className = 'todo-quick-add';
+    const input = document.createElement('input');
+    input.className = 'todo-quick-input';
+    input.maxLength = 2000;
+    input.placeholder = todoCopy('新增日常待辦…', 'Add a personal task…');
+    input.setAttribute('aria-label', todoCopy('新增日常待辦', 'Add a personal task'));
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.textContent = '+';
+    submit.setAttribute('aria-label', todoCopy('新增', 'Add'));
+    form.append(input, submit);
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (!input.value.trim()) return;
+      addNote(input.value.trim());
+      input.value = ''; input.focus();
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.isComposing) e.preventDefault();
+    });
+    document.getElementById('notes-list').before(form);
+    new MutationObserver(() => {
+      input.placeholder = todoCopy('新增日常待辦…', 'Add a personal task…');
+      input.setAttribute('aria-label', todoCopy('新增日常待辦', 'Add a personal task'));
+      submit.setAttribute('aria-label', todoCopy('新增', 'Add'));
+      renderNotes();
+    }).observe(document.documentElement, {attributes: true, attributeFilter: ['lang']});
     // Close popovers when clicking anywhere outside their UI
     document.addEventListener('click', (ev) => {
       if (ev.target.closest('.note-menu, .note-more, .note-reminder-panel, .note-bell')) return;

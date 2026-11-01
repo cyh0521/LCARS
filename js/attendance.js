@@ -26,7 +26,7 @@
     personal: { color: 'var(--lcars-gold)',   key: 'attLeavePersonal' },
     sick:     { color: 'var(--lcars-rust)',   key: 'attLeaveSick'     },
     overtime: { color: 'var(--lcars-blue)',   key: 'attOvertime'      },
-    holiday:  { color: '#2ecfb0',             key: 'attHoliday'       },
+    holiday:  { color: '#168f7d',             key: 'attHoliday'       },
   };
 
   // Now that ATT_TYPES is defined, initialize the filter
@@ -177,6 +177,7 @@
       card.style.setProperty('--att-color', cfg.color);
 
       if (ATT_QUOTA_TYPES.has(type)) {
+        card.classList.add('att-gauge-quota');
         // ── Quota type → radial arc ──
         let capacity = 0, pct = 0;
         if (type === 'annual' && quota.annual > 0) {
@@ -189,19 +190,23 @@
 
         card.innerHTML = attBuildGaugeSVG(used[type], capacity, pct, cfg.color);
 
+        const copy = attEl('div', 'att-gauge-copy');
         const typeLabel = attEl('div', 'att-gauge-type');
         typeLabel.textContent = t(cfg.key);
-        card.appendChild(typeLabel);
+        copy.appendChild(typeLabel);
 
         const detail = attEl('div', 'att-gauge-detail');
         if (capacity > 0) {
           const remaining = Math.max(0, capacity - used[type]);
-          detail.innerHTML = `${t('attRemaining')} ${attToDH(remaining) || remaining + t('attHours')}` +
-            `<br>${type === 'annual' ? t('attQuota') : t('attBalance')} ${attToDH(capacity) || capacity + t('attHours')}`;
+          const days = hours => Number((hours / 8).toFixed(3));
+          const dayUnit = (typeof currentLang !== 'undefined' && currentLang === 'zh') ? ' 天' : ' days';
+          detail.innerHTML = `${t('attRemaining')} ${days(remaining)}${dayUnit}` +
+            `<br>${(typeof currentLang !== 'undefined' && currentLang === 'zh') ? '日數' : 'TOTAL'} ${days(capacity)}${dayUnit}`;
         } else {
           detail.textContent = attToDH(used[type]) || '0' + t('attHours');
         }
-        card.appendChild(detail);
+        copy.appendChild(detail);
+        card.appendChild(copy);
       } else {
         // ── No-quota type (personal / sick / overtime) → plain numeric ──
         const numEl = attEl('div', 'att-counter-value');
@@ -357,7 +362,6 @@
       if (parseInt(attYear) === todayYear && m === todayMonth) {
         const tx = marginLeft + (todayDay - 0.5) * dayWidth;
         s += `<line class="att-tl-today" x1="${tx}" y1="${y}" x2="${tx}" y2="${y + rowHeight - 2}"/>`;
-        s += `<text class="att-tl-today-label" x="${tx}" y="${y - 5}" text-anchor="middle">TODAY</text>`;
       }
     }
 
@@ -571,7 +575,7 @@
       row.appendChild(notesEl);
     }
 
-    // Edit button
+    // Edit button follows the note, if present.
     const editBtn = attEl('button', 'att-record-edit-btn');
     editBtn.textContent = t('projEdit');
     editBtn.onclick = e => { e.stopPropagation(); openAttModal(record); };
