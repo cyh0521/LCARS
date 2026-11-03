@@ -17,16 +17,16 @@ function setup(){
  c.el=(tag,cls)=>new Element(tag,cls); c.showProjToast=()=>{}; c.now=()=> '2026-11-01';
  return {c,run:s=>vm.runInContext(s,c)};
 }
-test('status badge expands three choices and saves a changed status',()=>{
+test('status badge cycles through all three states',()=>{
  const {c,run}=setup();let saved;
  c.quickAdvance=(task,status)=>{saved=status;task.status=status;};
- const picker=run("renderProgressStatus({title:'Task',status:'DONE'})");
- assert.equal(picker.children[0].dataset.status,'DONE');
- const choices=picker.children[1].children;
- assert.deepEqual(choices.map(button=>button.dataset.status),['TODO','IN PROGRESS','DONE']);
- assert.deepEqual(choices.map(button=>button.attrs['aria-pressed']),['false','false','true']);
- picker.open=true;choices[1].onclick({stopPropagation(){}});assert.equal(saved,'IN PROGRESS');assert.equal(picker.open,false);
- saved=null;choices[1].onclick({stopPropagation(){}});assert.equal(saved,null);
+ const badge=run("renderProgressStatus({title:'Task',status:'DONE'})");
+ assert.equal(badge.dataset.status,'DONE');
+ assert.equal(badge.textContent,'projStatus_DONE');
+ assert.equal(badge.attrs['aria-label'],'Task projFieldStatus: projStatus_DONE');
+ badge.onclick();assert.equal(saved,'TODO');
+ badge.onclick();assert.equal(saved,'IN PROGRESS');
+ badge.onclick();assert.equal(saved,'DONE');
 });
 test('overview cards navigate to one project without applying overview filters to detail',()=>{
  const {c,run}=setup();
@@ -41,15 +41,68 @@ test('overview cards navigate to one project without applying overview filters t
  assert.equal(nodes.filter(n=>n.className==='progress-project').length,1);
  assert.equal(nodes.filter(n=>n.className==='progress-task').length,1);
  const projectHead=nodes.find(n=>n.className==='progress-project-head');
- assert.equal(projectHead.children.some(n=>n.tag==='button'),false);
+ assert.equal(projectHead.children[0].className.includes('progress-back'),true);
+ assert.match(projectHead.children[0].innerHTML,/<svg /);
+ assert.equal(projectHead.children[1].className,'progress-detail-title');
  assert.equal(nodes.some(n=>n.className==='progress-quick-add'),false);
- assert.equal(nodes.filter(n=>n.className?.includes('progress-milestone-add')).length,1);
+ assert.equal(nodes.filter(n=>n.className?.includes('progress-milestone-add')).length,0);
+ assert.equal(nodes.some(n=>n.className?.includes('progress-add-task')),false);
+ const editTasks=nodes.find(n=>n.className?.includes('progress-tasks-edit'));
+ assert.equal(editTasks.parentElement.className,'progress-task-actions');
+ assert.equal(editTasks.parentElement.parentElement.className,'progress-milestone');
+ const editItems=nodes.find(n=>n.className?.includes('progress-items-edit'));
+ assert.equal(editItems.parentElement.className,'progress-item-nav');
+ assert.equal(editItems.parentElement.lastChild,editItems);
+ assert.equal(nodes.some(n=>n.className?.includes('progress-milestone-edit')),false);
  assert.equal(nodes.some(n=>n.className.includes('progress-back')),true);
  assert.equal(nodes.some(n=>n.className.includes('lib-filter-bar')),false);
  run("projDetailId=null;projProgressFilter='all'");
  nodes=walk(run('renderProgressOverview()'));
  assert.equal(nodes.filter(n=>n.className.includes('progress-small-card')).length,2);
  assert.equal(nodes.some(n=>n.className==='progress-project-body'),false);
+});
+test('saved task order controls the task list',()=>{
+ const {c,run}=setup();
+ const walk=node=>[node,...node.children.flatMap(walk)];
+ c.escHtml=s=>s;
+ run("projProjects=[{id:'p',title:'Project'}];projMilestones=[{id:'m',project_id:'p',title:'Item'}];projTasks=[{id:'a',project_id:'p',milestone_id:'m',title:'First',status:'DONE',priority:1,order:1},{id:'b',project_id:'p',milestone_id:'m',title:'Second',status:'TODO',priority:4,order:2}];projDetailId='p'");
+ const titles=walk(run('renderProgressOverview()')).filter(node=>node.className==='progress-task-name');
+ assert.deepEqual(titles.map(node=>node.textContent),['First','Second']);
+ assert.equal(titles[0].tag,'span');
+ assert.equal(titles[0].onclick,undefined);
+ const priorities=walk(run('renderProgressOverview()')).filter(node=>node.className==='progress-task-priority');
+ assert.deepEqual(priorities.map(node=>node.dataset.priority),['1','4']);
+ assert.equal(priorities[0].textContent,undefined);
+ assert.equal(priorities[0].attrs['aria-label'],'projFieldPriority: projPriority1');
+});
+test('editor order persists and controls project and task display',()=>{
+ const first=setup(); let stored;
+ first.c.persistSet=(_key,value)=>{ stored=structuredClone(value); };
+ first.run("saveProjectOrder('milestones','p',['m2','m1']);saveProjectOrder('tasks','m2',['b','a'])");
+ assert.deepEqual(stored.milestones.p,['m2','m1']);
+ const {c,run}=setup();
+ c.persistGet=()=>stored;
+ c.escHtml=s=>s;
+ const walk=node=>[node,...node.children.flatMap(walk)];
+ run("projProjects=[{id:'p',title:'Project'}];projMilestones=[{id:'m1',project_id:'p',title:'Item 1'},{id:'m2',project_id:'p',title:'Item 2'}];projTasks=[{id:'a',project_id:'p',milestone_id:'m2',title:'Task A',status:'TODO',priority:4},{id:'b',project_id:'p',milestone_id:'m2',title:'Task B',status:'DONE',priority:1}];projDetailId='p'");
+ const nodes=walk(run('renderProgressOverview()'));
+ assert.deepEqual(nodes.filter(node=>node.className==='progress-button progress-item-link').map(node=>node.textContent),['Item 2','Item 1']);
+ assert.deepEqual(nodes.filter(node=>node.className==='progress-task-name').map(node=>node.textContent),['Task B','Task A']);
+});
+test('completion does not reorder tasks and due dates include Chinese weekdays',()=>{
+ const {c,run}=setup();
+ const walk=node=>[node,...node.children.flatMap(walk)];
+ c.escHtml=s=>s;
+ run("projProjects=[{id:'p',title:'Project'}];projMilestones=[{id:'m',project_id:'p',title:'Item'}];projTasks=[{id:'a',project_id:'p',milestone_id:'m',title:'First',status:'DONE',priority:1,due_date:'2026-11-02'},{id:'b',project_id:'p',milestone_id:'m',title:'Second',status:'TODO',priority:4}];projDetailId='p'");
+ const nodes=walk(run('renderProgressOverview()'));
+ assert.deepEqual(nodes.filter(node=>node.className==='progress-task-name').map(node=>node.textContent),['First','Second']);
+ const firstRow=nodes.find(node=>node.className==='progress-task');
+ assert.equal(firstRow.children[0].className,'progress-task-priority');
+ assert.equal(firstRow.children[1].className,'progress-task-name-wrap');
+ assert.equal(nodes.find(node=>node.className?.includes('progress-task-date')).textContent,'2026 年 11 月 2 日（一）');
+ assert.equal(run("projDateInputValue('2026/11/2')"),'2026-11-02');
+ assert.equal(run("projDateInputValue('2026年11月2日')"),'2026-11-02');
+ assert.equal(run("formatProjTaskDate('2026/11/2')"),'2026 年 11 月 2 日（一）');
 });
 
 test('header add creates an item in detail and a project in overview',()=>{

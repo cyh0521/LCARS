@@ -696,8 +696,6 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 .progress-milestone:first-child { border-top:0; padding-top:0; }
 .progress-milestone-head { gap:8px; margin-bottom:10px; }
 .progress-milestone-head h3 { margin:0; min-width:0; font-size:15px; overflow-wrap:anywhere; }
-.progress-milestone-head .progress-milestone-edit { flex:none; min-width:32px; min-height:32px; padding:2px; border:0; background:transparent; font-size:18px; line-height:1; }
-.progress-milestone-head .progress-milestone-add { flex:none; min-width:36px; min-height:36px; padding:0; border:0; background:transparent; font-size:24px; line-height:1; text-align:center; }
 .progress-milestone-head .progress-count { margin-left:auto; }
 .progress-task { display:grid; grid-template-columns:36px minmax(0,1fr) 44px 90px; gap:8px; align-items:center; padding:6px 0; border-top:1px solid var(--ui-line); }
 .progress-overview .progress-task-name,.progress-overview .progress-task-status { background:transparent; border:0; padding:6px 0; }
@@ -735,6 +733,8 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 .progress-editor-overlay .alert-stack { width:min(520px,100%); max-width:520px !important; height:100dvh; max-height:100dvh; margin:0; border-radius:var(--ui-radius) 0 0 var(--ui-radius); display:flex; }
 .progress-editor-overlay .alert-card { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; max-height:100dvh; border-radius:inherit; }
 .progress-editor-overlay .alert-head,.progress-editor-overlay .alert-footer { flex-shrink:0; }
+.project-overlay .alert-footer { flex-shrink:0; border-top:1px solid var(--ui-line); background:var(--lcars-panel); }
+.project-overlay .alert-body { padding-bottom:12px; }
 .progress-editor-overlay .alert-body { flex:1; min-height:0; max-height:none; overflow-y:auto; }
 .progress-editor-overlay .alert-footer { flex-wrap:wrap; gap:12px; }
 @media(max-width:600px) {
@@ -768,7 +768,10 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 .progress-small-card .progress-meta { gap:6px 14px; }
 .progress-small-card .progress-meta > span:last-child { flex-basis:100%; }
 .progress-detail-title { flex:1; min-width:0; margin:0; font-size:20px; font-weight:600; overflow-wrap:anywhere; }
-.progress-detail .progress-back { margin:12px 0 18px; border:0; background:transparent; padding-left:0; color:var(--lcars-orange); }
+.progress-detail { margin-top:24px; }
+.progress-detail .progress-project-head { flex-wrap:nowrap; gap:4px; }
+.progress-detail .progress-back { flex:none; display:inline-flex; align-items:center; justify-content:center; width:28px; min-width:28px; padding:0; border:0; background:transparent; color:var(--lcars-orange); text-align:center; }
+.progress-detail .progress-back svg { display:block; }
 .progress-detail-content .progress-project { margin:0; }
 @media(max-width:600px) { .progress-card-grid { gap:16px; } .progress-card-grid .progress-small-card { padding:16px 16px 48px; min-height:190px; } }
 /* New tasks open in a centered dialog sized to the available viewport. */
@@ -780,49 +783,90 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
   .progress-create-overlay .alert-stack,.progress-create-overlay .alert-card { max-height:calc(100dvh - 24px); }
 }
 /* Quiet status label at the end of each task row. */
-.progress-task { display:grid; grid-template-columns:minmax(0,1fr) 44px 72px 78px; gap:8px; align-items:center; overflow:visible; }
-.progress-task .progress-task-name { grid-column:1; min-width:0; }
-.progress-task-priority { grid-column:2; }
+.progress-task { display:grid; grid-template-columns:20px minmax(0,1fr) max-content max-content; gap:8px; align-items:center; overflow:visible; }
+.progress-task-priority { grid-column:1; }
+.progress-task-name-wrap { grid-column:2; display:flex; align-items:baseline; flex-wrap:wrap; gap:3px 8px; min-width:0; }
+.progress-task .progress-task-name { min-width:0; }
+.progress-task-countdown { flex:none; color:var(--lcars-dim); font-size:11px; white-space:nowrap; }
+.progress-task-countdown.progress-overdue { color:#a56957; }
 .progress-task-date { grid-column:3; }
-.progress-status-picker { grid-column:4; position:relative; min-width:0; }
-.progress-status-current { display:inline-flex; align-items:center; gap:3px; max-width:100%; min-height:28px; padding:3px 4px; border:0; border-radius:3px; background:transparent; font-size:12px; font-weight:600; line-height:1.3; cursor:pointer; white-space:nowrap; list-style:none; }
-.progress-status-current::-webkit-details-marker { display:none; }
-.progress-status-current::after { content:'⌄'; font-size:13px; opacity:.65; }
-.progress-status-current:hover { background:var(--ui-soft); }
-.progress-status-current[data-status=TODO] { color:#526e9a; }
-.progress-status-current[data-status="IN PROGRESS"] { color:#b35b39; }
-.progress-status-current[data-status=DONE] { color:#187f70; }
-.progress-status-current:focus-visible,.progress-status-choice:focus-visible { outline:2px solid var(--lcars-orange); outline-offset:2px; }
-.progress-status-choices { position:absolute; z-index:15; top:calc(100% + 4px); right:0; width:max-content; min-width:112px; padding:5px; border:1px solid var(--ui-line); border-radius:var(--ui-radius-sm); background:var(--lcars-panel); box-shadow:var(--ui-shadow); display:grid; gap:2px; }
-.progress-status-choice { min-height:34px; padding:6px 10px; border:0; border-radius:var(--ui-radius-sm); background:transparent; font:inherit; font-size:13px; text-align:left; cursor:pointer; white-space:nowrap; }
-.progress-status-choice:hover,.progress-status-choice[aria-pressed=true] { background:var(--ui-soft); font-weight:600; }
-.progress-status-choice[data-status=TODO] { color:#526e9a; }
-.progress-status-choice[data-status="IN PROGRESS"] { color:#b35b39; }
-.progress-status-choice[data-status=DONE] { color:#187f70; }
+.progress-status-current { grid-column:4; display:inline-flex; align-items:center; justify-content:center; min-height:28px; padding:4px 6px; border:1px solid #7899c4; border-radius:var(--ui-radius-sm); background:#d5e5fb; color:#254e84; font-size:12px; font-weight:700; line-height:1.2; cursor:pointer; white-space:nowrap; }
+.progress-status-current:hover { filter:brightness(.95); }
+.progress-status-current[data-status="IN PROGRESS"] { border-color:#d2a044; background:#ffe2a8; color:#7d4a08; }
+.progress-status-current[data-status=DONE] { border-color:#62aa87; background:#cbefdd; color:#116448; }
+.progress-status-current:focus-visible { outline:2px solid var(--lcars-orange); outline-offset:2px; }
 @media(max-width:700px) {
-  .progress-task { grid-template-columns:minmax(0,1fr) auto; gap:3px 8px; }
-  .progress-task .progress-task-name { grid-column:1 / -1; grid-row:1; }
-  .progress-status-picker { grid-column:1; grid-row:2; }
-  .progress-task-priority { grid-column:2; grid-row:2; }
+  .progress-task { grid-template-columns:20px minmax(0,1fr); gap:3px 8px; }
+  .progress-task-priority { grid-column:1; grid-row:1; justify-self:start; }
+  .progress-task-name-wrap { grid-column:2; grid-row:1; }
+  .progress-status-current { grid-column:2; grid-row:2; justify-self:start; }
   .progress-task-date { grid-column:2; grid-row:3; }
 }
 /* Item navigation and tasks share the project detail card. */
 .progress-item-layout { display:grid; grid-template-columns:minmax(180px,230px) minmax(0,1fr); gap:24px; min-width:0; }
 .progress-item-nav { display:flex; flex-direction:column; align-self:stretch; min-width:0; padding-right:16px; border-right:1px solid var(--ui-line); }
+.progress-item-nav .progress-items-edit { align-self:flex-end; flex:none; display:inline-flex; align-items:center; justify-content:center; width:36px; min-height:36px; margin-top:2px; padding:0; border:0; background:transparent; color:var(--lcars-dim); }
+.progress-item-nav .progress-items-edit:hover { color:var(--lcars-orange); }
 .progress-overview .progress-item-link { display:flex; align-items:center; gap:8px; width:100%; min-height:40px; padding:8px 10px; border:0; border-radius:var(--ui-radius-sm); background:transparent; text-align:left; overflow-wrap:anywhere; }
 .progress-item-link .progress-count { margin-left:auto; }
 .progress-overview .progress-item-link[aria-current=true] { background:var(--ui-soft); color:var(--lcars-orange); font-weight:700; }
 .progress-item-content { min-width:0; }
 .progress-item-content .progress-milestone { border:0; padding:0; }
 .progress-item-content .progress-milestone-head { padding-bottom:10px; border-bottom:0; }
-.progress-item-content .progress-milestone-add { margin-left:auto; }
+.progress-item-content .progress-task:first-of-type { border-top:0; padding-top:0; }
+.progress-items-list { display:grid; }
+.progress-items-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--ui-line); }
+.progress-items-row:last-child { border-bottom:0; }
+.progress-items-row.dragging { opacity:.45; }
+.progress-items-handle { flex:none; width:28px; color:var(--lcars-dim); font-size:21px; text-align:center; cursor:grab; user-select:none; }
+.progress-items-handle:active { cursor:grabbing; }
+.progress-items-row .proj-modal-input { flex:1; min-width:0; border:0; border-radius:var(--ui-radius-sm); background:transparent; box-shadow:none; }
+.progress-items-row .proj-modal-input:focus { background:var(--ui-soft); }
+.progress-items-row .proj-modal-input:focus-visible { outline:1px solid var(--ui-line-strong); outline-offset:0; box-shadow:none; }
+.progress-items-row .progress-items-remove { flex:none; width:32px; min-height:32px; padding:0; border:0; background:transparent; color:var(--lcars-dim); font-size:20px; text-align:center; }
+.progress-items-row .progress-items-remove:hover { color:var(--lcars-rust); }
 @media(max-width:700px) {
   .progress-item-layout { grid-template-columns:minmax(0,1fr); gap:16px; }
   .progress-item-nav { flex-direction:row; overflow-x:auto; gap:4px; padding:0 0 10px; border-right:0; border-bottom:1px solid var(--ui-line); }
   .progress-overview .progress-item-link { flex:none; width:auto; max-width:220px; }
+  .progress-item-nav .progress-items-edit { margin:0 0 0 auto; }
 }
 /* Item actions replace the repeated heading above the task list. */
 .progress-item-content .progress-milestone-head { justify-content:flex-end; }
-.progress-item-content .progress-milestone-edit { margin-left:auto; }
-.progress-item-content .progress-milestone-add { margin-left:0; }
+.progress-item-content .progress-task:last-of-type { border-bottom:1px solid var(--ui-line); }
+.progress-task-actions { display:flex; justify-content:flex-end; margin-top:2px; }
+.progress-task .progress-task-name { padding:0; }
+.progress-item-content .progress-tasks-edit { flex:none; display:inline-flex; align-items:center; justify-content:center; width:36px; min-height:36px; padding:0; border:0; background:transparent; color:var(--lcars-dim); }
+.progress-item-content .progress-tasks-edit:hover { color:var(--lcars-orange); }
+.progress-tasks-overlay .alert-stack { max-width:min(780px,calc(100vw - 24px)) !important; max-height:calc(100dvh - 32px); overflow:hidden; }
+.progress-tasks-overlay .alert-card { display:flex; flex-direction:column; max-height:calc(100dvh - 32px); }
+.progress-tasks-overlay .alert-body { min-height:0; overflow-y:auto; padding-top:8px; padding-bottom:4px; }
+.progress-task-edit-list { display:grid; }
+.progress-task-edit-row { display:flex; align-items:center; gap:6px; padding:5px 0; border-bottom:1px solid var(--ui-line); }
+.progress-task-edit-row:last-child { border-bottom:0; }
+.progress-task-edit-row.dragging { opacity:.45; }
+.progress-task-edit-fields { flex:1; min-width:0; display:grid; grid-template-columns:120px minmax(0,406px) minmax(80px,1fr); gap:6px; align-items:center; }
+.progress-task-edit-title { width:100%; }
+.progress-task-edit-notes { width:100%; }
+.progress-task-edit-details { display:grid; grid-template-columns:66px minmax(0,120px) minmax(0,120px) 82px; gap:6px; min-width:0; }
+.progress-task-edit-details > * { min-width:0; width:100%; }
+.progress-task-edit-priority-field { display:flex; align-items:center; gap:2px; min-width:0; }
+.progress-task-edit-priority-dot { flex:none; width:8px; height:8px; border-radius:50%; background:#2c9270; }
+.progress-task-edit-priority-field[data-priority="1"] .progress-task-edit-priority-dot { background:#526e9a; }
+.progress-task-edit-priority-field[data-priority="3"] .progress-task-edit-priority-dot { background:#b98522; }
+.progress-task-edit-priority-field[data-priority="4"] .progress-task-edit-priority-dot { background:#b33b30; }
+.progress-task-edit-priority-field .progress-task-edit-priority { flex:1; min-width:0; }
+.progress-task-priority { display:inline-block; justify-self:center; width:14px; height:14px; border-radius:50%; background:#2c9270; }
+.progress-task-priority[data-priority="1"] { background:#526e9a; }
+.progress-task-priority[data-priority="3"] { background:#b98522; }
+.progress-task-priority[data-priority="4"] { background:#b33b30; }
+.progress-tasks-overlay .progress-task-edit-row :is(.proj-modal-input,.proj-modal-select) { min-height:32px; padding:4px 6px; border:0; border-radius:var(--ui-radius-sm); background:transparent; font-size:13px; }
+.progress-tasks-overlay .progress-task-edit-row :is(.proj-modal-input,.proj-modal-select):focus { background:var(--ui-soft); }
+.progress-tasks-overlay .progress-task-edit-row :is(.proj-modal-input,.proj-modal-select):focus-visible { outline:1px solid var(--ui-line-strong); outline-offset:0; box-shadow:none; }
+.progress-task-edit-remove { flex:none; width:28px; min-height:32px; padding:0; border:0; background:transparent; color:var(--lcars-dim); font-size:20px; }
+.progress-task-edit-remove:hover { color:var(--lcars-rust); }
+.progress-tasks-overlay .progress-task-edit-add { min-height:28px; margin-top:2px; padding:2px 0; border:0; background:transparent; color:var(--lcars-dim); font-size:13px; font-weight:600; line-height:1.2; }
+.progress-tasks-overlay .progress-task-edit-add:hover { color:var(--lcars-orange); }
+@media(max-width:760px) { .progress-task-edit-fields { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:2px 6px; } .progress-task-edit-details { grid-column:1 / -1; grid-row:2; grid-template-columns:66px minmax(0,1fr) minmax(0,1fr) 82px; } .progress-task-edit-notes { grid-column:2; grid-row:1; } }
+@media(max-width:460px) { .progress-task-edit-details { grid-template-columns:1fr 1fr; } .progress-task-edit-status { grid-column:1 / -1; } }
 .progress-item-content .progress-completed .progress-task-name { text-decoration:none; }

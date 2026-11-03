@@ -592,7 +592,7 @@
       head.className = 'alert-head';
       const headTitle = document.createElement('span');
       headTitle.className = 'alert-head-title';
-      headTitle.innerHTML = `<svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${escapeHtml(title)}</span>`;
+      headTitle.innerHTML = `<span>${escapeHtml(title)}</span>`;
       head.appendChild(headTitle);
 
       const body = document.createElement('div');

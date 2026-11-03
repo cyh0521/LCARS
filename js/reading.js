@@ -756,7 +756,7 @@
 
       const head = document.createElement('div');
       head.className = 'alert-head';
-      head.innerHTML = `<span class="alert-head-title"><svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${escapeHtml(title)}</span></span>`;
+      head.innerHTML = `<span class="alert-head-title"><span>${escapeHtml(title)}</span></span>`;
 
       const body = document.createElement('div');
       body.className = 'alert-body';

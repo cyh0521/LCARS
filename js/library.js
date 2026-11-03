@@ -705,7 +705,7 @@
     const titleText = isNew
       ? `${escapeHtml(s.title_original)} · S${seasonNum} · ${t('libEpAddTitle')}`
       : `${escapeHtml(s.title_original)} · S${seasonNum} · EP ${defaultEp}`;
-    headTitle.innerHTML = `<svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${titleText}</span>`;
+    headTitle.innerHTML = `<span>${titleText}</span>`;
     head.appendChild(headTitle);
 
     const body = document.createElement('div');
@@ -934,7 +934,7 @@
     const headTitle = document.createElement('span');
     headTitle.className = 'alert-head-title';
     const seasonNum = parseInt(se.season_number) || 1;
-    headTitle.innerHTML = `<svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${escapeHtml(s.title_original)} · S${seasonNum}</span>`;
+    headTitle.innerHTML = `<span>${escapeHtml(s.title_original)} · S${seasonNum}</span>`;
     head.appendChild(headTitle);
 
     const body = document.createElement('div');
@@ -1186,7 +1186,7 @@
       head.style.background = 'var(--lcars-cream)';
       const headTitle = document.createElement('span');
       headTitle.className = 'alert-head-title';
-      headTitle.innerHTML = `<svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${escapeHtml(title)}</span>`;
+      headTitle.innerHTML = `<span>${escapeHtml(title)}</span>`;
       head.appendChild(headTitle);
 
       const body = document.createElement('div');
@@ -1281,7 +1281,7 @@
   }
 
   async function showLibraryEditForm(s, se) {
-    const result = await showSeriesFormModal(s, se, '✎ ' + (s.title_original || ''));
+    const result = await showSeriesFormModal(s, se, s.title_original || '');
     if (!result) return;
     try {
       // Update both records in parallel — series-level + this-season-level.
@@ -1342,7 +1342,7 @@
       head.style.background = 'var(--lcars-cream)';
       const headTitle = document.createElement('span');
       headTitle.className = 'alert-head-title';
-      headTitle.innerHTML = `<svg class="icon icon-md alert-head-icon"><use href="#i-library"/></svg><span>${escapeHtml(s.title_original)} · ${t('libMenuAddSeason')}</span>`;
+      headTitle.innerHTML = `<span>${escapeHtml(s.title_original)} · ${t('libMenuAddSeason')}</span>`;
       head.appendChild(headTitle);
 
       const body = document.createElement('div');
