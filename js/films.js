@@ -270,6 +270,20 @@
     const card = document.createElement('div');
     card.className = `series-card card-side-poster status-film-${statusCls}`;
     card.dataset.filmId = f.id;
+    bindMediaDetails(card, () => {
+      const isCinema = f.platform?.startsWith('Cinema');
+      showMediaDetails(t('filmDetailsTitle'), 'films', 'FILM ID', f.id, [
+        [t('filmFormTitleOrig'), f.title_original],
+        [t('filmFormTitleZh'), f.title_zh],
+        [t('libFormYear'), f.year],
+        [t('libFormLanguage'), f.language && (langLabel(f.language) || f.language)],
+        [t('libFormStatus'), currentLang === 'zh' ? filmStatusFormLabel(status) : filmStatusLabel(status)],
+        [t('filmFormWatchedDate'), status !== 'WANT_TO_WATCH' && f.watched_date ? fmtDate(f.watched_date) : ''],
+        [t('libFormPlatform'), isCinema ? 'Cinema' : f.platform],
+        [t('filmFormCinemaNote'), isCinema && f.platform !== 'Cinema' ? filmCinemaNote(f.platform) : ''],
+        [t('libFormNote'), f.notes],
+      ]);
+    });
 
     // POSTER
     const poster = document.createElement('div');
@@ -459,8 +473,11 @@
   /* ============================================================
      FORM HELPERS
      ============================================================ */
+  function filmCinemaNote(platform) {
+    return platform.replace(/^Cinema\s*\(?(.*?)\)?$/, '$1');
+  }
+
   function buildFilmFormBody(f) {
-    const isEdit = !!f;
 
     const currentPlatform = f ? (f.platform || '') : '';
     const platformOpts = FILM_PLATFORMS.map(p => {
@@ -478,7 +495,7 @@
 
     // Cinema note
     const isCinema = f && f.platform && f.platform.startsWith('Cinema');
-    const cinemaNote = isCinema && f.platform !== 'Cinema' ? f.platform.replace(/^Cinema\s*\(?(.*?)\)?$/, '$1') : '';
+    const cinemaNote = isCinema && f.platform !== 'Cinema' ? filmCinemaNote(f.platform) : '';
 
     const isWant = f ? String(f.status).toUpperCase() === 'WANT_TO_WATCH' : true;
 
@@ -539,16 +556,6 @@
           <label class="lib-form-label">${t('libFormNote')}</label>
           <textarea id="ff-note" class="lib-form-textarea" placeholder="${t('libFormNotePH')}">${escapeHtml(f ? (f.notes || '') : '')}</textarea>
         </div>
-        ${isEdit ? `
-        <div class="lib-form-field full lib-form-id-row">
-          <label class="lib-form-label">FILM ID</label>
-          <div class="lib-form-id-box" id="film-copy-id-btn"
-               onclick="(function(el){navigator.clipboard.writeText('${f.id}').then(()=>{el.classList.add('copied');setTimeout(()=>el.classList.remove('copied'),1200)})})(document.getElementById('film-copy-id-btn'))"
-               title="點擊複製">
-            <span class="lib-form-id-val">${f.id}</span>
-            <span class="lib-form-id-copy">⎘</span>
-          </div>
-        </div>` : ''}
       </div>`;
   }
 

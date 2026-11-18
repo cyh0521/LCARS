@@ -2,7 +2,7 @@
 //
 // Data model (Google Sheets columns):
 //   id, title, title_zh, author, translator, year, language, isbn, edition, format,
-//   genre, status, rating, start_date, finish_date, source, price, notes
+//   genre, status, rating, start_date, finish_date, source, price, notes, purchase_date
 //
 // Statuses: READING · WANT_TO_READ · COMPLETED · PAUSED · DROPPED
 
@@ -11,7 +11,7 @@
      ============================================================ */
   const READING_API_URL = 'https://script.google.com/macros/s/AKfycbz95Pnc9LeWAMtVmPIQePNK45-7akEonTCry3jjtH3UUdNTf4rUtzCpkeelQED0orLA/exec';
 
-  const BOOK_STATUSES    = ['READING', 'WANT_TO_READ', 'COMPLETED', 'PAUSED', 'DROPPED'];
+  const BOOK_STATUSES    = ['READING', 'COMPLETED', 'WANT_TO_READ', 'PAUSED', 'DROPPED'];
   const BOOK_STATUS_KEY  = {
     'READING':       'reading',
     'WANT_TO_READ':  'want',
@@ -19,8 +19,31 @@
     'PAUSED':        'paused',
     'DROPPED':       'dropped',
   };
-  const BOOK_LANGUAGES   = ['CHINESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'FRENCH', 'GERMAN', 'SPANISH', 'OTHER'];
+  const BOOK_LANGUAGES = {
+    CHINESE_TRADITIONAL: 'bookLangTraditional',
+    CHINESE_SIMPLIFIED: 'bookLangSimplified',
+    ENGLISH: 'bookLangEnglish',
+    JAPANESE: 'bookLangJapanese',
+    GERMAN: 'bookLangGerman',
+    OTHER: 'libLangOther',
+  };
+
+  function bookLanguageOption(code) {
+    if (code === 'CHINESE') return 'CHINESE_TRADITIONAL';
+    if (code === 'WESTERN') return 'ENGLISH';
+    return Object.hasOwn(BOOK_LANGUAGES, code) ? code : 'OTHER';
+  }
+
+  function bookLanguageLabel(code) {
+    return code ? t(BOOK_LANGUAGES[bookLanguageOption(code)]) : '';
+  }
   const BOOK_FORMATS     = ['Paperback', 'Hardcover', 'ePub', 'PDF'];
+  function bookFormatLabel(format) {
+    if (currentLang !== 'zh') return format;
+    if (format === 'Paperback') return '實體平裝';
+    if (format === 'Hardcover') return '實體精裝';
+    return format;
+  }
   const BOOK_GENRES      = ['FICTION', 'NON-FICTION', 'BIOGRAPHY', 'HISTORY', 'SCIENCE',
                              'PHILOSOPHY', 'TECHNOLOGY', 'SELF-HELP', 'MYSTERY', 'FANTASY',
                              'SCI-FI', 'POETRY', 'MANGA', 'OTHER'];
@@ -64,6 +87,13 @@
       out[nk] = row[k];
     });
     return out;
+  }
+
+  function bookDateInputValue(value) {
+    const match = String(value || '').match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?=$|[T\s])/);
+    if (!match) return '';
+    const [, year, month, day] = match;
+    return [year, month.padStart(2, '0'), day.padStart(2, '0')].join('-');
   }
 
   /* ============================================================
@@ -295,11 +325,11 @@
   function buildBookCard(b) {
     const status    = String(b.status || 'WANT_TO_READ').toUpperCase();
     const statusCls = BOOK_STATUS_KEY[status] || 'want';
-    const rating    = parseFloat(b.rating) || 0;
 
     const card = document.createElement('div');
     card.className = `series-card card-side-poster status-book-${statusCls}`;
     card.dataset.bookId = b.id;
+    bindMediaDetails(card, () => showBookDetails(b));
 
     // POSTER (book cover)
     const poster = document.createElement('div');
@@ -326,18 +356,18 @@
     const titleWrap = document.createElement('div');
     titleWrap.style.cssText = 'flex:1; min-width:0;';
     const titleEl = document.createElement('div');
-    titleEl.className = 'series-title';
-    titleEl.textContent = b.title || '(Untitled)';
+    titleEl.className = b.title_zh ? 'series-title book-title-zh' : 'series-title';
+    titleEl.textContent = b.title_zh || b.title || '(Untitled)';
     titleWrap.appendChild(titleEl);
-    if (b.title_zh) {
-      const tzh = document.createElement('div');
-      tzh.className = 'series-title-zh';
-      tzh.textContent = b.title_zh;
-      titleWrap.appendChild(tzh);
+    if (b.title_zh && b.title) {
+      const originalTitle = document.createElement('div');
+      originalTitle.className = 'series-title-zh';
+      originalTitle.textContent = b.title;
+      titleWrap.appendChild(originalTitle);
     }
     const pill = document.createElement('div');
     pill.className = `series-status-pill ${statusCls}`;
-    pill.textContent = bookStatusLabel(status);
+    pill.textContent = bookStatusFormLabel(status);
     head.appendChild(titleWrap);
     head.appendChild(pill);
 
@@ -348,79 +378,10 @@
     if (b.author)     metaParts.push(b.author);
     if (b.translator) metaParts.push(`${t('bookCardTranslator')} ${b.translator}`);
     if (b.year)       metaParts.push(b.year);
-    if (b.language)   metaParts.push(langShort(b.language));
-    if (b.format)     metaParts.push(b.format);
+    if (b.language)   metaParts.push(bookLanguageLabel(b.language));
+    if (b.format)     metaParts.push(bookFormatLabel(b.format));
     if (b.genre)      metaParts.push(genreLabel(b.genre));
     meta.textContent = metaParts.join(' · ');
-
-    // ISBN + edition + source
-    const info = document.createElement('div');
-    info.className = 'series-ep-line';
-    const infoParts = [];
-    if (b.edition)   infoParts.push(`${t('bookCardEdition')} ${b.edition}`);
-    if (b.publisher) infoParts.push(b.publisher);
-    if (b.isbn)      infoParts.push(`ISBN ${b.isbn}`);
-    if (b.source)  infoParts.push(b.source);
-    info.textContent = infoParts.join('  ·  ');
-
-    // Date info line
-    const dateInfo = document.createElement('div');
-    dateInfo.className = 'series-ep-line';
-    const dateParts = [];
-    if (b.start_date)  dateParts.push(`${t('bookStarted')} ${fmtDate(b.start_date)}`);
-    if (b.finish_date) dateParts.push(`${t('bookFinished')} ${fmtDate(b.finish_date)}`);
-    dateInfo.textContent = dateParts.join('  ·  ') || (status === 'WANT_TO_READ' ? t('bookNotStarted') : '');
-
-    // Star rating — clickable for direct rating
-    const stars = document.createElement('div');
-    stars.className = 'film-rating-display';
-    const starEls = [];
-    let currentRating = parseFloat(b.rating) || 0;
-    for (let i = 1; i <= 5; i++) {
-      const s = document.createElement('span');
-      s.className = 'film-star' + (i <= currentRating ? ' lit' : '');
-      s.textContent = '★';
-      s.addEventListener('mouseenter', () => {
-        starEls.forEach((st, idx) => st.classList.toggle('preview', idx < i));
-      });
-      s.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const newRating = (i === currentRating) ? 0 : i;
-        starEls.forEach(st => st.classList.remove('pulse'));
-        void s.offsetWidth;
-        s.classList.add('pulse');
-        try {
-          await readingPost({ action: 'update_book', id: b.id, rating: newRating });
-          currentRating = newRating;
-          b.rating = newRating;
-          starEls.forEach((st, idx) => st.classList.toggle('lit', idx < newRating));
-        } catch(err) { beep(280); }
-      });
-      starEls.push(s);
-      stars.appendChild(s);
-    }
-    stars.addEventListener('mouseleave', () => {
-      starEls.forEach(st => st.classList.remove('preview'));
-    });
-
-    // Actions
-    const actions = document.createElement('div');
-    actions.className = 'series-actions';
-
-    if (status === 'WANT_TO_READ') {
-      const startBtn = document.createElement('button');
-      startBtn.className = 'series-btn primary';
-      startBtn.textContent = t('bookBtnStartReading');
-      startBtn.addEventListener('click', () => bookMarkReading(b));
-      actions.appendChild(startBtn);
-    } else if (status === 'READING') {
-      const finishBtn = document.createElement('button');
-      finishBtn.className = 'series-btn primary';
-      finishBtn.style.background = 'var(--lcars-violet)';
-      finishBtn.textContent = t('bookBtnMarkCompleted');
-      finishBtn.addEventListener('click', () => showBookFinishModal(b));
-      actions.appendChild(finishBtn);
-    }
 
     const moreBtn = document.createElement('button');
     moreBtn.className = 'series-btn icon-btn';
@@ -436,11 +397,26 @@
     card.appendChild(moreBtn);
 
     body.appendChild(head);
-    body.appendChild(meta);
-    body.appendChild(info);
-    body.appendChild(dateInfo);
-    body.appendChild(stars);
-    if (actions.childElementCount) body.appendChild(actions);
+    if (metaParts.length) body.appendChild(meta);
+
+    const finishDate = bookDateInputValue(b.finish_date);
+    if (finishDate) {
+      const completion = document.createElement('div');
+      completion.className = 'series-ep-line';
+      completion.textContent = `${t('bookCardReadOn')} ${finishDate.replaceAll('-', '/')}`;
+      body.appendChild(completion);
+    }
+
+    if (status === 'WANT_TO_READ') {
+      const actions = document.createElement('div');
+      actions.className = 'series-actions';
+      const button = document.createElement('button');
+      button.className = 'series-btn primary';
+      button.textContent = t('bookBtnStartReading');
+      button.addEventListener('click', () => bookMarkReading(b));
+      actions.appendChild(button);
+      body.appendChild(actions);
+    }
 
     card.appendChild(poster);
     card.appendChild(body);
@@ -448,7 +424,32 @@
   }
 
   function bookStatusFormLabel(status) {
-    return ({'READING': '閱讀中', 'WANT_TO_READ': '待讀', 'COMPLETED': '已讀', 'PAUSED': '暫停', 'DROPPED': '放棄'})[status] || status;
+    if (currentLang !== 'zh') return bookStatusLabel(status);
+    return ({'READING': '閱讀中', 'COMPLETED': '已閱讀', 'WANT_TO_READ': '待閱讀', 'PAUSED': '暫停', 'DROPPED': '棄讀'})[status] || status;
+  }
+
+  function showBookDetails(b) {
+    const fields = [
+      [t('bookFormTitle'), b.title],
+      [t('bookFormTitleZh'), b.title_zh],
+      [t('bookFormAuthor'), b.author],
+      [t('bookFormTranslator'), b.translator],
+      [t('libFormYear'), b.year],
+      [t('bookFormEdition'), b.edition],
+      [t('libFormLanguage'), bookLanguageLabel(b.language)],
+      [t('filmFormGenre'), b.genre && genreLabel(b.genre)],
+      ['ISBN', b.isbn],
+      [t('bookFormPublisher'), b.publisher],
+      [t('bookFormFormat'), bookFormatLabel(b.format)],
+      [t('bookFormStartDate'), bookDateInputValue(b.start_date).replaceAll('-', '/')],
+      [t('bookFormFinishDate'), bookDateInputValue(b.finish_date).replaceAll('-', '/')],
+      [t('bookFormPurchaseDate'), bookDateInputValue(b.purchase_date).replaceAll('-', '/')],
+      [t('bookFormSource'), b.source],
+      [t('bookFormPrice'), b.price],
+      [t('libFormStatus'), bookStatusFormLabel(String(b.status || 'WANT_TO_READ').toUpperCase())],
+      [t('libFormNote'), b.notes],
+    ];
+    showMediaDetails(t('bookDetailsTitle'), 'books', 'BOOK ID', b.id, fields);
   }
 
   function bookStatusLabel(status) {
@@ -465,112 +466,57 @@
   /* ============================================================
      QUICK ACTIONS
      ============================================================ */
-  async function bookMarkReading(b) {
-    try {
-      const today = new Date().toISOString().slice(0, 10);
-      await readingPost({ action: 'update_book', id: b.id, status: 'READING', start_date: today });
+  function bookMarkReading(b) {
+    const now = new Date();
+    const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+      .map(part => String(part).padStart(2, '0')).join('-');
+    const dialog = document.createElement('dialog');
+    dialog.className = 'alert-card media-form-card book-start-dialog';
+    dialog.setAttribute('aria-labelledby', 'book-start-title');
+    dialog.innerHTML = `
+      <div class="alert-head"><span class="alert-head-title" id="book-start-title">${t('bookBtnStartReading')}</span></div>
+      <form>
+        <div class="alert-body lib-form-field">
+          <label class="lib-form-label" for="book-start-date">${t('bookFormStartDate')}</label>
+          <input class="lib-form-input" id="book-start-date" type="date" value="${today}" required autofocus>
+          <span role="alert"></span>
+        </div>
+        <div class="alert-footer confirm">
+          <button class="alert-ok" type="button">${t('libCancel')}</button>
+          <button class="alert-ok" type="submit">${t('libSave')}</button>
+        </div>
+      </form>`;
+
+    const form = dialog.querySelector('form');
+    const date = dialog.querySelector('input');
+    const cancel = dialog.querySelector('[type="button"]');
+    const save = dialog.querySelector('[type="submit"]');
+    const error = dialog.querySelector('[role="alert"]');
+    cancel.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('cancel', e => {
+      if (save.disabled) e.preventDefault();
+    });
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (save.disabled) return;
+      date.disabled = cancel.disabled = save.disabled = true;
+      error.textContent = '';
+      try {
+        await readingPost({ action: 'update_book', id: b.id, status: 'READING', start_date: date.value });
+      } catch (err) {
+        console.error('[READING] Start failed:', err);
+        error.textContent = t('libError');
+        date.disabled = cancel.disabled = save.disabled = false;
+        beep(280);
+        return;
+      }
+      dialog.close();
       beep(720);
       await fetchReading();
-    } catch(e) {
-      console.error('[READING] Start failed:', e);
-      beep(280);
-    }
-  }
-
-  async function showBookFinishModal(b) {
-    const today = new Date().toISOString().slice(0, 10);
-    return new Promise(resolve => {
-      const overlay = document.createElement('div');
-      overlay.className = 'alert-overlay';
-      overlay.style.zIndex = 10000;
-      const stack = document.createElement('div');
-      stack.className = 'alert-stack';
-      overlay.appendChild(stack);
-
-      const card = document.createElement('div');
-      card.className = 'alert-card';
-
-      const head = document.createElement('div');
-      head.className = 'alert-head';
-      head.innerHTML = `<span class="alert-head-title">${escapeHtml(t('bookFinishTitle'))}</span>`;
-
-      const body = document.createElement('div');
-      body.className = 'alert-body';
-      body.style.padding = '20px 24px';
-      body.innerHTML = `
-        <div style="margin-bottom:14px; font-size:14px; color:var(--lcars-cream);">${escapeHtml(b.title)}</div>
-        <div class="lib-form-grid">
-          <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end;">
-            <div class="lib-form-field">
-              <label class="lib-form-label">${t('bookFinishDate')}</label>
-              <input id="bfin-date" class="lib-form-input" type="date" value="${today}">
-            </div>
-            <div class="lib-form-field">
-              <label class="lib-form-label">${t('filmFormRating')}</label>
-              <div id="bfin-star-picker" class="lib-star-picker">${buildBookStarPickerHTML(0)}</div>
-              <input id="bfin-rating" type="hidden" value="0">
-            </div>
-          </div>
-        </div>`;
-
-      const footer = document.createElement('div');
-      footer.className = 'alert-footer confirm';
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'alert-ok';
-      cancelBtn.textContent = t('libCancel');
-      const saveBtn = document.createElement('button');
-      saveBtn.className = 'alert-ok';
-      saveBtn.style.cssText = 'background:var(--lcars-orange); color:var(--lcars-bg);';
-      saveBtn.textContent = t('bookBtnMarkCompleted');
-
-      const close = r => {
-        document.removeEventListener('keydown', onKey);
-        closeOverlay(overlay);
-        resolve(r);
-      };
-      const onKey = e => { if (e.key === 'Escape') close(null); };
-      document.addEventListener('keydown', onKey);
-      /* backdrop-close disabled */
-      cancelBtn.addEventListener('click', () => close(null));
-      saveBtn.addEventListener('click', async () => {
-        const date   = document.getElementById('bfin-date').value;
-        const rating = document.getElementById('bfin-rating').value;
-        close(true);
-        try {
-          await readingPost({ action: 'update_book', id: b.id, status: 'COMPLETED', finish_date: date, rating });
-          beep(720);
-          await fetchReading();
-        } catch(e) {
-          console.error('[READING] Finish failed:', e);
-          beep(280);
-        }
-      });
-
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
-      card.appendChild(head);
-      card.appendChild(body);
-      card.appendChild(footer);
-      stack.appendChild(card);
-      openOverlay(overlay);
-      requestAnimationFrame(() => overlay.style.opacity = '1');
-
-      window._bookFinishStarClick = val => {
-        const h = document.getElementById('bfin-rating');
-        const cur = parseInt(h.value) || 0;
-        const nv  = cur === val ? 0 : val;
-        h.value = nv;
-        document.querySelectorAll('#bfin-star-picker .lib-star').forEach((s, i) => s.classList.toggle('lit', i < nv));
-      };
     });
-  }
-
-  function buildBookStarPickerHTML(initial) {
-    let html = '';
-    for (let i = 1; i <= 5; i++) {
-      html += `<span class="lib-star${i <= initial ? ' lit' : ''}" onclick="window._bookFinishStarClick(${i})">★</span>`;
-    }
-    return html;
+    document.body.appendChild(dialog);
+    dialog.showModal();
   }
 
   /* ============================================================
@@ -611,12 +557,12 @@
      FORM HELPERS
      ============================================================ */
   function buildBookFormBody(b) {
-    const isEdit = !!b;
-    const langOpts = BOOK_LANGUAGES.map(L =>
-      `<option value="${L}" ${b && b.language === L ? 'selected' : ''}>${langLabel(L)}</option>`
+    const selectedLanguage = b?.language ? bookLanguageOption(b.language) : 'CHINESE_TRADITIONAL';
+    const langOpts = Object.entries(BOOK_LANGUAGES).map(([code, label]) =>
+      `<option value="${code}" ${selectedLanguage === code ? 'selected' : ''}>${t(label)}</option>`
     ).join('');
     const statusOpts = BOOK_STATUSES.map(st =>
-      `<option value="${st}" ${b && String(b.status).toUpperCase() === st ? 'selected' : (!b && st === 'WANT_TO_READ' ? 'selected' : '')}>${currentLang === 'zh' ? bookStatusFormLabel(st) : bookStatusLabel(st)}</option>`
+      `<option value="${st}" ${String(b?.status || 'WANT_TO_READ').toUpperCase() === st ? 'selected' : ''}>${bookStatusFormLabel(st)}</option>`
     ).join('');
     const genreOpts = ['', ...BOOK_GENRES].map(g =>
       `<option value="${g}" ${b && b.genre === g ? 'selected' : (!b && !g ? 'selected' : '')}>${g ? genreLabel(g) : '—'}</option>`
@@ -629,7 +575,7 @@
           <input id="bf-title" class="lib-form-input" placeholder="${t('bookFormTitlePH')}" value="${escapeAttr(b ? (b.title || '') : '')}">
         </div>
         <div class="lib-form-field full">
-          <label class="lib-form-label">${t('filmFormTitleZh')}</label>
+          <label class="lib-form-label">${t('bookFormTitleZh')}</label>
           <input id="bf-title-zh" class="lib-form-input" placeholder="${t('bookFormTitleZhPH')}" value="${escapeAttr(b ? (b.title_zh || '') : '')}">
         </div>
         <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -642,10 +588,14 @@
             <input id="bf-translator" class="lib-form-input" placeholder="${t('bookFormTranslatorPH')}" value="${escapeAttr(b ? (b.translator || '') : '')}">
           </div>
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:80px 1fr 1fr; gap:12px;">
+        <div class="lib-form-field full book-form-row book-form-publication">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormYear')}</label>
             <input id="bf-year" class="lib-form-input" type="number" min="0" max="2100" placeholder="?" value="${escapeAttr(b ? (b.year || '') : '')}">
+          </div>
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('bookFormEdition')}</label>
+            <input id="bf-edition" class="lib-form-input" placeholder="${t('bookFormEditionPH')}" value="${escapeAttr(b ? (b.edition || '') : '')}">
           </div>
           <div class="lib-form-field">
             <label class="lib-form-label">${t('libFormLanguage')}</label>
@@ -656,7 +606,7 @@
             <select id="bf-genre" class="lib-form-select">${genreOpts}</select>
           </div>
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr 80px; gap:12px;">
+        <div class="lib-form-field full book-form-row book-form-identifiers">
           <div class="lib-form-field">
             <label class="lib-form-label">ISBN</label>
             <input id="bf-isbn" class="lib-form-input" placeholder="978-…" value="${escapeAttr(b ? (b.isbn || '') : '')}">
@@ -666,33 +616,27 @@
             <input id="bf-publisher" class="lib-form-input" placeholder="${t('bookFormPublisherPH')}" value="${escapeAttr(b ? (b.publisher || '') : '')}">
           </div>
           <div class="lib-form-field">
-            <label class="lib-form-label">${t('bookFormEdition')}</label>
-            <input id="bf-edition" class="lib-form-input" placeholder="${t('bookFormEditionPH')}" value="${escapeAttr(b ? (b.edition || '') : '')}">
-          </div>
-        </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div class="lib-form-field">
             <label class="lib-form-label">${t('bookFormFormat')}</label>
             <select id="bf-format" class="lib-form-select">
-              ${BOOK_FORMATS.map(fmt => `<option value="${escapeAttr(fmt)}" ${(b && b.format === fmt) || (!b && fmt === BOOK_FORMATS[0]) ? 'selected' : ''}>${escapeHtml(fmt)}</option>`).join('')}
+              ${BOOK_FORMATS.map(fmt => `<option value="${escapeAttr(fmt)}" ${(b && b.format === fmt) || (!b && fmt === BOOK_FORMATS[0]) ? 'selected' : ''}>${escapeHtml(bookFormatLabel(fmt))}</option>`).join('')}
             </select>
           </div>
-          <div class="lib-form-field">
-            <label class="lib-form-label">${t('libFormStatus')}</label>
-            <select id="bf-status" class="lib-form-select">${statusOpts}</select>
-          </div>
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="lib-form-field full book-form-row book-form-dates">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('bookFormStartDate')}</label>
-            <input id="bf-start" class="lib-form-input" type="date" value="${escapeAttr(b ? (b.start_date ? String(b.start_date).slice(0,10) : '') : '')}">
+            <input id="bf-start" class="lib-form-input" type="date" value="${bookDateInputValue(b?.start_date)}">
           </div>
           <div class="lib-form-field">
             <label class="lib-form-label">${t('bookFormFinishDate')}</label>
-            <input id="bf-finish" class="lib-form-input" type="date" value="${escapeAttr(b ? (b.finish_date ? String(b.finish_date).slice(0,10) : '') : '')}">
+            <input id="bf-finish" class="lib-form-input" type="date" value="${bookDateInputValue(b?.finish_date)}">
+          </div>
+          <div class="lib-form-field">
+            <label class="lib-form-label" for="bf-purchase-date">${t('bookFormPurchaseDate')}</label>
+            <input id="bf-purchase-date" class="lib-form-input" type="date" value="${bookDateInputValue(b?.purchase_date)}">
           </div>
         </div>
-        <div class="lib-form-field full" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="lib-form-field full book-form-row book-form-acquisition">
           <div class="lib-form-field">
             <label class="lib-form-label">${t('bookFormSource')}</label>
             <input id="bf-source" class="lib-form-input" placeholder="${t('bookFormSourcePH')}" value="${escapeAttr(b ? (b.source || '') : '')}">
@@ -701,21 +645,15 @@
             <label class="lib-form-label">${t('bookFormPrice')}</label>
             <input id="bf-price" class="lib-form-input" placeholder="${t('bookFormPricePH')}" value="${escapeAttr(b ? (b.price || '') : '')}">
           </div>
+          <div class="lib-form-field">
+            <label class="lib-form-label">${t('libFormStatus')}</label>
+            <select id="bf-status" class="lib-form-select">${statusOpts}</select>
+          </div>
         </div>
         <div class="lib-form-field full">
           <label class="lib-form-label">${t('libFormNote')}</label>
           <textarea id="bf-note" class="lib-form-textarea" placeholder="${t('libFormNotePH')}">${escapeHtml(b ? (b.notes || '') : '')}</textarea>
         </div>
-        ${isEdit ? `
-        <div class="lib-form-field full lib-form-id-row">
-          <label class="lib-form-label">BOOK ID</label>
-          <div class="lib-form-id-box" id="book-copy-id-btn"
-               onclick="(function(el){navigator.clipboard.writeText('${b.id}').then(()=>{el.classList.add('copied');setTimeout(()=>el.classList.remove('copied'),1200)})})(document.getElementById('book-copy-id-btn'))"
-               title="點擊複製">
-            <span class="lib-form-id-val">${b.id}</span>
-            <span class="lib-form-id-copy">⎘</span>
-          </div>
-        </div>` : ''}
       </div>`;
   }
 
@@ -787,13 +725,17 @@
       cancelBtn.addEventListener('click', () => close(null));
       saveBtn.addEventListener('click', () => {
         const formatEl = document.getElementById('bf-format');
+        const selectedLanguage = document.getElementById('bf-language').value;
+        const language = b?.language && bookLanguageOption(b.language) === selectedLanguage
+          ? b.language
+          : selectedLanguage;
         const result = {
           title:        document.getElementById('bf-title').value.trim(),
           title_zh:     document.getElementById('bf-title-zh').value.trim(),
           author:       document.getElementById('bf-author').value.trim(),
           translator:   document.getElementById('bf-translator').value.trim(),
           year:         document.getElementById('bf-year').value.trim(),
-          language:     document.getElementById('bf-language').value,
+          language:     language,
           isbn:         document.getElementById('bf-isbn').value.trim(),
           edition:      document.getElementById('bf-edition').value.trim(),
           publisher:    document.getElementById('bf-publisher').value.trim(),
@@ -802,6 +744,7 @@
           status:       document.getElementById('bf-status').value,
           start_date:   document.getElementById('bf-start').value,
           finish_date:  document.getElementById('bf-finish').value,
+          purchase_date: document.getElementById('bf-purchase-date').value,
           source:       document.getElementById('bf-source').value.trim(),
           price:        document.getElementById('bf-price').value.trim(),
           notes:        document.getElementById('bf-note').value.trim(),

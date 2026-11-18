@@ -274,6 +274,7 @@ a,button,input,textarea,select,summary { outline-offset:3px; }
 .card-side-poster .series-poster { flex-basis:120px; width:120px; height:auto; min-height:230px; aspect-ratio:auto; }
 .card-side-poster .series-card-body { padding:16px; gap:9px; }
 .series-title { font-size:17px; line-height:1.55; font-weight:600; }
+.book-title-zh { font-weight:700; }
 .series-title-zh,.series-meta,.series-ep-line,.series-last-seen,.series-progress-pct { font-size:14px; color:var(--lcars-dim); opacity:1; }
 .series-status-pill { font-size:12px; font-weight:500; line-height:1.4; padding:3px 7px; border-radius:4px; white-space:nowrap; }
 .series-actions { gap:6px; flex-wrap:wrap; }
@@ -586,10 +587,10 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 /* Match the card height to a full, uncropped poster; contain long metadata separately. */
 #film-grid .series-card.card-side-poster,
 #book-grid .series-card.card-side-poster { height:240px; min-height:0; align-items:stretch; }
-#film-grid .card-side-poster .series-poster,
-#book-grid .card-side-poster .series-poster { flex:0 0 auto; width:auto; height:100%; min-height:0; aspect-ratio:auto; align-self:stretch; }
-#film-grid .series-poster img,
-#book-grid .series-poster img { display:block; width:auto; height:100%; max-width:none; position:static; object-fit:contain; }
+#film-grid .card-side-poster .series-poster { flex:0 0 auto; width:auto; height:100%; min-height:0; aspect-ratio:auto; align-self:stretch; }
+#book-grid .card-side-poster .series-poster { flex:0 0 auto; width:auto; height:100%; min-height:0; aspect-ratio:14 / 20; }
+#film-grid .series-poster img { display:block; width:auto; height:100%; max-width:none; position:static; object-fit:contain; }
+#book-grid .series-poster img { display:block; width:100%; height:100%; object-fit:cover; object-position:center; }
 #film-grid .card-side-poster .series-card-body,
 #book-grid .card-side-poster .series-card-body { min-height:0; overflow-y:auto; overflow-x:hidden; }
 @media(max-width:600px) {
@@ -610,6 +611,23 @@ body .console .portfolio-table .ccy-badge { font-family:var(--ui-sans); font-siz
 .media-form-card .alert-head,.media-form-card .alert-footer { flex-shrink:0; }
 .media-form-card .alert-body { flex:1 1 auto; min-height:0; max-height:none; overflow-y:auto; }
 .media-form-card .alert-footer { flex-wrap:wrap; background:var(--lcars-panel); border-top:1px solid var(--ui-line); }
+.book-form-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(4px, 2vw, 12px); }
+.book-form-publication { grid-template-columns:minmax(0,.75fr) minmax(0,.8fr) repeat(2,minmax(0,1fr)); }
+.book-form-row input,.book-form-row select { width:100%; min-width:0; }
+.series-card.has-media-details { cursor:pointer; }
+.media-details { position:fixed; inset:0; margin:auto; width:min(640px, calc(100% - 32px)); height:fit-content; padding:0; }
+.book-start-dialog { position:fixed; inset:0; margin:auto; width:min(420px, calc(100% - 32px)); height:fit-content; padding:0; }
+.media-details::backdrop,.book-start-dialog::backdrop { background:rgba(0,0,0,.72); }
+.book-start-dialog [role=alert]:empty { display:none; }
+.media-details .alert-body { display:flex; align-items:flex-start; gap:clamp(10px, 4vw, 24px); white-space:normal; }
+.media-details-cover { display:block; flex:none; width:clamp(76px, 28%, 148px); aspect-ratio:14 / 20; object-fit:cover; }
+.media-details[data-media-type=series] .media-details-cover { width:clamp(96px, 38%, 208px); aspect-ratio:16 / 9; }
+.media-details dl { display:grid; flex:1; min-width:0; grid-template-columns:fit-content(45%) minmax(0,1fr); gap:8px 16px; margin:0; }
+.media-details dt { color:var(--lcars-cream); }
+.media-details dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.media-copy-id { display:inline-grid; place-items:center; width:26px; height:26px; padding:0; vertical-align:middle; background:transparent; color:var(--lcars-cream); border:0; border-radius:5px; cursor:pointer; }
+.media-copy-id:hover,.media-copy-id:focus-visible { background:var(--lcars-frame); }
+.media-copy-status:not(:empty) { display:inline-block; padding:2px 6px; border-radius:4px; background:var(--lcars-frame); color:var(--lcars-cream); font-size:11px; vertical-align:middle; }
 
 /* Compact, fully visible status tabs for series, films, and reading. */
 .page[data-page=library] .lib-subtab-bar,.page[data-page=project] .ws-subtab-bar { margin-bottom:0; }

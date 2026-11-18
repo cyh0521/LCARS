@@ -455,6 +455,57 @@
     return map[code] || '';
   }
 
+  function bindMediaDetails(card, openDetails) {
+    card.classList.add('has-media-details');
+    card.tabIndex = 0;
+    card.addEventListener('click', e => {
+      if (!e.target.closest('button')) openDetails();
+    });
+    card.addEventListener('keydown', e => {
+      if (e.target === card && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        openDetails();
+      }
+    });
+  }
+
+  function showMediaDetails(title, posterFolder, idLabel, id, fields) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'alert-card media-form-card media-details';
+    dialog.dataset.mediaType = posterFolder;
+    dialog.setAttribute('aria-labelledby', 'media-details-title');
+
+    dialog.innerHTML = `
+      <div class="alert-head"><span id="media-details-title" class="alert-head-title">${escapeHtml(title)}</span></div>
+      <div class="alert-body">
+        <img class="media-details-cover" src="images/posters/${posterFolder}/${encodeURIComponent(id)}.jpg" alt="">
+        <dl>${fields.filter(([, value]) => String(value ?? '').trim() !== '').map(([label, value]) => `
+          <dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd>
+        `).join('')}
+          <dt>${escapeHtml(idLabel)}</dt><dd>${escapeHtml(String(id))} <button type="button" class="media-copy-id" title="${t('mediaCopyId')}" aria-label="${t('mediaCopyId')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button> <span class="media-copy-status" role="status"></span></dd>
+        </dl>
+      </div>
+      <form class="alert-footer" method="dialog">
+        <button class="alert-ok" autofocus>${escapeHtml(t('libClose'))}</button>
+      </form>`;
+    const cover = dialog.querySelector('img');
+    cover.addEventListener('error', () => cover.remove(), { once: true });
+    const copyButton = dialog.querySelector('.media-copy-id');
+    const copyStatus = dialog.querySelector('[role="status"]');
+    copyButton.addEventListener('click', async () => {
+      copyStatus.textContent = '';
+      try {
+        await navigator.clipboard.writeText(String(id));
+        copyStatus.textContent = t('mediaIdCopied');
+      } catch {
+        copyStatus.textContent = t('mediaIdCopyFailed');
+      }
+    });
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  }
+
   function buildSeasonCard(s, se, eps) {
     const watched   = eps.length;  // each episode log = 1 watched episode
     const total     = parseInt(se.total_episodes) || 0;
@@ -475,6 +526,18 @@
     card.className = `series-card status-${statusCls}`;
     card.dataset.seasonId = se.season_id;
     card.dataset.seriesId = s.id;
+    bindMediaDetails(card, () => showMediaDetails(t('seriesDetailsTitle'), 'series', 'SERIES ID', s.id, [
+      [t('libFormTitleOrig'), s.title_original],
+      [t('libFormTitleZh'), s.title_zh],
+      [t('libFormLanguage'), s.language && (langLabel(s.language) || s.language)],
+      [t('libFormSeasonNum'), parseInt(se.season_number, 10) || 1],
+      [t('libFormYear'), se.year],
+      [t('libFormSeasonTitle'), se.season_title],
+      [t('libFormTotalEp'), se.total_episodes],
+      [t('libFormStatus'), seriesStatusFormLabel(status)],
+      [t('libFormPlatform'), se.platform],
+      [t('libFormNote'), s.notes],
+    ]));
 
     // HEAD: original title + status pill
     const head = document.createElement('div');
@@ -1086,7 +1149,6 @@
   // ── Add / edit form ───────────────────────────────────────────────────────
 
   function buildSeriesFormBody(s, se) {
-    const isEdit = !!s;
     const platformOpts = ['', ...PLATFORMS].map(p =>
       `<option value="${p}" ${se && se.platform === p ? 'selected' : (!se && !p ? 'selected' : '')}>${p || '—'}</option>`
     ).join('');
@@ -1152,14 +1214,6 @@
           <label class="lib-form-label">${t('libFormNote')}</label>
           <textarea id="lf-note" class="lib-form-textarea" placeholder="${t('libFormNotePH')}">${escapeHtml(s ? (s.notes || '') : '')}</textarea>
         </div>
-        ${isEdit ? `
-        <div class="lib-form-field full lib-form-id-row">
-          <label class="lib-form-label">SERIES ID</label>
-          <div class="lib-form-id-box" id="lib-copy-id-btn" onclick="(function(el){navigator.clipboard.writeText('${s.id}').then(()=>{el.classList.add('copied');setTimeout(()=>el.classList.remove('copied'),1200)})})(document.getElementById('lib-copy-id-btn'))" title="點擊複製">
-            <span class="lib-form-id-val">${s.id}</span>
-            <span class="lib-form-id-copy">⎘</span>
-          </div>
-        </div>` : ''}
       </div>`;
   }
 
